@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_05_25_093000) do
+ActiveRecord::Schema[7.1].define(version: 2026_05_30_090000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -283,6 +283,33 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_25_093000) do
     t.index ["account_id", "conversation_id"], name: "index_calls_on_account_id_and_conversation_id"
     t.index ["message_id"], name: "index_calls_on_message_id"
     t.index ["provider", "provider_call_id"], name: "index_calls_on_provider_and_provider_call_id", unique: true
+  end
+
+  create_table "campaign_deliveries", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "campaign_id", null: false
+    t.bigint "contact_id", null: false
+    t.bigint "inbox_id", null: false
+    t.string "source_id"
+    t.integer "status", default: 0, null: false
+    t.string "error_code"
+    t.string "error_title"
+    t.text "error_message"
+    t.text "message_content"
+    t.datetime "sent_at"
+    t.datetime "delivered_at"
+    t.datetime "read_at"
+    t.datetime "failed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "campaign_id"], name: "index_campaign_deliveries_on_account_id_and_campaign_id"
+    t.index ["account_id"], name: "index_campaign_deliveries_on_account_id"
+    t.index ["campaign_id", "contact_id"], name: "index_campaign_deliveries_on_campaign_id_and_contact_id", unique: true
+    t.index ["campaign_id", "status"], name: "index_campaign_deliveries_on_campaign_id_and_status"
+    t.index ["campaign_id"], name: "index_campaign_deliveries_on_campaign_id"
+    t.index ["contact_id"], name: "index_campaign_deliveries_on_contact_id"
+    t.index ["inbox_id"], name: "index_campaign_deliveries_on_inbox_id"
+    t.index ["source_id"], name: "index_campaign_deliveries_on_source_id", unique: true, where: "(source_id IS NOT NULL)"
   end
 
   create_table "campaigns", force: :cascade do |t|
@@ -1323,6 +1350,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_25_093000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "campaign_deliveries", "accounts"
+  add_foreign_key "campaign_deliveries", "campaigns"
+  add_foreign_key "campaign_deliveries", "contacts"
+  add_foreign_key "campaign_deliveries", "inboxes"
   add_foreign_key "inboxes", "portals"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").

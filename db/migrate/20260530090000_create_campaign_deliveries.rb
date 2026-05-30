@@ -1,0 +1,36 @@
+class CreateCampaignDeliveries < ActiveRecord::Migration[7.1]
+  def change
+    create_campaign_deliveries
+    add_campaign_delivery_indexes
+  end
+
+  private
+
+  def create_campaign_deliveries
+    create_table :campaign_deliveries do |t|
+      t.references :account, null: false, foreign_key: true
+      t.references :campaign, null: false, foreign_key: true
+      t.references :contact, null: false, foreign_key: true
+      t.references :inbox, null: false, foreign_key: true
+      t.string :source_id
+      t.integer :status, null: false, default: 0
+      t.string :error_code
+      t.string :error_title
+      t.text :error_message
+      t.text :message_content
+      t.datetime :sent_at
+      t.datetime :delivered_at
+      t.datetime :read_at
+      t.datetime :failed_at
+
+      t.timestamps
+    end
+  end
+
+  def add_campaign_delivery_indexes
+    add_index :campaign_deliveries, [:account_id, :campaign_id]
+    add_index :campaign_deliveries, [:campaign_id, :status]
+    add_index :campaign_deliveries, [:campaign_id, :contact_id], unique: true
+    add_index :campaign_deliveries, :source_id, unique: true, where: 'source_id IS NOT NULL'
+  end
+end
