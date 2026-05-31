@@ -199,14 +199,27 @@ async function createChannel() {
             :message-type="fieldState('imapAddress')"
             @blur="v$.imapAddress.$touch"
           />
-          <Input
-            v-model="state.imapPort"
-            type="number"
-            :label="t('INBOX_MGMT.IMAP.PORT.LABEL')"
-            :placeholder="t('INBOX_MGMT.IMAP.PORT.PLACE_HOLDER')"
-            :message-type="fieldState('imapPort')"
-            @blur="v$.imapPort.$touch"
-          />
+          <div class="flex flex-col gap-2">
+            <Input
+              v-model="state.imapPort"
+              type="number"
+              :label="t('INBOX_MGMT.IMAP.PORT.LABEL')"
+              :placeholder="t('INBOX_MGMT.IMAP.PORT.PLACE_HOLDER')"
+              :message-type="fieldState('imapPort')"
+              @blur="v$.imapPort.$touch"
+            />
+            <label
+              for="imap-enable-ssl"
+              class="flex items-center gap-2 text-sm font-medium text-n-slate-12"
+            >
+              <input
+                id="imap-enable-ssl"
+                v-model="state.imapEnableSSL"
+                type="checkbox"
+              />
+              {{ t('INBOX_MGMT.IMAP.ENABLE_SSL') }}
+            </label>
+          </div>
           <Input
             v-model="state.imapLogin"
             :label="t('INBOX_MGMT.IMAP.LOGIN.LABEL')"
@@ -233,17 +246,6 @@ async function createChannel() {
               v-model="state.imapAuthentication"
               :options="selectOptions(IMAP_AUTH_OPTIONS)"
             />
-            <label
-              for="imap-enable-ssl"
-              class="flex items-center gap-2 mt-2 text-sm font-medium text-n-slate-12"
-            >
-              <input
-                id="imap-enable-ssl"
-                v-model="state.imapEnableSSL"
-                type="checkbox"
-              />
-              {{ t('INBOX_MGMT.IMAP.ENABLE_SSL') }}
-            </label>
           </label>
           <label class="flex flex-col gap-1">
             <span class="text-heading-3 text-n-slate-12">
