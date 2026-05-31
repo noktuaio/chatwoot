@@ -25,11 +25,10 @@ const isInboundEmailEnabled = computed(
   () => currentAccount.value?.features?.[FEATURE_FLAGS.INBOUND_EMAILS]
 );
 
-const isForwardingEnabled = computed(() => {
-  return (
+const isForwardingEnabled = computed(
+  () =>
     isInboundEmailEnabled.value && globalConfig.value.inboundEmailDomainPresent
-  );
-});
+);
 
 const emailProviderList = computed(() => {
   return [
