@@ -15,6 +15,7 @@ class Api::BaseController < ApplicationController
   READ_ONLY_BLOCKED_GET_ACTIONS = %w[
     api/v1/accounts/callbacks#register_facebook_page
     api/v1/accounts/portals#ssl_status
+    api/v1/accounts/conference#token
   ].freeze
 
   respond_to :json
