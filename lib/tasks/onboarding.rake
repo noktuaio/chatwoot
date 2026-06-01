@@ -8,7 +8,7 @@ namespace :onboarding do
   #
   # You will be prompted for the account ID and a confirmation (y/N).
   desc 'Reset onboarding for an account (interactive). Resets the onboarding step and deletes inboxes and help center articles.'
-  task reset: :environment do
+  task reset: :environment do # rubocop:disable Metrics/BlockLength
     print 'Enter the account ID to reset onboarding for: '
     account_id = $stdin.gets&.strip
 
