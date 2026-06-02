@@ -82,7 +82,8 @@ describe Enterprise::Billing::CreateStripeCustomerService do
           subscribed_quantity: 2,
           plan_name: 'A Plan Name',
           subscription_status: 'active',
-          subscription_ends_on: subscription_ends_on
+          subscription_ends_on: subscription_ends_on,
+          billing_currency: 'usd'
         }.with_indifferent_access
       )
     end
@@ -95,7 +96,9 @@ describe Enterprise::Billing::CreateStripeCustomerService do
 
       create_stripe_customer_service.new(account: account).perform
 
-      expect(Stripe::Customer).to have_received(:create).with({ name: account.name, email: admin1.email })
+      expect(Stripe::Customer).to have_received(:create).with(
+        { name: account.name, email: admin1.email, address: { country: 'US' }, preferred_locales: ['en'] }
+      )
       expect(Stripe::Subscription)
         .to have_received(:create)
         .with({ customer: customer.id, items: [{ price: 'price_hacker_random', quantity: 2 }] })
@@ -108,7 +111,8 @@ describe Enterprise::Billing::CreateStripeCustomerService do
           subscribed_quantity: 2,
           plan_name: 'A Plan Name',
           subscription_status: 'active',
-          subscription_ends_on: subscription_ends_on
+          subscription_ends_on: subscription_ends_on,
+          billing_currency: 'usd'
         }.with_indifferent_access
       )
     end

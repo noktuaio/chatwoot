@@ -475,6 +475,7 @@
       "PURCHASE": "Purchase Credits",
       "LOADING": "Loading options...",
       "FETCH_ERROR": "Failed to load credit options. Please try again.",
+      "RETRY": "Retry",
       "PURCHASE_ERROR": "Failed to process purchase. Please try again.",
       "PURCHASE_SUCCESS": "Successfully added {credits} credits to your account",
       "CONFIRM": {

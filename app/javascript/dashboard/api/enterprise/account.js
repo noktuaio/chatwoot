@@ -27,6 +27,12 @@ class EnterpriseAccountAPI extends ApiClient {
   createTopupCheckout(credits) {
     return axios.post(`${this.url}topup_checkout`, { credits });
   }
+
+  // Returns { currency, options: [{ credits, amount, currency }] } for the
+  // account's billing currency, sourced from CHATWOOT_CLOUD_TOPUP_OPTIONS.
+  getTopupOptions() {
+    return axios.get(`${this.url}topup_options`);
+  }
 }
 
 export default new EnterpriseAccountAPI();

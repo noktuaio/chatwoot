@@ -3,14 +3,26 @@ class Enterprise::Billing::TopupCheckoutService
 
   class Error < StandardError; end
 
-  TOPUP_OPTIONS = [
-    { credits: 1000, amount: 20.0, currency: 'usd' },
-    { credits: 2500, amount: 50.0, currency: 'usd' },
-    { credits: 6000, amount: 100.0, currency: 'usd' },
-    { credits: 12_000, amount: 200.0, currency: 'usd' }
-  ].freeze
+  TOPUP_OPTIONS_CONFIG = 'CHATWOOT_CLOUD_TOPUP_OPTIONS'.freeze
+
+  # Used only when CHATWOOT_CLOUD_TOPUP_OPTIONS is not configured, so the
+  # billing page never breaks during rollout. Real rates live in the config.
+  FALLBACK_OPTIONS = {
+    'usd' => [
+      { 'credits' => 1000, 'amount' => 20.0 },
+      { 'credits' => 2500, 'amount' => 50.0 },
+      { 'credits' => 6000, 'amount' => 100.0 },
+      { 'credits' => 12_000, 'amount' => 200.0 }
+    ]
+  }.freeze
 
   pattr_initialize [:account!]
+
+  # Topup packages for the account's billing currency, used by the controller
+  # to render the same options the frontend offers.
+  def available_options
+    topup_options
+  end
 
   def create_checkout_session(credits:)
     topup_option = validate_and_find_topup_option(credits)
@@ -100,6 +112,20 @@ class Enterprise::Billing::TopupCheckoutService
   end
 
   def find_topup_option(credits)
-    TOPUP_OPTIONS.find { |opt| opt[:credits] == credits.to_i }
+    topup_options.find { |opt| opt[:credits] == credits.to_i }
+  end
+
+  def topup_options
+    currency = account.billing_currency
+    rows = configured_options[currency].presence || configured_options[Enterprise::Billing::Currencies::DEFAULT].presence || []
+    rows.map { |opt| { credits: opt['credits'].to_i, amount: opt['amount'].to_f, currency: currency } }
+  end
+
+  def configured_options
+    config = InstallationConfig.find_by(name: TOPUP_OPTIONS_CONFIG)&.value
+    config = JSON.parse(config) if config.is_a?(String)
+    config.presence || FALLBACK_OPTIONS
+  rescue JSON::ParserError
+    FALLBACK_OPTIONS
   end
 end

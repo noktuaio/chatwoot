@@ -2,7 +2,7 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
   include BillingHelper
   before_action :fetch_account
   before_action :check_authorization
-  before_action :check_cloud_env, only: [:limits, :toggle_deletion]
+  before_action :check_cloud_env, only: [:limits, :toggle_deletion, :topup_checkout, :topup_options]
 
   def subscription
     if stripe_customer_id.blank? && @account.custom_attributes['is_creating_customer'].blank?
@@ -69,6 +69,11 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
     )
   rescue Enterprise::Billing::TopupCheckoutService::Error, Stripe::StripeError => e
     render_could_not_create_error(e.message)
+  end
+
+  def topup_options
+    service = Enterprise::Billing::TopupCheckoutService.new(account: @account)
+    render json: { id: @account.id, currency: @account.billing_currency, options: service.available_options }
   end
 
   private

@@ -1,4 +1,6 @@
 class Enterprise::Billing::HandleStripeEventService
+  include BillingHelper
+
   CLOUD_PLANS_CONFIG = 'CHATWOOT_CLOUD_PLANS'.freeze
   CAPTAIN_CLOUD_PLAN_LIMITS = 'CAPTAIN_CLOUD_PLAN_LIMITS'.freeze
 
@@ -61,9 +63,20 @@ class Enterprise::Billing::HandleStripeEventService
         'plan_name' => plan['name'],
         'subscribed_quantity' => subscription['quantity'],
         'subscription_status' => subscription['status'],
-        'subscription_ends_on' => Time.zone.at(subscription['current_period_end'])
+        'subscription_ends_on' => subscription_ends_on(subscription),
+        'billing_currency' => billing_currency_for(subscription, plan)
       )
     )
+  end
+
+  # Paid subscriptions are billed in real money, so their currency is
+  # authoritative and overrides the stored value. The default/free plan is $0
+  # and not currency-defining, so we preserve the account's chosen preference.
+  def billing_currency_for(subscription, plan)
+    return account.billing_currency if plan['name'] == Enterprise::Billing::PlanConfiguration.default_plan&.dig('name')
+
+    _plan, inferred_currency = Enterprise::Billing::PlanConfiguration.find_plan_by_price_id(subscription['plan']['id'])
+    inferred_currency || account.billing_currency
   end
 
   def process_subscription_deleted
@@ -141,7 +154,6 @@ class Enterprise::Billing::HandleStripeEventService
   end
 
   def find_plan(plan_id)
-    cloud_plans = InstallationConfig.find_by(name: CLOUD_PLANS_CONFIG)&.value || []
-    cloud_plans.find { |config| config['product_id'].include?(plan_id) }
+    Enterprise::Billing::PlanConfiguration.find_plan_by_product_id(plan_id)
   end
 end

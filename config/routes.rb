@@ -523,6 +523,7 @@ Rails.application.routes.draw do
               get :limits
               post :toggle_deletion
               post :topup_checkout
+              get :topup_options
             end
           end
         end

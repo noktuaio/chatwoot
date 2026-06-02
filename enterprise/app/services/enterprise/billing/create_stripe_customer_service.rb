@@ -1,4 +1,6 @@
 class Enterprise::Billing::CreateStripeCustomerService
+  include BillingHelper
+
   pattr_initialize [:account!]
 
   DEFAULT_QUANTITY = 2
@@ -22,7 +24,14 @@ class Enterprise::Billing::CreateStripeCustomerService
   def prepare_customer_id
     customer_id = account.custom_attributes['stripe_customer_id']
     if customer_id.blank?
-      customer = Stripe::Customer.create({ name: account.name, email: billing_email })
+      customer = Stripe::Customer.create(
+        {
+          name: account.name,
+          email: billing_email,
+          address: { country: Enterprise::Billing::Currencies.country_for(account.billing_currency) },
+          preferred_locales: [Enterprise::Billing::Currencies.preferred_locale_for(account.billing_currency)]
+        }
+      )
       customer_id = customer.id
     end
     customer_id
@@ -37,13 +46,11 @@ class Enterprise::Billing::CreateStripeCustomerService
   end
 
   def default_plan
-    installation_config = InstallationConfig.find_by(name: 'CHATWOOT_CLOUD_PLANS')
-    @default_plan ||= installation_config.value.first
+    @default_plan ||= Enterprise::Billing::PlanConfiguration.default_plan
   end
 
   def price_id
-    price_ids = default_plan['price_ids']
-    price_ids.first
+    Enterprise::Billing::PlanConfiguration.price_id_for(default_plan, account.billing_currency)
   end
 
   def active_subscription
@@ -60,7 +67,7 @@ class Enterprise::Billing::CreateStripeCustomerService
   end
 
   def default_plan_subscription?(subscription)
-    default_plan['price_ids'].include?(subscription['plan']['id'])
+    Enterprise::Billing::PlanConfiguration.plan_contains_price_id?(default_plan, subscription['plan']['id'])
   end
 
   def build_custom_attributes(customer_id, subscription)
@@ -71,14 +78,8 @@ class Enterprise::Billing::CreateStripeCustomerService
       'plan_name' => default_plan['name'],
       'subscribed_quantity' => subscription['quantity'],
       'subscription_status' => subscription['status'],
-      'subscription_ends_on' => subscription_ends_on(subscription)
+      'subscription_ends_on' => subscription_ends_on(subscription),
+      'billing_currency' => account.billing_currency
     )
-  end
-
-  def subscription_ends_on(subscription)
-    period_end = subscription['current_period_end']
-    return if period_end.blank?
-
-    Time.zone.at(period_end)
   end
 end
