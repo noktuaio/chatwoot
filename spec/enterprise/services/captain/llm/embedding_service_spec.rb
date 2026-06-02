@@ -55,11 +55,13 @@ RSpec.describe Captain::Llm::EmbeddingService do
       InstallationConfig.find_by(name: 'CAPTAIN_EMBEDDING_API_KEY')&.destroy
       allow(Llm::Config).to receive(:default_openai_endpoint?).and_return(false)
 
-      expect { described_class.new.get_embedding('refund policy') }
-        .to raise_error(
-          Llm::ConfigurationError,
-          'An OpenAI API key is required for embeddings and document search.'
-        )
+      with_modified_env OPENAI_API_KEY: nil do
+        expect { described_class.new.get_embedding('refund policy') }
+          .to raise_error(
+            Llm::ConfigurationError,
+            'An OpenAI API key is required for embeddings and document search.'
+          )
+      end
       expect(Llm::Config).not_to have_received(:with_api_key)
     end
   end

@@ -43,7 +43,9 @@ RSpec.describe Llm::LegacyBaseOpenAiService do
     set_installation_config('CAPTAIN_OPEN_AI_ENDPOINT', 'https://openrouter.ai/api')
     set_installation_config('CAPTAIN_EMBEDDING_API_KEY', '')
 
-    expect { described_class.new }.to raise_error(Llm::ConfigurationError, /OpenAI API key is required/)
+    with_modified_env OPENAI_API_KEY: nil do
+      expect { described_class.new }.to raise_error(Llm::ConfigurationError, /OpenAI API key is required/)
+    end
     expect(OpenAI::Client).not_to have_received(:new)
   end
 end

@@ -13,7 +13,7 @@ module Llm::OpenAiConfig
     end
 
     def api_key
-      openai_only_api_key.presence || system_openai_api_key
+      openai_only_api_key.presence || system_openai_api_key || legacy_openai_api_key
     end
 
     def embedding_model
@@ -32,6 +32,13 @@ module Llm::OpenAiConfig
 
     def system_openai_api_key
       system_api_key if Llm::Config.default_openai_endpoint?
+    end
+
+    def legacy_openai_api_key
+      # Preserve the documented OPENAI_API_KEY env fallback for self-hosted upgrades.
+      return if ChatwootApp.chatwoot_cloud?
+
+      ENV.fetch('OPENAI_API_KEY', nil)
     end
   end
 end
