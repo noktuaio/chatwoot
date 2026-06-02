@@ -37,6 +37,7 @@
     "CONTINUE": "Continue",
     "SKIP": "Skip",
     "ERROR": "Something went wrong. Please try again.",
+    "WHATSAPP_CONNECTED": "WhatsApp connected successfully",
     "CREATED_FOR_YOU": {
       "TITLE": "We've created the following for you",
       "LIVE_CHAT": "Live Chat widget",

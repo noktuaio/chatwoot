@@ -23,7 +23,7 @@ const store = useStore();
 const router = useRouter();
 const { accountId, currentAccount, finishOnboarding } = useAccount();
 const { isEnterprise } = useConfig();
-const { connectViaOAuth } = useChannelConnect();
+const { connectViaOAuth, connectWhatsapp } = useChannelConnect();
 
 const helpCenterGenerationId = computed(
   () => currentAccount.value?.custom_attributes?.help_center_generation_id
@@ -159,10 +159,16 @@ const handleSkip = () =>
   completeOnboarding(ONBOARDING_EVENTS.INBOX_SETUP_SKIPPED);
 const openChannelsDialog = () => channelsDialogRef.value?.open();
 
-// Gmail/Outlook are keyed by their email provider, Instagram by channel type.
-// Channels without a wired OAuth client (e.g. Facebook) are no-ops for now.
-const connectChannel = channel =>
+// WhatsApp connects via Meta's embedded-signup popup; the rest go through the
+// redirect OAuth flow (Gmail/Outlook keyed by email provider, Instagram by
+// channel type). Facebook stays a no-op until it's wired up.
+const connectChannel = channel => {
+  if (channel.type === 'whatsapp') {
+    connectWhatsapp();
+    return;
+  }
   connectViaOAuth(channel.inbox?.provider || channel.type);
+};
 </script>
 
 <template>

@@ -13,7 +13,7 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
-const { connectViaOAuth } = useChannelConnect();
+const { connectViaOAuth, connectWhatsapp } = useChannelConnect();
 const globalConfig = useMapGetter('globalConfig/get');
 
 // Maps the dialog's display types to the OAuth client key the flow expects.
@@ -66,6 +66,11 @@ const onCardClick = channel => {
   if (!isInteractive(channel)) return;
   if (channel.form) {
     selectedChannel.value = channel;
+    return;
+  }
+  // WhatsApp uses Meta's embedded-signup popup, not the redirect OAuth flow.
+  if (channel.type === 'whatsapp') {
+    connectWhatsapp();
     return;
   }
   connectViaOAuth(OAUTH_PROVIDERS[channel.type]);

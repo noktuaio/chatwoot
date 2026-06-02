@@ -1,5 +1,8 @@
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
+import { useStore } from 'dashboard/composables/store';
+import { useWhatsappEmbeddedSignup } from 'dashboard/composables/useWhatsappEmbeddedSignup';
+import { parseAPIErrorResponse } from 'dashboard/store/utils/api';
 import googleClient from 'dashboard/api/channel/googleClient';
 import microsoftClient from 'dashboard/api/channel/microsoftClient';
 import instagramClient from 'dashboard/api/channel/instagramClient';
@@ -18,6 +21,8 @@ const OAUTH_CLIENTS = {
 
 export function useChannelConnect() {
   const { t } = useI18n();
+  const store = useStore();
+  const { runEmbeddedSignup } = useWhatsappEmbeddedSignup();
 
   const connectViaOAuth = async provider => {
     const client = OAUTH_CLIENTS[provider];
@@ -33,5 +38,29 @@ export function useChannelConnect() {
     }
   };
 
-  return { connectViaOAuth };
+  // WhatsApp connects via Meta's embedded-signup popup instead of the redirect
+  // OAuth flow above. Collect the signup credentials, exchange them for an
+  // inbox, and surface the result inline — the store commits the new inbox, so
+  // the connected state updates without a refetch.
+  const connectWhatsapp = async () => {
+    let credentials;
+    try {
+      credentials = await runEmbeddedSignup();
+    } catch {
+      useAlert(t('ONBOARDING_INBOX_SETUP.ERROR'));
+      return;
+    }
+    if (!credentials) return; // user dismissed the popup
+
+    try {
+      await store.dispatch('inboxes/createWhatsAppEmbeddedSignup', credentials);
+      useAlert(t('ONBOARDING_INBOX_SETUP.WHATSAPP_CONNECTED'));
+    } catch (error) {
+      useAlert(
+        parseAPIErrorResponse(error) || t('ONBOARDING_INBOX_SETUP.ERROR')
+      );
+    }
+  };
+
+  return { connectViaOAuth, connectWhatsapp };
 }
