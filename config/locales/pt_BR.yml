@@ -67,6 +67,9 @@ pt_BR:
     saml:
       feature_not_enabled: SAML não está habilitado para esta conta
       sso_not_enabled: O SSO via SAML não está habilitado para esta instalação
+    conversations:
+      unread_counts:
+        feature_not_enabled: O recurso de contagem de conversas não lidas não está habilitado para esta conta
     data_import:
       data_type:
         invalid: Tipo de dado inválido
@@ -414,11 +417,11 @@ pt_BR:
       loading_placeholder: Procurando...
       results_title: Resultados de pesquisa
       results: Resultados da Pesquisa
-      results_for: "Search Results for '%{query}'"
-      no_results: "No results found for '%{query}'"
+      results_for: "Resultados da pesquisa para '%{query}'"
+      no_results: "Nenhum resultado encontrado para '%{query}'"
       found_results:
         one: Um resultado encontrado
-        other: 'Found %{count} results'
+        other: 'Encontrados %{count} resultados'
       submit: Pesquisar
     toc_header: 'Nesta página'
     sidebar:
