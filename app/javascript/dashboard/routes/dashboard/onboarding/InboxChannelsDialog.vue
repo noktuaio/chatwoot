@@ -7,6 +7,7 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
 import { useChannelConnect } from './useChannelConnect';
 import InboxChannelForm from './InboxChannelForm.vue';
+import InboxFacebookForm from './InboxFacebookForm.vue';
 
 const props = defineProps({
   inboxes: { type: Array, default: () => [] },
@@ -73,6 +74,11 @@ const onCardClick = channel => {
     connectWhatsapp();
     return;
   }
+  // Facebook swaps to an in-dialog page picker (FB.login → choose a Page).
+  if (channel.type === 'facebook') {
+    selectedChannel.value = channel;
+    return;
+  }
   connectViaOAuth(OAUTH_PROVIDERS[channel.type]);
 };
 
@@ -84,11 +90,15 @@ const dialogTitle = computed(() =>
     : t('ONBOARDING_INBOX_SETUP.CHANNELS_DIALOG.TITLE')
 );
 
-const dialogDescription = computed(() =>
-  selectedChannel.value
-    ? t('ONBOARDING_INBOX_SETUP.CHANNELS_DIALOG.CONNECT_SUBTITLE')
-    : t('ONBOARDING_INBOX_SETUP.CHANNELS_DIALOG.SUBTITLE')
-);
+const dialogDescription = computed(() => {
+  if (!selectedChannel.value) {
+    return t('ONBOARDING_INBOX_SETUP.CHANNELS_DIALOG.SUBTITLE');
+  }
+  if (selectedChannel.value.type === 'facebook') {
+    return t('ONBOARDING_INBOX_SETUP.CHANNELS_DIALOG.FACEBOOK_SUBTITLE');
+  }
+  return t('ONBOARDING_INBOX_SETUP.CHANNELS_DIALOG.CONNECT_SUBTITLE');
+});
 
 // `inbox` is a stub shaped like a real inbox so ChannelIcon can resolve the
 // icon from the shared provider. With `use-brand-icon`, ChannelIcon renders the
@@ -184,8 +194,14 @@ const isConnected = inbox =>
         configured.provider === inbox.provider)
   );
 
-const open = () => {
-  selectedChannel.value = null;
+const open = preselectType => {
+  const entry = preselectType
+    ? CHANNEL_LIST.find(channel => channel.type === preselectType)
+    : null;
+  // Only jump straight into a channel's view when it's actually usable;
+  // otherwise show the grid (with its muted "Setup required" card) rather than
+  // launching SDK auth with a missing credential.
+  selectedChannel.value = entry && isInteractive(entry) ? entry : null;
   dialogRef.value?.open();
 };
 const close = () => dialogRef.value?.close();
@@ -203,8 +219,13 @@ defineExpose({ open, close });
     :show-cancel-button="false"
     @close="selectedChannel = null"
   >
+    <InboxFacebookForm
+      v-if="selectedChannel?.type === 'facebook'"
+      @back="selectedChannel = null"
+      @created="selectedChannel = null"
+    />
     <InboxChannelForm
-      v-if="selectedChannel"
+      v-else-if="selectedChannel"
       :channel="selectedChannel"
       @back="selectedChannel = null"
       @created="selectedChannel = null"

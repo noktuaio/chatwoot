@@ -159,12 +159,17 @@ const handleSkip = () =>
   completeOnboarding(ONBOARDING_EVENTS.INBOX_SETUP_SKIPPED);
 const openChannelsDialog = () => channelsDialogRef.value?.open();
 
-// WhatsApp connects via Meta's embedded-signup popup; the rest go through the
-// redirect OAuth flow (Gmail/Outlook keyed by email provider, Instagram by
-// channel type). Facebook stays a no-op until it's wired up.
+// WhatsApp connects via Meta's embedded-signup popup; Facebook opens the
+// channels dialog straight into its page picker (it needs a selection step);
+// the rest go through the redirect OAuth flow (Gmail/Outlook keyed by email
+// provider, Instagram by channel type).
 const connectChannel = channel => {
   if (channel.type === 'whatsapp') {
     connectWhatsapp();
+    return;
+  }
+  if (channel.type === 'facebook') {
+    channelsDialogRef.value?.open('facebook');
     return;
   }
   connectViaOAuth(channel.inbox?.provider || channel.type);

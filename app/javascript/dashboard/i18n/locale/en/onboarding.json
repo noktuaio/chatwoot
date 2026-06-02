@@ -38,6 +38,7 @@
     "SKIP": "Skip",
     "ERROR": "Something went wrong. Please try again.",
     "WHATSAPP_CONNECTED": "WhatsApp connected successfully",
+    "FACEBOOK_CONNECTED": "Facebook connected successfully",
     "CREATED_FOR_YOU": {
       "TITLE": "We've created the following for you",
       "LIVE_CHAT": "Live Chat widget",
@@ -68,7 +69,13 @@
       "CONNECT_SUBTITLE": "Fill out these quick details",
       "CONNECT": "Connect",
       "BACK": "Back",
-      "NOT_CONFIGURED": "Setup required"
+      "NOT_CONFIGURED": "Setup required",
+      "FACEBOOK_SUBTITLE": "Authorize access and choose a Page to connect.",
+      "FACEBOOK_LAUNCH": "Continue with Facebook",
+      "FACEBOOK_SELECT_PAGE": "Select a Page to connect",
+      "FACEBOOK_LOADING": "Loading your Facebook Pages…",
+      "FACEBOOK_NO_PAGES": "No connectable Pages found. All your Pages are already connected.",
+      "FACEBOOK_ERROR": "Couldn't connect to Facebook. Please try again."
     },
     "APPS": {
       "TITLE": "Connect your favorite apps"
