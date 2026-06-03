@@ -150,5 +150,28 @@ RSpec.describe V2::Reports::DrilldownBuilder do
         )
       end
     end
+
+    context 'with bot resolution count metric' do
+      let(:metric) { 'bot_resolutions_count' }
+
+      before do
+        params[:until] = (bucket_start + 2.days).to_i.to_s
+      end
+
+      it 'excludes conversations with handoffs anywhere in the selected report range' do
+        resolved_conversation = create(:conversation, account: account, inbox: inbox)
+        handed_off_conversation = create(:conversation, account: account, inbox: inbox)
+
+        create(:reporting_event, account: account, inbox: inbox, conversation: resolved_conversation,
+                                 name: 'conversation_bot_resolved', created_at: bucket_start + 1.hour)
+        create(:reporting_event, account: account, inbox: inbox, conversation: handed_off_conversation,
+                                 name: 'conversation_bot_resolved', created_at: bucket_start + 2.hours)
+        create(:reporting_event, account: account, inbox: inbox, conversation: handed_off_conversation,
+                                 name: 'conversation_bot_handoff', created_at: bucket_start + 1.day)
+
+        expect(drilldown[:meta][:total_count]).to eq(1)
+        expect(drilldown[:payload].first[:conversation][:id]).to eq(resolved_conversation.id)
+      end
+    end
   end
 end

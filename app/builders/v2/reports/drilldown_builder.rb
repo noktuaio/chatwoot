@@ -87,7 +87,7 @@ class V2::Reports::DrilldownBuilder
 
   def bot_handoff_conversation_ids_subquery
     scope.reporting_events
-         .where(account_id: account.id, name: :conversation_bot_handoff, created_at: bucket_range)
+         .where(account_id: account.id, name: :conversation_bot_handoff, created_at: range)
          .where.not(conversation_id: nil)
          .select(:conversation_id)
   end
