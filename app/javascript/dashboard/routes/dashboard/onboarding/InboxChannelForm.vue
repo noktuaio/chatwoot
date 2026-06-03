@@ -34,6 +34,7 @@ const FORMS = {
         placeholder: t(
           'INBOX_MGMT.ADD.LINE_CHANNEL.LINE_CHANNEL_SECRET.PLACEHOLDER'
         ),
+        type: 'password',
       },
       {
         key: 'lineChannelToken',
@@ -41,6 +42,7 @@ const FORMS = {
         placeholder: t(
           'INBOX_MGMT.ADD.LINE_CHANNEL.LINE_CHANNEL_TOKEN.PLACEHOLDER'
         ),
+        type: 'password',
       },
     ],
     errorMessage: t('INBOX_MGMT.ADD.LINE_CHANNEL.API.ERROR_MESSAGE'),
@@ -62,6 +64,7 @@ const FORMS = {
         key: 'botToken',
         label: t('INBOX_MGMT.ADD.TELEGRAM_CHANNEL.BOT_TOKEN.LABEL'),
         placeholder: t('INBOX_MGMT.ADD.TELEGRAM_CHANNEL.BOT_TOKEN.PLACEHOLDER'),
+        type: 'password',
       },
     ],
     errorMessage: t('INBOX_MGMT.ADD.TELEGRAM_CHANNEL.API.ERROR_MESSAGE'),
@@ -108,6 +111,7 @@ const submit = async () => {
         <Input
           :id="field.key"
           v-model="values[field.key]"
+          :type="field.type || 'text'"
           :placeholder="field.placeholder"
         />
       </template>
