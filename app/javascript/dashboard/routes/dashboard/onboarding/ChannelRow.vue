@@ -2,7 +2,6 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
-import NextButton from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
   channel: { type: Object, required: true },
@@ -23,34 +22,43 @@ const connectedName = computed(
 </script>
 
 <template>
-  <div class="flex items-center justify-between gap-3 px-3 py-3">
-    <div class="flex items-center gap-2 min-w-0">
+  <div class="flex items-center gap-2 p-3 border-b border-n-weak">
+    <div class="size-4 rounded overflow-hidden flex-shrink-0">
       <ChannelIcon
         :inbox="channel.inbox"
         use-brand-icon
-        class="size-4 flex-shrink-0"
+        class="size-4"
         :class="{ grayscale: !connected }"
       />
-      <span class="text-sm font-medium text-n-slate-12">
-        {{ channel.label }}
-      </span>
     </div>
+    <span
+      class="flex-1 min-w-0 truncate text-sm font-420 leading-[21px] tracking-[-0.28px] text-n-slate-12"
+    >
+      {{ channel.label }}
+    </span>
     <div
       v-if="connected"
-      class="flex items-center gap-2 flex-shrink-0 text-sm text-n-slate-11"
+      class="flex items-center gap-2 flex-shrink-0 text-sm font-420 leading-[21px] tracking-[-0.28px] text-n-slate-11"
     >
-      <span class="truncate">{{ connectedName }}</span>
-      <span class="w-px h-4 bg-n-weak" />
-      <span>{{ t('ONBOARDING_INBOX_SETUP.CHANNELS.CONNECTED') }}</span>
+      <span class="whitespace-nowrap">{{ connectedName }}</span>
+      <span class="w-px h-3 bg-n-weak" />
+      <span class="whitespace-nowrap">
+        {{ t('ONBOARDING_INBOX_SETUP.CHANNELS.CONNECTED') }}
+      </span>
     </div>
-    <NextButton v-else outline slate xs @click="$emit('connect', channel)">
-      <span class="text-n-blue-11 truncate">
+    <button
+      v-else
+      type="button"
+      class="flex items-center flex-shrink-0 h-7 px-2 rounded-lg outline outline-1 outline-n-container bg-n-button-color text-sm font-460 leading-[21px] tracking-[-0.28px] text-n-blue-11"
+      @click="$emit('connect', channel)"
+    >
+      <span class="truncate">
         {{
           t('ONBOARDING_INBOX_SETUP.CHANNELS.CONNECT', {
             name: channel.handle || channel.label,
           })
         }}
       </span>
-    </NextButton>
+    </button>
   </div>
 </template>

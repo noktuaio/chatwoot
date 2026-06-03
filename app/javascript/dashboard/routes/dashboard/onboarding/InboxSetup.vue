@@ -216,16 +216,14 @@ const connectChannel = channel => {
       icon="i-lucide-inbox"
     >
       <ChannelRow
-        v-for="(channel, index) in displayedChannels"
+        v-for="channel in displayedChannels"
         :key="channel.type"
         :channel="channel"
         :connected-inbox="connectedInbox(channel)"
-        :class="{ 'border-t border-n-weak': index > 0 }"
         @connect="connectChannel"
       />
       <InboxChannelsFooter
         :remaining-channels="remainingChannels"
-        :class="{ 'border-t border-n-weak': displayedChannels.length > 0 }"
         @view-all="openChannelsDialog"
       />
     </OnboardingSection>
