@@ -233,6 +233,7 @@
       "TIP_AUDIORECORDER_ERROR": "Nem sikerült megnyitni a hangfelvételt",
       "AUDIO_CONVERSION_FAILED": "Audio conversion failed. Please try again.",
       "DRAG_DROP": "Helyezd ide a csatolmányt",
+      "IMAGE_UPLOAD_SUCCESS": "Képfeltöltés sikeres",
       "START_AUDIO_RECORDING": "Hangfelvétel indítása",
       "STOP_AUDIO_RECORDING": "Hangfelvétel leállítása",
       "COPILOT_THINKING": "Copilot gondolkodik",
