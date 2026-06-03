@@ -231,6 +231,7 @@ const connectChannel = channel => {
     </OnboardingSection>
 
     <!-- Disabled for this phase; integrations will be implemented later. -->
+    <!-- TODO: Delete this and associated code for adding it later -->
     <OnboardingSection
       v-if="false"
       :title="t('ONBOARDING_INBOX_SETUP.APPS.TITLE')"
