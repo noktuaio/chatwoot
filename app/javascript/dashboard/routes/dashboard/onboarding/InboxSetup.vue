@@ -118,8 +118,12 @@ const connectChannel = channel => {
       :title="t('ONBOARDING_INBOX_SETUP.CREATED_FOR_YOU.TITLE')"
       icon="i-lucide-sparkles"
     >
-      <WebWidgetCreationStatus />
-      <HelpCenterCreationStatus v-if="isEnterprise && helpCenterGenerationId" />
+      <div class="divide-y divide-n-weak">
+        <WebWidgetCreationStatus />
+        <HelpCenterCreationStatus
+          v-if="isEnterprise && helpCenterGenerationId"
+        />
+      </div>
     </OnboardingSection>
 
     <OnboardingSection
