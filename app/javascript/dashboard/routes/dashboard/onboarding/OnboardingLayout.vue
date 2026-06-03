@@ -122,7 +122,7 @@ defineEmits(['continue', 'skip']);
             v-if="skipLabel"
             type="button"
             slate
-            faded
+            outline
             class="flex-1 justify-center"
             @click="$emit('skip')"
           >
