@@ -11,10 +11,10 @@ import { useMapGetter } from 'dashboard/composables/store';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
-import OnboardingLayout from './OnboardingLayout.vue';
-import OnboardingSection from './OnboardingSection.vue';
-import OnboardingFormRow from './OnboardingFormRow.vue';
-import OnboardingFormSelect from './OnboardingFormSelect.vue';
+import OnboardingLayout from './shared/OnboardingLayout.vue';
+import OnboardingSection from './shared/OnboardingSection.vue';
+import OnboardingFormRow from './account-details/OnboardingFormRow.vue';
+import OnboardingFormSelect from './account-details/OnboardingFormSelect.vue';
 import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import {
@@ -22,7 +22,7 @@ import {
   INDUSTRY_OPTIONS,
   REFERRAL_SOURCE_OPTIONS,
   USER_ROLE_OPTIONS,
-} from './constants';
+} from './shared/constants';
 
 const { t } = useI18n();
 const router = useRouter();

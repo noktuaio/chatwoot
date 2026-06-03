@@ -1,12 +1,12 @@
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
-import InboxChannelsDialog from '../InboxChannelsDialog.vue';
+import InboxChannelsDialog from '../../inbox-setup/InboxChannelsDialog.vue';
 
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: key => key }) }));
 vi.mock('dashboard/composables/store', () => ({
   useMapGetter: () => ({ value: {} }),
 }));
-vi.mock('../useChannelConnect', () => ({
+vi.mock('../../inbox-setup/useChannelConnect', () => ({
   useChannelConnect: () => ({
     connectViaOAuth: vi.fn(),
     connectWhatsapp: vi.fn(),

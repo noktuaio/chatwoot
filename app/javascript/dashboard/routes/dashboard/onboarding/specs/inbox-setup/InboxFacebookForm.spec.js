@@ -1,6 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { ref, nextTick } from 'vue';
-import InboxFacebookForm from '../InboxFacebookForm.vue';
+import InboxFacebookForm from '../../inbox-setup/InboxFacebookForm.vue';
 import { useFacebookPageConnect } from 'dashboard/composables/useFacebookPageConnect';
 
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: key => key }) }));
