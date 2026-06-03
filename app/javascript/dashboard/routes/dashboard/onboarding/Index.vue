@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, nextTick, onMounted } from 'vue';
 import { useVuelidate } from '@vuelidate/core';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -15,6 +15,7 @@ import OnboardingLayout from './shared/OnboardingLayout.vue';
 import OnboardingSection from './shared/OnboardingSection.vue';
 import OnboardingFormRow from './account-details/OnboardingFormRow.vue';
 import OnboardingFormSelect from './account-details/OnboardingFormSelect.vue';
+import { useAccountEnrichment } from './account-details/useAccountEnrichment';
 import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import {
@@ -65,12 +66,15 @@ const v$ = useVuelidate(validationRules, {
 const userName = computed(() => currentUser.value?.name || '');
 const userEmail = computed(() => currentUser.value?.email || '');
 const accountName = computed(() => currentAccount.value?.name || '');
-const enrichmentTimedOut = ref(false);
-const isEnriching = computed(
-  () =>
-    !enrichmentTimedOut.value &&
-    currentAccount.value?.custom_attributes?.onboarding_step === 'enrichment'
-);
+const { isEnriching, getChangedFields } = useAccountEnrichment({
+  locale,
+  website,
+  timezone,
+  companySize,
+  industry,
+  referralSource,
+});
+
 const companyLogo = computed(() => {
   const logos = currentAccount.value?.custom_attributes?.brand_info?.logos;
   if (!logos?.length) return '';
@@ -96,93 +100,9 @@ const timezoneOptions = computed(() => {
   }
 });
 
-// Best-effort match browser language to enabled Chatwoot locales.
-// Tries exact match first (e.g. 'pt_BR'), then base language (e.g. 'pt'),
-// falls back to account locale or 'en'.
-const detectBestLocale = () => {
-  const codes = (enabledLanguages || []).map(l => l.iso_639_1_code);
-  const browserLang = navigator.language?.replace('-', '_');
-  const accountLocale = currentAccount.value?.locale || 'en';
-  if (!browserLang) return accountLocale;
-
-  if (codes.includes(browserLang)) return browserLang;
-  const base = browserLang.split('_')[0];
-  if (codes.includes(base)) return base;
-
-  return accountLocale;
-};
-
-// Snapshot of auto-populated values to detect user edits at submit time
-const initialValues = ref({});
-
-const snapshotInitialValues = () => {
-  initialValues.value = {
-    website: website.value,
-    company_size: companySize.value,
-    industry: industry.value,
-  };
-};
-
-// Idempotent: only fills empty fields, so late-arriving enrichment data
-// populates untouched fields without clobbering user edits.
-const populateFormFields = () => {
-  const account = currentAccount.value;
-  const attrs = account?.custom_attributes || {};
-  const brandInfo = attrs.brand_info;
-
-  if (!locale.value) locale.value = detectBestLocale();
-  if (!website.value) {
-    website.value = attrs.website || brandInfo?.domain || '';
-  }
-  if (!timezone.value) {
-    timezone.value =
-      attrs.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-  }
-  if (!companySize.value) companySize.value = attrs.company_size || '';
-  if (!industry.value) {
-    industry.value =
-      attrs.industry || brandInfo?.industries?.[0]?.industry || '';
-  }
-  if (!referralSource.value) referralSource.value = attrs.referral_source || '';
-
-  snapshotInitialValues();
-};
-
-let enrichmentTimer = null;
-
-const startEnrichmentTimer = () => {
-  if (enrichmentTimer) clearTimeout(enrichmentTimer);
-  enrichmentTimer = setTimeout(() => {
-    enrichmentTimedOut.value = true;
-    populateFormFields();
-  }, 30000);
-};
-
 onMounted(() => {
-  populateFormFields();
   useTrack(ONBOARDING_EVENTS.ACCOUNT_DETAILS_VISITED);
-  if (isEnriching.value) startEnrichmentTimer();
 });
-
-onUnmounted(() => {
-  if (enrichmentTimer) clearTimeout(enrichmentTimer);
-});
-
-watch(isEnriching, newVal => {
-  if (newVal) {
-    startEnrichmentTimer();
-  } else {
-    if (enrichmentTimer) clearTimeout(enrichmentTimer);
-    populateFormFields();
-  }
-});
-
-// Re-populate when account data arrives after mount, or when brand_info
-// appears after enrichment. populateFormFields is idempotent so this is safe.
-watch(
-  () => currentAccount.value?.custom_attributes,
-  () => populateFormFields()
-);
 
 const enableWebsiteEditing = () => {
   isEditingWebsite.value = true;
@@ -215,19 +135,9 @@ const handleSubmit = async () => {
     return;
   }
 
-  // Detect which enrichable fields the user actually edited *before*
-  // normalizing — otherwise an untouched auto-filled domain
-  // (acme.com -> https://acme.com) compares unequal against the raw snapshot
-  // and gets falsely reported as changed, skewing onboarding telemetry.
-  const init = initialValues.value;
-  const enrichableFields = {
-    website: website.value,
-    company_size: companySize.value,
-    industry: industry.value,
-  };
-  const fieldsChanged = Object.entries(enrichableFields)
-    .filter(([key, val]) => val !== init[key])
-    .map(([key]) => key);
+  // Capture which enrichable fields the user edited *before* normalizing the
+  // website, so an untouched auto-filled domain isn't falsely flagged.
+  const fieldsChanged = getChangedFields();
 
   // Persist with a scheme so downstream consumers (Firecrawl, portal
   // homepage_link) get a fully-qualified URL regardless of what the user typed.
