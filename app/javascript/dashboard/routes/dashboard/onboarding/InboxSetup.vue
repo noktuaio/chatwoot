@@ -172,17 +172,19 @@ const handleSkip = () =>
 const openChannelsDialog = () => channelsDialogRef.value?.open();
 const refetchInboxes = () => store.dispatch('inboxes/get');
 
-// WhatsApp connects via Meta's embedded-signup popup; Facebook opens the
-// channels dialog straight into its page picker (it needs a selection step);
-// the rest go through the redirect OAuth flow (Gmail/Outlook keyed by email
-// provider, Instagram by channel type).
+// WhatsApp connects via Meta's embedded-signup popup; Facebook (page picker)
+// and the credential-form channels (Telegram, Line) open the channels dialog
+// preselected to their in-dialog step; the rest go through the redirect OAuth
+// flow (Gmail/Outlook keyed by email provider, Instagram by channel type).
+const DIALOG_CHANNELS = ['facebook', 'telegram', 'line'];
+
 const connectChannel = channel => {
   if (channel.type === 'whatsapp') {
     connectWhatsapp();
     return;
   }
-  if (channel.type === 'facebook') {
-    channelsDialogRef.value?.open('facebook');
+  if (DIALOG_CHANNELS.includes(channel.type)) {
+    channelsDialogRef.value?.open(channel.type);
     return;
   }
   connectViaOAuth(channel.inbox?.provider || channel.type);
