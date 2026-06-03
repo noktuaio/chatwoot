@@ -1,0 +1,228 @@
+import { defineComponent, h } from 'vue';
+import { createStore } from 'vuex';
+import { mount } from '@vue/test-utils';
+import { useRoute } from 'vue-router';
+import { useDetectedChannels } from '../../inbox-setup/useDetectedChannels';
+
+vi.mock('vue-router');
+
+// Mounts the composable against a real store and the real useAccount (only
+// useRoute and the underlying getters are faked), so a change to how useAccount
+// resolves the current account is exercised here too. The real ./constants are
+// used, so assertions validate against the actual channel identity (labels,
+// channel_type, social ordering) derived from CHANNEL_LIST.
+const mountComposable = ({ brandInfo, inboxes = [] } = {}) => {
+  const store = createStore({
+    modules: {
+      accounts: {
+        namespaced: true,
+        getters: {
+          getAccount: () => () => ({
+            id: 1,
+            custom_attributes: { brand_info: brandInfo },
+          }),
+        },
+      },
+      inboxes: {
+        namespaced: true,
+        getters: { getInboxes: () => inboxes },
+      },
+    },
+  });
+
+  let result;
+  const Component = defineComponent({
+    setup() {
+      result = useDetectedChannels();
+      return () => h('div');
+    },
+  });
+  mount(Component, { global: { plugins: [store] } });
+  return result;
+};
+
+beforeEach(() => {
+  useRoute.mockReturnValue({ params: { accountId: '1' } });
+});
+
+describe('useDetectedChannels', () => {
+  describe('displayedChannels', () => {
+    it('maps detected socials with a url to channel rows', () => {
+      const { displayedChannels } = mountComposable({
+        brandInfo: {
+          socials: [
+            { type: 'whatsapp', url: 'https://wa.me/1-415-555-2671' },
+            { type: 'instagram', url: 'https://instagram.com/acme' },
+          ],
+        },
+      });
+
+      expect(displayedChannels.value).toEqual([
+        {
+          type: 'whatsapp',
+          handle: '+14155552671',
+          label: 'WhatsApp',
+          inbox: { channel_type: 'Channel::Whatsapp' },
+        },
+        {
+          type: 'instagram',
+          handle: '@acme',
+          label: 'Instagram',
+          inbox: { channel_type: 'Channel::Instagram' },
+        },
+      ]);
+    });
+
+    it('skips socials without a url or with an unknown type', () => {
+      const { displayedChannels } = mountComposable({
+        brandInfo: {
+          socials: [
+            { type: 'telegram' }, // no url
+            { type: 'mastodon', url: 'https://mastodon.social/@acme' }, // unknown
+            { type: 'tiktok', url: 'https://tiktok.com/@acme' },
+          ],
+        },
+      });
+
+      expect(displayedChannels.value.map(channel => channel.type)).toEqual([
+        'tiktok',
+      ]);
+    });
+
+    it('uses the raw path for line and falls back to empty on a bad url', () => {
+      const { displayedChannels } = mountComposable({
+        brandInfo: {
+          socials: [
+            { type: 'line', url: 'https://line.me/acme' },
+            { type: 'facebook', url: 'not-a-url' },
+          ],
+        },
+      });
+
+      expect(displayedChannels.value).toEqual([
+        {
+          type: 'line',
+          handle: 'acme',
+          label: 'LINE',
+          inbox: { channel_type: 'Channel::Line' },
+        },
+        {
+          type: 'facebook',
+          handle: '',
+          label: 'Facebook',
+          inbox: { channel_type: 'Channel::FacebookPage' },
+        },
+      ]);
+    });
+
+    it('omits the detected email channel while email is disabled for this phase', () => {
+      const { displayedChannels } = mountComposable({
+        brandInfo: {
+          email_provider: 'google',
+          email: 'support@acme.com',
+          socials: [{ type: 'whatsapp', url: 'https://wa.me/14155552671' }],
+        },
+      });
+
+      expect(displayedChannels.value.map(channel => channel.type)).toEqual([
+        'whatsapp',
+      ]);
+    });
+
+    it('returns an empty list when no brand info is present', () => {
+      const { displayedChannels } = mountComposable({ brandInfo: undefined });
+
+      expect(displayedChannels.value).toEqual([]);
+    });
+  });
+
+  describe('remainingChannels', () => {
+    it('returns the first three social platforms when none are connected', () => {
+      const { remainingChannels } = mountComposable({ brandInfo: {} });
+
+      expect(remainingChannels.value).toEqual([
+        {
+          type: 'whatsapp',
+          label: 'WhatsApp',
+          inbox: { channel_type: 'Channel::Whatsapp' },
+        },
+        {
+          type: 'facebook',
+          label: 'Facebook',
+          inbox: { channel_type: 'Channel::FacebookPage' },
+        },
+        {
+          type: 'line',
+          label: 'LINE',
+          inbox: { channel_type: 'Channel::Line' },
+        },
+      ]);
+    });
+
+    it('excludes already-detected socials, preserving order', () => {
+      const { remainingChannels } = mountComposable({
+        brandInfo: {
+          socials: [{ type: 'whatsapp', url: 'https://wa.me/14155552671' }],
+        },
+      });
+
+      expect(remainingChannels.value.map(channel => channel.type)).toEqual([
+        'facebook',
+        'line',
+        'instagram',
+      ]);
+    });
+  });
+
+  describe('connectedInbox', () => {
+    it('returns the real inbox sharing the channel type', () => {
+      const inbox = {
+        id: 1,
+        channel_type: 'Channel::Whatsapp',
+        name: 'WA Biz',
+      };
+      const { connectedInbox } = mountComposable({
+        brandInfo: {},
+        inboxes: [inbox],
+      });
+
+      expect(
+        connectedInbox({ inbox: { channel_type: 'Channel::Whatsapp' } })
+      ).toBe(inbox);
+    });
+
+    it('matches email inboxes on provider', () => {
+      const gmail = {
+        id: 1,
+        channel_type: 'Channel::Email',
+        provider: 'google',
+      };
+      const outlook = {
+        id: 2,
+        channel_type: 'Channel::Email',
+        provider: 'microsoft',
+      };
+      const { connectedInbox } = mountComposable({
+        brandInfo: {},
+        inboxes: [outlook, gmail],
+      });
+
+      expect(
+        connectedInbox({
+          inbox: { channel_type: 'Channel::Email', provider: 'google' },
+        })
+      ).toBe(gmail);
+    });
+
+    it('returns undefined when nothing matches', () => {
+      const { connectedInbox } = mountComposable({
+        brandInfo: {},
+        inboxes: [],
+      });
+
+      expect(
+        connectedInbox({ inbox: { channel_type: 'Channel::Telegram' } })
+      ).toBeUndefined();
+    });
+  });
+});
