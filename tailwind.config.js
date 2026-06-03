@@ -20,7 +20,10 @@ const defaultSansFonts = [
 ];
 
 const tailwindConfig = {
-  darkMode: 'class',
+  // `dark:` applies under any `.dark` ancestor, but a nested `.light` boundary
+  // opts a subtree back out (so descendant `dark:` utilities don't leak into the
+  // call window when it renders in the inverse/light theme under `body.dark`).
+  darkMode: ['variant', '&:where(.dark, .dark *):not(:where(.light, .light *))'],
   content: [
     './enterprise/app/views/**/*.erb',
     './app/javascript/widget/**/*.vue',
