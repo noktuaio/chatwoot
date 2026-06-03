@@ -50,6 +50,7 @@ class Captain::Tools::FirecrawlService
   def scrape_options
     {
       onlyMainContent: true,
+      maxAge: 0,
       formats: ['markdown'],
       excludeTags: FIRECRAWL_EXCLUDE_TAGS
     }
