@@ -700,7 +700,25 @@
           "MAKE_DEFAULT": "设为默认",
           "MOVE_TO_DRAFT": "Move to draft",
           "PUBLISH_LOCALE": "Publish locale",
+          "CUSTOMIZE_CONTENT": "Localize content",
           "DELETE": "删除"
+        }
+      },
+      "CONTENT_DIALOG": {
+        "TITLE": "Localize content",
+        "DESCRIPTION": "Set values specific to this locale. Anything left blank falls back to the default locale.",
+        "NAME": {
+          "LABEL": "姓名："
+        },
+        "PAGE_TITLE": {
+          "LABEL": "页面标题"
+        },
+        "HEADER_TEXT": {
+          "LABEL": "标题文本"
+        },
+        "API": {
+          "SUCCESS_MESSAGE": "Locale content updated successfully",
+          "ERROR_MESSAGE": "Unable to update locale content. Try again."
         }
       },
       "ADD_LOCALE_DIALOG": {
