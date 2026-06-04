@@ -94,6 +94,9 @@ onMounted(async () => {
   await Promise.all([
     store.dispatch('getConversation', conversationId.value),
     store.dispatch('fetchAllAttachments', conversationId.value),
+    // agents and teams power the @mention dropdown on private notes
+    store.dispatch('agents/get'),
+    store.dispatch('teams/get'),
   ]);
 
   await fetchConversationInbox();
