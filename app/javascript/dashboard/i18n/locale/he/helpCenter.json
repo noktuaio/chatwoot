@@ -700,7 +700,25 @@
           "MAKE_DEFAULT": "הפוך לברירת מחדל",
           "MOVE_TO_DRAFT": "Move to draft",
           "PUBLISH_LOCALE": "Publish locale",
+          "CUSTOMIZE_CONTENT": "Localize content",
           "DELETE": "מחק"
+        }
+      },
+      "CONTENT_DIALOG": {
+        "TITLE": "Localize content",
+        "DESCRIPTION": "Set values specific to this locale. Anything left blank falls back to the default locale.",
+        "NAME": {
+          "LABEL": "שם"
+        },
+        "PAGE_TITLE": {
+          "LABEL": "כותרת עמוד"
+        },
+        "HEADER_TEXT": {
+          "LABEL": "טקסט כותרת עליונה"
+        },
+        "API": {
+          "SUCCESS_MESSAGE": "Locale content updated successfully",
+          "ERROR_MESSAGE": "Unable to update locale content. Try again."
         }
       },
       "ADD_LOCALE_DIALOG": {
