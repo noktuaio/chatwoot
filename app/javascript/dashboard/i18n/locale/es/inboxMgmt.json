@@ -657,16 +657,16 @@
     },
     "WHATSAPP_CALLING": {
       "ENABLE": {
-        "LABEL": "Enable WhatsApp Calling",
-        "DESCRIPTION": "Allow agents to receive and place WhatsApp Cloud calls on this inbox. Customers can call this business number directly from WhatsApp."
+        "LABEL": "Habilitar llamadas de WhatsApp",
+        "DESCRIPTION": "Permitir a los agentes recibir y hacer llamadas a WhatsApp Cloud en esta bandeja de entrada. Los clientes pueden llamar a este número de negocio directamente desde WhatsApp."
       },
-      "ENABLE_FAILED": "Voice calling couldn't be turned on for this number — it isn't enrolled in the WhatsApp Business Calling API yet. Reach out to Meta or your WhatsApp Business Solution Provider to onboard it, then try again.",
+      "ENABLE_FAILED": "No se pudo activar la llamada de voz para este número — aún no está inscrito en la API de llamadas empresariales de WhatsApp. Llega a Meta o a tu proveedor de soluciones de negocios de WhatsApp a bordo de él, luego vuelve a intentarlo.",
       "PHONE_NUMBER": {
-        "LABEL": "Business phone number",
-        "HELP_TEXT": "WhatsApp number that customers will call."
+        "LABEL": "Número de teléfono empresarial",
+        "HELP_TEXT": "Número de WhatsApp al que llamarán los clientes."
       },
       "HOW_IT_WORKS": {
-        "LABEL": "How it works",
+        "LABEL": "Cómo funciona",
         "DESCRIPTION": "Calls are placed peer-to-peer between the agent's browser and Meta — no extra credentials are required. Make sure the agent's browser has microphone permission for this site."
       },
       "PERMISSION_REQUEST_BODY": {
