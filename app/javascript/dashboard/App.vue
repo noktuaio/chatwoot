@@ -109,19 +109,24 @@ export default {
       this.$store.dispatch('setActiveAccount', {
         accountId: this.currentAccountId,
       });
-      // Seed Vuex from IndexedDB before ActionCable connects so warm boots
-      // paint cached config (inboxes, labels, teams, canned responses, agents)
-      // instantly. Stale entries are revalidated in the background against the
-      // server's authoritative cache keys.
+      const { pubsub_token: pubsubToken } = this.currentUser || {};
+      const actionCable = vueActionCable.init(this.store, pubsubToken);
+
+      // Seed Vuex from IndexedDB while ActionCable connects so warm boots paint
+      // cached config instantly. Once the cable subscription is confirmed, run
+      // one more reconciliation to catch invalidations broadcast between the
+      // first cache-key snapshot and the active subscription.
       await hydrateStoresFromCache(this.$store, this.currentAccountId);
+      actionCable.connected.then(() => {
+        hydrateStoresFromCache(this.$store, this.currentAccountId);
+      });
+
       const account = this.getAccount(this.currentAccountId);
       const { locale, latest_chatwoot_version: latestChatwootVersion } =
         account;
-      const { pubsub_token: pubsubToken } = this.currentUser || {};
       // If user locale is set, use it; otherwise use account locale
       this.setLocale(this.uiSettings?.locale || locale);
       this.latestChatwootVersion = latestChatwootVersion;
-      vueActionCable.init(this.store, pubsubToken);
       this.reconnectService = new ReconnectService(this.store, this.router);
       window.reconnectService = this.reconnectService;
 
