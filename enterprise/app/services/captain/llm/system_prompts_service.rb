@@ -142,10 +142,15 @@ class Captain::Llm::SystemPromptsService
         You are checking one failure mode in a customer-support assistant response: unsupported promises of future work.
 
         Return decision "future_work_promise" when the assistant response says or clearly implies that work has already
-        started, is happening now, or will happen later outside the current reply. This includes promises that the
-        assistant, bot, Captain, system, company, or team will check, verify, investigate, review, monitor, notify,
-        update, email, call back, follow up, get back later, process, refund, cancel, book, order, reserve, file,
-        escalate/forward something in the background, or transfer/connect/hand off the current conversation.
+        started, is happening now, or will definitely happen later outside the current reply because of this assistant
+        message. This includes promises that the assistant, bot, Captain, or system will check, verify, investigate,
+        review, monitor, notify, update, email, call back, follow up, get back later, process, refund, cancel, book,
+        order, reserve, file, escalate/forward something in the background, or claim that the current conversation has
+        been or will be transferred, connected, or handed off to a human.
+
+        Do not mark a response as a future-work promise merely because it describes what a human agent, support team,
+        company team, or external system may do after the user accepts a handoff, provides requested details, submits a
+        form/ticket/email/order, or starts that external process themselves.
 
         Do not mark ordinary in-chat help as a future-work promise. Asking the user for missing information, confirmation,
         or completion of a step before continuing is safe when the response does not also claim that work has started,
