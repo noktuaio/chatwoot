@@ -142,10 +142,41 @@ describe('useDetectedChannels', () => {
       ]);
     });
 
-    it('returns an empty list when no brand info is present', () => {
+    it('falls back to the default channel suggestions when nothing is detected', () => {
       const { displayedChannels } = mountComposable({ brandInfo: undefined });
 
-      expect(displayedChannels.value).toEqual([]);
+      // The configured mainstream channels, with no detected handle.
+      expect(displayedChannels.value).toEqual([
+        {
+          type: 'whatsapp',
+          handle: '',
+          label: 'WhatsApp',
+          inbox: { channel_type: 'Channel::Whatsapp' },
+        },
+        {
+          type: 'facebook',
+          handle: '',
+          label: 'Facebook',
+          inbox: { channel_type: 'Channel::FacebookPage' },
+        },
+        {
+          type: 'instagram',
+          handle: '',
+          label: 'Instagram',
+          inbox: { channel_type: 'Channel::Instagram' },
+        },
+      ]);
+    });
+
+    it('gates the default suggestions by installation config, keeping the list non-empty', () => {
+      window.chatwootConfig = {}; // no OAuth credentials configured
+      const { displayedChannels } = mountComposable({ brandInfo: undefined });
+
+      // Only the credential-free defaults survive (Telegram, LINE).
+      expect(displayedChannels.value.map(channel => channel.type)).toEqual([
+        'telegram',
+        'line',
+      ]);
     });
 
     it('hides detected channels whose installation OAuth credentials are missing', () => {
@@ -167,24 +198,26 @@ describe('useDetectedChannels', () => {
   });
 
   describe('remainingChannels', () => {
-    it('returns the first three social platforms when none are connected', () => {
+    it('returns the platforms not already shown as default rows', () => {
+      // Nothing detected → displayed falls back to the defaults (WhatsApp,
+      // Facebook, Instagram), so the footer previews the remaining platforms.
       const { remainingChannels } = mountComposable({ brandInfo: {} });
 
       expect(remainingChannels.value).toEqual([
         {
-          type: 'whatsapp',
-          label: 'WhatsApp',
-          inbox: { channel_type: 'Channel::Whatsapp' },
-        },
-        {
-          type: 'facebook',
-          label: 'Facebook',
-          inbox: { channel_type: 'Channel::FacebookPage' },
-        },
-        {
           type: 'line',
           label: 'LINE',
           inbox: { channel_type: 'Channel::Line' },
+        },
+        {
+          type: 'telegram',
+          label: 'Telegram',
+          inbox: { channel_type: 'Channel::Telegram' },
+        },
+        {
+          type: 'tiktok',
+          label: 'TikTok',
+          inbox: { channel_type: 'Channel::Tiktok' },
         },
       ]);
     });
@@ -207,11 +240,9 @@ describe('useDetectedChannels', () => {
       window.chatwootConfig = {}; // nothing configured
       const { remainingChannels } = mountComposable({ brandInfo: {} });
 
-      // Only the credential-free channels (Telegram, LINE) survive the gate.
-      expect(remainingChannels.value.map(channel => channel.type)).toEqual([
-        'line',
-        'telegram',
-      ]);
+      // The only configured channels (Telegram, LINE) are shown as default rows,
+      // and every other platform is gated out — so nothing remains for the footer.
+      expect(remainingChannels.value).toEqual([]);
     });
   });
 

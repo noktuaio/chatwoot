@@ -5,6 +5,22 @@ import { SOCIAL_PLATFORMS, EMAIL_PROVIDERS } from './constants';
 import { findConnectedInbox } from './channelMatchers';
 import { useChannelConfig } from './useChannelConfig';
 
+// How many channel rows to show, whether detected or defaulted.
+const DISPLAYED_CHANNEL_LIMIT = 3;
+
+// Suggested channels (in priority order) to offer as rows when nothing is
+// detected, so the step isn't empty. Config-gated like everything else, then
+// sliced to DISPLAYED_CHANNEL_LIMIT — the mainstream OAuth channels show on
+// configured installs, while credential-free Telegram/LINE keep the list
+// non-empty on a bare self-host.
+const DEFAULT_CHANNEL_TYPES = [
+  'whatsapp',
+  'facebook',
+  'instagram',
+  'telegram',
+  'line',
+];
+
 // Pull the handle/username out of a detected social URL, formatted per channel.
 const extractHandle = ({ type, url }) => {
   try {
@@ -62,7 +78,16 @@ export function useDetectedChannels() {
   const connectedInbox = channel =>
     findConnectedInbox(inboxes.value, channel.inbox);
 
-  const displayedChannels = computed(() =>
+  // A channel row built from a social type, with no detected handle — used for
+  // the default suggestions when nothing was detected.
+  const toChannelRow = type => ({
+    type,
+    handle: '',
+    label: SOCIAL_PLATFORMS[type].label,
+    inbox: { channel_type: SOCIAL_PLATFORMS[type].channelType },
+  });
+
+  const detectedChannels = computed(() =>
     [detectedEmailChannel.value, ...connectedChannels.value]
       .filter(Boolean)
       // Email channels (including Gmail/Outlook OAuth) are disabled for this
@@ -73,10 +98,26 @@ export function useDetectedChannels() {
       .filter(channel => isConfigured(channel.type))
   );
 
+  const defaultChannels = computed(() =>
+    DEFAULT_CHANNEL_TYPES.filter(isConfigured)
+      .slice(0, DISPLAYED_CHANNEL_LIMIT)
+      .map(toChannelRow)
+  );
+
+  // Show the detected channels, or fall back to the default suggestions so the
+  // step is never an empty list.
+  const displayedChannels = computed(() =>
+    detectedChannels.value.length
+      ? detectedChannels.value
+      : defaultChannels.value
+  );
+
   const remainingChannels = computed(() => {
-    const connectedTypes = new Set(connectedChannels.value.map(c => c.type));
+    // Exclude whatever is already shown as a row (detected or defaulted) so the
+    // footer preview doesn't duplicate it.
+    const shownTypes = new Set(displayedChannels.value.map(c => c.type));
     return Object.entries(SOCIAL_PLATFORMS)
-      .filter(([type]) => !connectedTypes.has(type))
+      .filter(([type]) => !shownTypes.has(type))
       .filter(([type]) => isConfigured(type))
       .slice(0, 3)
       .map(([type, { label, channelType }]) => ({
