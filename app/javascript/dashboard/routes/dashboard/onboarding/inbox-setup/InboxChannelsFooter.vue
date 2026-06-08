@@ -4,6 +4,7 @@ import { useI18n, I18nT } from 'vue-i18n';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
 import { FALLBACK_PREVIEW_CHANNELS } from './constants';
+import { useChannelConfig } from './useChannelConfig';
 
 const props = defineProps({
   remainingChannels: { type: Array, default: () => [] },
@@ -12,14 +13,18 @@ const props = defineProps({
 defineEmits(['viewAll']);
 
 const { t } = useI18n();
+const { isConfigured } = useChannelConfig();
 
 // Icons shown next to "View all". Defaults to the unconnected socials, but when
 // everything detected is already connected we still want a hint of what's
-// behind the dialog — fall back to a representative trio.
+// behind the dialog — fall back to a representative trio. Either way, drop
+// channels whose installation credentials are missing so we never preview an
+// icon the dialog itself hides.
 const previewChannels = computed(() =>
-  props.remainingChannels.length
+  (props.remainingChannels.length
     ? props.remainingChannels
     : FALLBACK_PREVIEW_CHANNELS
+  ).filter(channel => isConfigured(channel.type))
 );
 </script>
 

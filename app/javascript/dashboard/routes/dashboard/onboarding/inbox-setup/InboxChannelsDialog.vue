@@ -1,11 +1,11 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useMapGetter } from 'dashboard/composables/store';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
 import { useChannelConnect } from './useChannelConnect';
+import { useChannelConfig } from './useChannelConfig';
 import { CHANNEL_LIST } from './constants';
 import { isChannelConnected } from './channelMatchers';
 import InboxChannelForm from './InboxChannelForm.vue';
@@ -19,7 +19,7 @@ const emit = defineEmits(['connected']);
 
 const { t } = useI18n();
 const { connectViaOAuth, connectWhatsapp } = useChannelConnect();
-const globalConfig = useMapGetter('globalConfig/get');
+const { isConfigured } = useChannelConfig();
 
 // Maps the dialog's display types to the OAuth client key the flow expects.
 // Types without an entry (manual-setup channels) are no-ops for now.
@@ -30,48 +30,29 @@ const OAUTH_PROVIDERS = {
   tiktok: 'tiktok',
 };
 
-// OAuth channels need installation-level app credentials to be usable. When the
-// credential is missing the channel is "not configured" — shown muted and not
-// clickable. Mirrors the availability checks in ChannelItem.vue.
-const installationConfig = window.chatwootConfig || {};
-const CHANNEL_CONFIGURED = {
-  // WhatsApp is onboarded only via Meta embedded signup, which needs both the
-  // app id (not the 'none' sentinel) and the signup configuration id.
-  whatsapp: () =>
-    Boolean(installationConfig.whatsappAppId) &&
-    installationConfig.whatsappAppId !== 'none' &&
-    Boolean(installationConfig.whatsappConfigurationId),
-  facebook: () => Boolean(installationConfig.fbAppId),
-  instagram: () => Boolean(installationConfig.instagramAppId),
-  tiktok: () => Boolean(installationConfig.tiktokAppId),
-  gmail: () => Boolean(installationConfig.googleOAuthClientId),
-  outlook: () => Boolean(globalConfig.value.azureAppId),
-};
-
-const isConfigured = channel => CHANNEL_CONFIGURED[channel.type]?.() ?? true;
-
 // A card's availability — what the user can do with it right now:
-//   available    — usable now (configured, not deferred)
-//   unconfigured — a real channel whose installation credential is missing
-//   setupLater   — deferred to in-app setup (SMS/API/Voice/Email cards)
+//   available  — usable now (configured, not deferred)
+//   setupLater — deferred to in-app setup (SMS/API/Voice/Email cards)
+// Channels whose installation OAuth credentials are missing are hidden entirely
+// (see channelCards), so they never reach this state.
 // `connected` (a real inbox already backs it) is orthogonal and tracked
 // separately, since a connected channel can still be in any of these states.
-const channelAvailability = channel => {
-  if (channel.setupLater) return 'setupLater';
-  if (!isConfigured(channel)) return 'unconfigured';
-  return 'available';
-};
+const channelAvailability = channel =>
+  channel.setupLater ? 'setupLater' : 'available';
 
 const CARD_CLASS = {
   available: 'bg-n-solid-1 hover:outline-n-slate-6 cursor-pointer',
-  unconfigured: 'bg-n-solid-1 opacity-50 cursor-not-allowed',
   setupLater: 'bg-n-slate-2 cursor-not-allowed',
 };
 
 // Decorate the catalog with per-render state so the template reads plain fields
-// rather than calling predicates for each card.
+// rather than calling predicates for each card. Channels needing an absent
+// installation credential are dropped so they don't show at all; deferred
+// (setupLater) channels stay since they aren't a configuration problem.
 const channelCards = computed(() =>
-  CHANNEL_LIST.map(channel => ({
+  CHANNEL_LIST.filter(
+    channel => channel.setupLater || isConfigured(channel.type)
+  ).map(channel => ({
     ...channel,
     availability: channelAvailability(channel),
     connected: isChannelConnected(props.inboxes, channel.inbox),
@@ -196,13 +177,7 @@ defineExpose({ open, close });
               {{ channel.label }}
             </span>
             <span
-              v-if="channel.availability === 'unconfigured'"
-              class="block text-xs text-n-slate-11"
-            >
-              {{ t('ONBOARDING_INBOX_SETUP.CHANNELS_DIALOG.NOT_CONFIGURED') }}
-            </span>
-            <span
-              v-else-if="channel.availability === 'setupLater'"
+              v-if="channel.availability === 'setupLater'"
               class="block text-xs text-n-slate-11"
             >
               {{ t('ONBOARDING_INBOX_SETUP.CHANNELS_DIALOG.SETUP_LATER') }}

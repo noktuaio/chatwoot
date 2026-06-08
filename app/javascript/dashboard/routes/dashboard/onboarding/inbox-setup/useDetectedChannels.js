@@ -3,6 +3,7 @@ import { useMapGetter } from 'dashboard/composables/store';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { SOCIAL_PLATFORMS, EMAIL_PROVIDERS } from './constants';
 import { findConnectedInbox } from './channelMatchers';
+import { useChannelConfig } from './useChannelConfig';
 
 // Pull the handle/username out of a detected social URL, formatted per channel.
 const extractHandle = ({ type, url }) => {
@@ -26,6 +27,7 @@ const extractHandle = ({ type, url }) => {
 export function useDetectedChannels() {
   const { currentAccount } = useAccount();
   const inboxes = useMapGetter('inboxes/getInboxes');
+  const { isConfigured } = useChannelConfig();
 
   const brandSocials = computed(
     () => currentAccount.value?.custom_attributes?.brand_info?.socials || []
@@ -66,12 +68,16 @@ export function useDetectedChannels() {
       // Email channels (including Gmail/Outlook OAuth) are disabled for this
       // phase; they will be enabled in a future PR.
       .filter(channel => channel.type !== 'email')
+      // Hide channels whose installation OAuth credentials are missing — their
+      // connect flow would only error.
+      .filter(channel => isConfigured(channel.type))
   );
 
   const remainingChannels = computed(() => {
     const connectedTypes = new Set(connectedChannels.value.map(c => c.type));
     return Object.entries(SOCIAL_PLATFORMS)
       .filter(([type]) => !connectedTypes.has(type))
+      .filter(([type]) => isConfigured(type))
       .slice(0, 3)
       .map(([type, { label, channelType }]) => ({
         type,

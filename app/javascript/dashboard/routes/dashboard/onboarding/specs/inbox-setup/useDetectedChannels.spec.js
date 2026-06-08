@@ -43,6 +43,19 @@ const mountComposable = ({ brandInfo, inboxes = [] } = {}) => {
 
 beforeEach(() => {
   useRoute.mockReturnValue({ params: { accountId: '1' } });
+  // Configure the installation OAuth credentials so detected channels aren't
+  // hidden by the config gate; individual tests clear this to assert hiding.
+  window.chatwootConfig = {
+    fbAppId: 'fb',
+    instagramAppId: 'ig',
+    tiktokAppId: 'tt',
+    whatsappAppId: 'wa',
+    whatsappConfigurationId: 'wa-config',
+  };
+});
+
+afterEach(() => {
+  delete window.chatwootConfig;
 });
 
 describe('useDetectedChannels', () => {
@@ -134,6 +147,23 @@ describe('useDetectedChannels', () => {
 
       expect(displayedChannels.value).toEqual([]);
     });
+
+    it('hides detected channels whose installation OAuth credentials are missing', () => {
+      window.chatwootConfig = {}; // nothing configured
+      const { displayedChannels } = mountComposable({
+        brandInfo: {
+          socials: [
+            { type: 'facebook', url: 'https://facebook.com/acme' },
+            { type: 'line', url: 'https://line.me/acme' },
+          ],
+        },
+      });
+
+      // Facebook needs fbAppId (absent → hidden); LINE needs no install credential.
+      expect(displayedChannels.value.map(channel => channel.type)).toEqual([
+        'line',
+      ]);
+    });
   });
 
   describe('remainingChannels', () => {
@@ -170,6 +200,17 @@ describe('useDetectedChannels', () => {
         'facebook',
         'line',
         'instagram',
+      ]);
+    });
+
+    it('excludes channels whose installation OAuth credentials are missing', () => {
+      window.chatwootConfig = {}; // nothing configured
+      const { remainingChannels } = mountComposable({ brandInfo: {} });
+
+      // Only the credential-free channels (Telegram, LINE) survive the gate.
+      expect(remainingChannels.value.map(channel => channel.type)).toEqual([
+        'line',
+        'telegram',
       ]);
     });
   });
