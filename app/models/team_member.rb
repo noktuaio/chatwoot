@@ -18,6 +18,12 @@ class TeamMember < ApplicationRecord
   belongs_to :user
   belongs_to :team
   validates :user_id, uniqueness: { scope: :team_id }
+
+  # is_member is embedded into the cached team payload (per current user) via
+  # api/v1/models/_team.json.jbuilder, so membership changes must bump the team
+  # cache key. team is safe-navigated because destroying a team cascades here
+  # via destroy_async, by which point the team row is already gone.
+  after_commit -> { team&.account&.update_cache_key('team') }, on: [:create, :destroy]
 end
 
 TeamMember.include_mod_with('Audit::TeamMember')
