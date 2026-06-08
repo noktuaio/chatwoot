@@ -24,11 +24,11 @@
       "SELECT_REFERRAL_SOURCE": "Select source"
     },
     "EMAIL_VERIFIED": "Email verified",
-    "SETTING_UP": "Setting up your account...",
+    "SETTING_UP": "Configurando tu cuenta...",
     "CONTINUE": "Continue",
     "SAVING": "Guardando...",
-    "VALIDATION_ERROR": "Please fill in all required fields",
-    "SUCCESS": "Details saved successfully",
-    "ERROR": "Could not save details. Please try again."
+    "VALIDATION_ERROR": "Por favor, rellene todos los campos requeridos",
+    "SUCCESS": "Detalles guardados correctamente",
+    "ERROR": "No se pudo guardar los detalles. Por favor, inténtelo de nuevo."
   }
 }
