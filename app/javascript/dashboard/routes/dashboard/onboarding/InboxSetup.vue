@@ -6,7 +6,6 @@ import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useAlert, useTrack } from 'dashboard/composables';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useConfig } from 'dashboard/composables/useConfig';
-import { useHelpCenterGenerationStore } from 'dashboard/stores/helpCenterGeneration';
 import { ONBOARDING_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import OnboardingLayout from './shared/OnboardingLayout.vue';
@@ -41,7 +40,6 @@ const channelsDialogRef = ref(null);
 
 onMounted(() => {
   store.dispatch('inboxes/get');
-  useHelpCenterGenerationStore().hydrate(helpCenterGenerationId.value);
   useTrack(ONBOARDING_EVENTS.INBOX_SETUP_VISITED);
 });
 

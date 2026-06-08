@@ -1,33 +1,18 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { storeToRefs } from 'pinia';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useStore, useMapGetter } from 'dashboard/composables/store';
-import { useHelpCenterGenerationStore } from 'dashboard/stores/helpCenterGeneration';
+import OnboardingAPI from 'dashboard/api/onboarding';
 import CreationStatusRow from './CreationStatusRow.vue';
 
 const { t } = useI18n();
-const store = useStore();
+const POLL_INTERVAL = 5000;
 
-const { isCompleted, isSkipped, articlesCount } = storeToRefs(
-  useHelpCenterGenerationStore()
-);
-
-// On completion, fetch the onboarding portal to surface its real category
-// count (the article count comes from the generation events). The portals
-// index is the only place the store exposes meta.categories_count.
-const portals = useMapGetter('portals/allPortals');
-const categoriesCount = computed(
-  () => portals.value?.[0]?.meta?.categories_count ?? null
-);
-
-watch(
-  isCompleted,
-  completed => {
-    if (completed) store.dispatch('portals/index');
-  },
-  { immediate: true }
-);
+const generation = ref({
+  generation_id: null,
+  state: null,
+  articles_count: 0,
+  categories_count: 0,
+});
 
 // Before the first article arrives, advance through phases so the spinner
 // label doesn't sit on a single line through the whole curation step.
@@ -42,6 +27,8 @@ const PHASE_DELAY_JITTER = 2000;
 
 const phaseIndex = ref(0);
 let phaseTimer = null;
+let pollTimer = null;
+const isFetching = ref(false);
 
 // Advance one phase after a jittered delay; stop once we reach the last line
 // (it then holds until the first article arrives).
@@ -54,9 +41,51 @@ const scheduleNextPhase = () => {
   }, delay);
 };
 
-onMounted(scheduleNextPhase);
+const status = computed(
+  () =>
+    generation.value.state?.status ||
+    (generation.value.generation_id ? 'generating' : 'not_started')
+);
+const isCompleted = computed(() => status.value === 'completed');
+const isSkipped = computed(() => status.value === 'skipped');
+const isNotStarted = computed(() => status.value === 'not_started');
+const isTerminal = computed(
+  () => isCompleted.value || isSkipped.value || isNotStarted.value
+);
+const articlesCount = computed(() => generation.value.articles_count || 0);
+const categoriesCount = computed(() => generation.value.categories_count || 0);
 
-onBeforeUnmount(() => clearTimeout(phaseTimer));
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+};
+
+const fetchStatus = async () => {
+  if (isFetching.value) return;
+  isFetching.value = true;
+  try {
+    const { data } = await OnboardingAPI.getHelpCenterGeneration();
+    generation.value = data;
+    if (isTerminal.value) stopPolling();
+  } catch {
+    // Keep polling; transient network failures should not strand onboarding.
+  } finally {
+    isFetching.value = false;
+  }
+};
+
+onMounted(() => {
+  scheduleNextPhase();
+  fetchStatus();
+  pollTimer = setInterval(fetchStatus, POLL_INTERVAL);
+});
+
+onBeforeUnmount(() => {
+  clearTimeout(phaseTimer);
+  stopPolling();
+});
 
 const articlesText = computed(() =>
   t(
@@ -67,7 +96,7 @@ const articlesText = computed(() =>
 );
 
 const statusText = computed(() => {
-  if (isCompleted.value && categoriesCount.value != null) {
+  if (isCompleted.value) {
     const categories = t(
       'ONBOARDING_INBOX_SETUP.CREATED_FOR_YOU.HELP_CENTER_CATEGORIES',
       { count: categoriesCount.value },
@@ -82,12 +111,14 @@ const statusText = computed(() => {
   if (isCompleted.value || articlesCount.value > 0) return articlesText.value;
   return generatingPhases.value[phaseIndex.value];
 });
+
+const isVisible = computed(() => !isSkipped.value && !isNotStarted.value);
 </script>
 
 <!-- eslint-disable-next-line vue/no-root-v-if -->
 <template>
   <CreationStatusRow
-    v-if="!isSkipped"
+    v-if="isVisible"
     :ready="isCompleted"
     :title="t('ONBOARDING_INBOX_SETUP.CREATED_FOR_YOU.HELP_CENTER')"
     :description="
