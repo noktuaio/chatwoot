@@ -41,17 +41,18 @@ class Enterprise::Billing::SwitchCurrencyService
   # Free plan: recreate the default sub in the new currency (so a later upgrade starts there); sync the Stripe customer.
   def switch_free_plan(subscriptions)
     default_subscription = subscriptions.find { |subscription| default_price?(subscription) }
+    attributes = if default_subscription
+                   recreated_default_attributes(subscriptions, default_subscription)
+                 else
+                   account.custom_attributes.merge('billing_currency' => target_currency)
+                 end
 
-    if default_subscription
-      replace_default_subscription(subscriptions, default_subscription)
-    else
-      persist_currency(account.custom_attributes.merge('billing_currency' => target_currency))
-    end
-
+    # Persist last: it sets billing_currency, which gates retries via the same_currency check.
     sync_stripe_customer_location
+    persist_currency(attributes)
   end
 
-  def replace_default_subscription(subscriptions, default_subscription)
+  def recreated_default_attributes(subscriptions, default_subscription)
     plan = Enterprise::Billing::PlanConfiguration.default_plan
     change = {
       new_price_id: resolve_new_price_id(plan),
@@ -60,8 +61,7 @@ class Enterprise::Billing::SwitchCurrencyService
       key: default_subscription.id
     }
 
-    new_subscription = replace_subscriptions(subscriptions, change)
-    persist_currency(build_custom_attributes(new_subscription, plan))
+    build_custom_attributes(replace_subscriptions(subscriptions, change), plan)
   end
 
   # Replace all live subs with one paid sub in the target currency, preserving seats and paid-through.
@@ -81,8 +81,9 @@ class Enterprise::Billing::SwitchCurrencyService
 
     new_subscription = replace_subscriptions(subscriptions, change)
 
-    persist_currency(build_custom_attributes(new_subscription, plan))
+    # Persist last: it sets billing_currency, which gates retries via the same_currency check.
     sync_stripe_customer_location
+    persist_currency(build_custom_attributes(new_subscription, plan))
     Enterprise::Billing::ReconcilePlanFeaturesService.new(account: account).perform
   end
 
