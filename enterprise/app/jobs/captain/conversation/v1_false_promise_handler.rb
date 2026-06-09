@@ -66,17 +66,17 @@ module Captain::Conversation::V1FalsePromiseHandler
 
   def verify_v1_false_promise_repair(message_history)
     detection = detect_v1_false_promise(message_history)
-    return unless future_work_promise?(detection)
+    return if safe_response?(detection)
 
-    @response.merge!(
-      'action' => 'handoff',
-      'action_reason' => 'false_promise_repair_failed',
-      'action_source' => 'false_promise_harness'
-    )
+    mark_v1_false_promise_handoff_fallback
   end
 
   def future_work_promise?(detection)
     detection['decision'] == 'future_work_promise'
+  end
+
+  def safe_response?(detection)
+    detection['decision'] == 'safe'
   end
 
   def v1_false_promise_harness_enabled?
