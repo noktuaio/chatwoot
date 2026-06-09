@@ -15,6 +15,8 @@ import PurchaseCreditsModal from './components/PurchaseCreditsModal.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import ButtonV4 from 'next/button/Button.vue';
+import { getCurrencyConfig } from 'dashboard/constants/billing';
+import { useI18n } from 'vue-i18n';
 
 const router = useRouter();
 const { currentAccount, isOnChatwootCloud } = useAccount();
@@ -29,6 +31,7 @@ const {
 
 const uiFlags = useMapGetter('accounts/getUIFlags');
 const store = useStore();
+const { t } = useI18n();
 
 const BILLING_REFRESH_ATTEMPTED = 'billing_refresh_attempted';
 
@@ -59,6 +62,13 @@ const canPurchaseCredits = computed(() => {
  */
 const subscribedQuantity = computed(() => {
   return customAttributes.value.subscribed_quantity;
+});
+
+const billingCurrency = computed(() => {
+  if (!customAttributes.value.billing_currency) return '';
+  return t(
+    getCurrencyConfig(customAttributes.value.billing_currency).i18nLabelKey
+  );
 });
 
 const subscriptionRenewsOn = computed(() => {
@@ -187,6 +197,11 @@ onMounted(handleBillingPageLogic);
               v-if="subscriptionRenewsOn"
               :label="$t('BILLING_SETTINGS.CURRENT_PLAN.RENEWS_ON')"
               :value="subscriptionRenewsOn"
+            />
+            <DetailItem
+              v-if="billingCurrency"
+              :label="$t('BILLING_SETTINGS.CURRENT_PLAN.CURRENCY')"
+              :value="billingCurrency"
             />
           </div>
         </BillingCard>
