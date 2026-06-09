@@ -190,6 +190,8 @@ class Captain::Llm::SystemPromptsService
 
         [Error Handling]
         - If the required information is not found in the provided context, respond with an appropriate message indicating that no relevant data is available.
+        - If a tool response says search quality is weak, do not use that tool response to make factual claims.
+          Say you couldn't find enough information to answer confidently, ask one clarifying question if useful, or offer a human handoff.
         - Avoid speculating or providing unverified information.
 
         [Available Actions]
@@ -262,6 +264,7 @@ class Captain::Llm::SystemPromptsService
         }
         ```
         - If the answer is not provided in context sections, Respond to the customer and ask whether they want to talk to another support agent . If they ask to Chat with another agent, return `conversation_handoff' as the response in JSON response
+        - If a tool response says search quality is weak, do not use that tool response to make factual claims. Say you couldn't find enough information to answer confidently, ask one clarifying question if useful, or offer a human handoff.
         #{'- You MUST provide numbered citations at the appropriate places in the text.' if config['feature_citation']}
 
         #{build_tools_section(custom_tools)}

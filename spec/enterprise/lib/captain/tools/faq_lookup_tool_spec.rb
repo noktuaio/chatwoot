@@ -5,15 +5,12 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
   let(:assistant) { create(:captain_assistant, account: account) }
   let(:tool) { described_class.new(assistant) }
   let(:tool_context) { Struct.new(:state).new({}) }
+  let(:documentation_search_service) { instance_double(Captain::DocumentationSearchService) }
 
   before do
-    # Create installation config for OpenAI API key to avoid errors
-    create(:installation_config, name: 'CAPTAIN_OPEN_AI_API_KEY', value: 'test-key')
-
-    # Mock embedding service to avoid actual API calls
-    embedding_service = instance_double(Captain::Llm::EmbeddingService)
-    allow(Captain::Llm::EmbeddingService).to receive(:new).and_return(embedding_service)
-    allow(embedding_service).to receive(:get_embedding).and_return(Array.new(1536, 0.1))
+    allow(Captain::DocumentationSearchService).to receive(:new)
+      .with(scope: anything, account_id: assistant.account_id)
+      .and_return(documentation_search_service)
   end
 
   describe '#description' do
@@ -37,6 +34,7 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
       let!(:response1) do
         create(:captain_assistant_response,
                assistant: assistant,
+               account: account,
                question: 'How to reset password?',
                answer: 'Click on forgot password link',
                documentable: document,
@@ -45,16 +43,31 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
       let!(:response2) do
         create(:captain_assistant_response,
                assistant: assistant,
+               account: account,
                question: 'How to change email?',
                answer: 'Go to settings and update email',
                status: 'approved')
       end
 
       before do
-        # Mock nearest_neighbors to return our test responses
-        allow(Captain::AssistantResponse).to receive(:nearest_neighbors).and_return(
-          Captain::AssistantResponse.where(id: [response1.id, response2.id])
+        matches = [response1, response2].map do |response|
+          Captain::AssistantResponse::SearchMatch.new(
+            response: response,
+            semantic_distance: 0.2,
+            keyword_score: 0,
+            keyword_coverage: 0.0,
+            matched_terms: [],
+            retrieval_methods: ['semantic']
+          )
+        end
+        search_result = Captain::DocumentationSearchService::Result.new(
+          query: 'password reset',
+          queries: ['password reset'],
+          matches: matches,
+          status: 'sufficient',
+          reason: 'semantic_match'
         )
+        allow(documentation_search_service).to receive(:search).and_return(search_result)
       end
 
       it 'searches FAQs and returns formatted responses' do
@@ -76,7 +89,10 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
 
       it 'logs tool usage for search' do
         expect(tool).to receive(:log_tool_usage).with('searching', { query: 'password reset' })
-        expect(tool).to receive(:log_tool_usage).with('found_results', { query: 'password reset', count: 2 })
+        expect(tool).to receive(:log_tool_usage).with(
+          'found_results',
+          { query: 'password reset', count: 2, status: 'sufficient', reason: 'semantic_match' }
+        )
 
         tool.perform(tool_context, query: 'password reset')
       end
@@ -84,13 +100,20 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
 
     context 'when no FAQs found' do
       before do
-        # Return empty result set
-        allow(Captain::AssistantResponse).to receive(:nearest_neighbors).and_return(Captain::AssistantResponse.none)
+        search_result = Captain::DocumentationSearchService::Result.new(
+          query: 'nonexistent topic',
+          queries: ['nonexistent topic'],
+          matches: [],
+          status: 'weak',
+          reason: 'no_results'
+        )
+        allow(documentation_search_service).to receive(:search).and_return(search_result)
       end
 
       it 'returns no results message' do
         result = tool.perform(tool_context, query: 'nonexistent topic')
-        expect(result).to eq('No relevant FAQs found for: nonexistent topic')
+        expect(result).to include('No relevant FAQs found for: nonexistent topic')
+        expect(result).to include('Do not use it to make factual claims')
       end
 
       it 'logs tool usage for no results' do
@@ -103,11 +126,17 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
 
     context 'with blank query' do
       it 'handles empty query' do
-        # Return empty result set
-        allow(Captain::AssistantResponse).to receive(:nearest_neighbors).and_return(Captain::AssistantResponse.none)
+        search_result = Captain::DocumentationSearchService::Result.new(
+          query: '',
+          queries: [],
+          matches: [],
+          status: 'weak',
+          reason: 'no_results'
+        )
+        allow(documentation_search_service).to receive(:search).and_return(search_result)
 
         result = tool.perform(tool_context, query: '')
-        expect(result).to eq('No relevant FAQs found for: ')
+        expect(result).to include('No relevant FAQs found for: ')
       end
     end
   end

@@ -11,6 +11,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
     let(:mock_llm_chat_service) { instance_double(Captain::Llm::AssistantChatService) }
     let(:mock_agent_runner_service) { instance_double(Captain::Assistant::AgentRunnerService) }
     let(:mock_action_classifier_service) { instance_double(Captain::Llm::AssistantActionClassifierService) }
+    let(:mock_documentation_sufficiency_service) { instance_double(Captain::Llm::DocumentationSufficiencyService) }
 
     before do
       create(:message, conversation: conversation, content: 'Hello', message_type: :incoming)
@@ -149,6 +150,94 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
           expect(conversation.messages.outgoing.count).to eq(0)
           expect(account.reload.usage_limits[:captain][:responses][:consumed]).to eq(0)
+        end
+      end
+
+      context 'when documentation sufficiency gate is enabled' do
+        let(:weak_search_result) do
+          Captain::DocumentationSearchService::Result.new(
+            query: 'current plan limits',
+            queries: ['current plan limits'],
+            matches: [],
+            status: 'weak',
+            reason: 'no_results'
+          )
+        end
+
+        before do
+          assistant.update!(config: { 'documentation_sufficiency_gate_enabled' => true })
+          allow(Captain::Llm::DocumentationSufficiencyService).to receive(:new).with(
+            assistant: assistant,
+            conversation: conversation
+          ).and_return(mock_documentation_sufficiency_service)
+        end
+
+        it 'replaces an unsupported answer with the bounded fallback from the gate' do
+          allow(mock_llm_chat_service).to receive(:generate_response) do
+            Captain::DocumentationSearchService.record(weak_search_result)
+            { 'response' => 'Your current plan has unlimited usage.' }
+          end
+          allow(mock_documentation_sufficiency_service).to receive(:evaluate).and_return(
+            {
+              'decision' => 'insufficient',
+              'reason' => 'missing_constraint',
+              'fallback_response' => "I couldn't find enough information to answer that confidently. Would you like support?",
+              'model' => 'gpt-4.1'
+            }
+          )
+
+          described_class.perform_now(conversation, assistant)
+
+          expect(conversation.messages.outgoing.last.content).to eq(
+            "I couldn't find enough information to answer that confidently. Would you like support?"
+          )
+          expect(account.reload.usage_limits[:captain][:responses][:consumed]).to eq(1)
+        end
+
+        it 'keeps the assistant response when the gate finds enough support' do
+          allow(mock_llm_chat_service).to receive(:generate_response) do
+            Captain::DocumentationSearchService.record(weak_search_result)
+            { 'response' => 'Billing settings show current plan usage.' }
+          end
+          allow(mock_documentation_sufficiency_service).to receive(:evaluate).and_return(
+            { 'decision' => 'sufficient', 'reason' => 'answers_exact_question', 'fallback_response' => '', 'model' => 'gpt-4.1' }
+          )
+
+          described_class.perform_now(conversation, assistant)
+
+          expect(conversation.messages.outgoing.last.content).to eq('Billing settings show current plan usage.')
+        end
+
+        it 'checks high-risk answers even when no documentation search was recorded' do
+          allow(mock_llm_chat_service).to receive(:generate_response).and_return(
+            { 'response' => 'Your current plan costs $99 per agent per month.' }
+          )
+          expect(mock_documentation_sufficiency_service).to receive(:evaluate).with(
+            message_history: [{ content: 'Hello', role: 'user' }],
+            assistant_response: 'Your current plan costs $99 per agent per month.',
+            documentation_searches: [
+              {
+                query: 'Hello',
+                queries: ['Hello'],
+                status: 'weak',
+                reason: 'no_documentation_search',
+                matches: []
+              }
+            ]
+          ).and_return(
+            {
+              'decision' => 'insufficient',
+              'reason' => 'unsupported_high_risk_claim',
+              'fallback_response' => "I couldn't find enough information to answer that confidently. Would you like support?",
+              'model' => 'gpt-4.1'
+            }
+          )
+
+          described_class.perform_now(conversation, assistant)
+
+          expect(conversation.messages.outgoing.last.content).to eq(
+            "I couldn't find enough information to answer that confidently. Would you like support?"
+          )
         end
       end
 

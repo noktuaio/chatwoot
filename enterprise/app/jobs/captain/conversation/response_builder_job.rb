@@ -1,5 +1,6 @@
 class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   include Captain::Conversation::V1ActionClassifier
+  include Captain::Conversation::DocumentationSufficiencyHandler
 
   MAX_MESSAGE_LENGTH = 10_000
   retry_on ActiveStorage::FileNotFoundError, attempts: 3, wait: 2.seconds
@@ -25,6 +26,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   rescue StandardError => e
     handle_error(e)
   ensure
+    clear_documentation_searches
     Current.executed_by = nil
   end
 
@@ -34,17 +36,22 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
 
   def generate_and_process_response
     message_history = collect_previous_messages
+    reset_documentation_searches
     @response = Captain::Llm::AssistantChatService.new(assistant: @assistant, conversation: @conversation).generate_response(
       message_history: message_history
     )
+    inspect_documentation_sufficiency(message_history) if conversation_pending?
     classify_v1_response_action(message_history) if conversation_pending?
     process_response
   end
 
   def generate_response_with_v2
+    message_history = collect_previous_messages
+    reset_documentation_searches
     @response = Captain::Assistant::AgentRunnerService.new(assistant: @assistant, conversation: @conversation).generate_response(
-      message_history: collect_previous_messages
+      message_history: message_history
     )
+    inspect_documentation_sufficiency(message_history) if conversation_pending?
     process_response
   end
 

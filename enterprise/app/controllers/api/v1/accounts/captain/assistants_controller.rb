@@ -58,6 +58,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
                                                   config: [
                                                     :product_name, :feature_faq, :feature_memory, :feature_citation,
                                                     :feature_contact_attributes,
+                                                    :documentation_sufficiency_gate_enabled,
                                                     :welcome_message, :handoff_message, :resolution_message,
                                                     :instructions, :temperature
                                                   ])

@@ -22,25 +22,20 @@ class Captain::Tools::SearchReplyDocumentationService < RubyLLM::Tool
                        .new(account: @account)
                        .translate(query, target_language: @account.locale_english_name)
 
-    responses = search_responses(translated_query)
-    return 'No FAQs found for the given query' if responses.empty?
+    result = Captain::DocumentationSearchService.new(
+      scope: search_scope,
+      account_id: @account.id
+    ).search(translated_query)
+    Captain::DocumentationSearchService.record(result)
 
-    responses.map { |response| format_response(response) }.join
+    Captain::DocumentationSearchService.format_for_tool(result, no_results_message: 'No FAQs found for the given query')
   end
 
   private
 
-  def search_responses(query)
-    if @assistant.present?
-      @assistant.responses.approved.search(query, account_id: @account.id)
-    else
-      @account.captain_assistant_responses.approved.search(query, account_id: @account.id)
-    end
-  end
+  def search_scope
+    return @assistant.responses.approved if @assistant.present?
 
-  def format_response(response)
-    result = "\nQuestion: #{response.question}\nAnswer: #{response.answer}\n"
-    result += "Source: #{response.documentable.external_link}\n" if response.documentable.present? && response.documentable.try(:external_link)
-    result
+    @account.captain_assistant_responses.approved
   end
 end

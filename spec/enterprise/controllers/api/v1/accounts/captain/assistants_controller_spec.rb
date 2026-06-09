@@ -216,6 +216,16 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
         expect(response).to have_http_status(:success)
         expect(json_response[:config][:feature_citation]).to be(false)
       end
+
+      it 'updates documentation sufficiency gate config' do
+        patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+              params: { assistant: { config: { documentation_sufficiency_gate_enabled: true } } },
+              headers: admin.create_new_auth_token,
+              as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(json_response[:config][:documentation_sufficiency_gate_enabled]).to be(true)
+      end
     end
   end
 
