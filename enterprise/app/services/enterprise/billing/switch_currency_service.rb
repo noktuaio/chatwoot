@@ -11,17 +11,18 @@ class Enterprise::Billing::SwitchCurrencyService
 
   pattr_initialize [:account!, :currency!]
 
-  # Only the simple happy path is allowed: exactly one active paid subscription, nothing else pending.
-  # Everything else is rejected up front (validated), so we never mutate Stripe for an edge case.
+  # Only the simple happy path is allowed: exactly one active subscription (paid or default plan),
+  # nothing else pending. Everything else is rejected up front so we never mutate Stripe for an edge case.
   # Order: validate (no mutation) -> idempotent customer sync -> subscription replacement (self-reverting)
   # -> local DB persist (last, alone), so any failure aborts cleanly without leaving split state.
   def perform
     validate!
-    subscription = eligible_paid_subscription!
+    subscription = eligible_active_subscription!
     plan = resolve_plan!(subscription)
     change = change_for(subscription, plan)
 
-    validate_payment_method!
+    # Default plan is free, so it needs no payment method; paid plans must have one to bill the new sub.
+    validate_payment_method! unless default_price?(subscription)
     sync_stripe_customer_location
 
     new_subscription = replace_subscription(subscription, change)
@@ -42,10 +43,10 @@ class Enterprise::Billing::SwitchCurrencyService
     raise Error, I18n.t('errors.billing.stripe_customer_not_configured') if stripe_customer_id.blank?
   end
 
-  # Exactly one live subscription, active, on a paid plan. Anything else (pending, extra, or free) is rejected.
-  def eligible_paid_subscription!
+  # Exactly one live subscription, active (paid or default plan). Anything else (pending or extra) is rejected.
+  def eligible_active_subscription!
     subscription = live_subscriptions.first
-    eligible = live_subscriptions.one? && subscription.status == 'active' && !default_price?(subscription)
+    eligible = live_subscriptions.one? && subscription.status == 'active'
     raise Error, I18n.t('errors.billing.switch_requires_active_subscription') unless eligible
 
     subscription
