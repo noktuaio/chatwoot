@@ -40,15 +40,23 @@ RSpec.describe Captain::Tools::SearchDocumentationService do
     end
 
     let(:documentable) { create(:captain_document, external_link: external_link) }
+    let(:recorded_searches) { [] }
+    let(:service) { described_class.new(assistant, on_search: ->(search) { recorded_searches << search }) }
     let(:match) do
       Captain::AssistantResponse::SearchMatch.new(
         response: response,
-        semantic_distance: 0.2,
-        keyword_score: 0,
-        keyword_coverage: 0.0,
-        matched_terms: [],
-        retrieval_methods: ['semantic']
+        semantic_distance: 0.2
       )
+    end
+
+    def search_result(matches:, status:, reason:)
+      {
+        query: question,
+        queries: [question],
+        matches: matches,
+        status: status,
+        reason: reason
+      }
     end
 
     before do
@@ -62,33 +70,24 @@ RSpec.describe Captain::Tools::SearchDocumentationService do
     context 'when matching responses exist' do
       it 'returns formatted responses for the search query' do
         response.update(documentable: documentable)
-        search_result = Captain::DocumentationSearchService::Result.new(
-          query: question,
-          queries: [question],
-          matches: [match],
-          status: 'sufficient',
-          reason: 'semantic_match'
+        allow(documentation_search_service).to receive(:search).with(question).and_return(
+          search_result(matches: [match], status: 'found', reason: 'semantic_match')
         )
-        allow(documentation_search_service).to receive(:search).with(question).and_return(search_result)
 
         result = service.execute(query: question)
 
         expect(result).to include(question)
         expect(result).to include(answer)
         expect(result).to include(external_link)
+        expect(recorded_searches.first[:status]).to eq('found')
       end
     end
 
     context 'when no matching responses exist' do
       it 'returns a bounded no-results instruction' do
-        search_result = Captain::DocumentationSearchService::Result.new(
-          query: question,
-          queries: [question],
-          matches: [],
-          status: 'weak',
-          reason: 'no_results'
+        allow(documentation_search_service).to receive(:search).with(question).and_return(
+          search_result(matches: [], status: 'weak', reason: 'no_results')
         )
-        allow(documentation_search_service).to receive(:search).with(question).and_return(search_result)
 
         result = service.execute(query: question)
 

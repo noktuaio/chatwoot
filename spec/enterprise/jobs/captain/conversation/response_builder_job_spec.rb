@@ -19,6 +19,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       allow(inbox).to receive(:captain_active?).and_return(true)
       allow(Captain::Llm::AssistantChatService).to receive(:new).and_return(mock_llm_chat_service)
       allow(mock_llm_chat_service).to receive(:generate_response).and_return({ 'response' => 'Hey, welcome to Captain Specs' })
+      allow(mock_llm_chat_service).to receive(:documentation_searches).and_return([])
       allow(Captain::Assistant::AgentRunnerService).to receive(:new).and_return(mock_agent_runner_service)
       allow(mock_agent_runner_service).to receive(:generate_response).and_return({ 'response' => 'Hey, welcome to Captain V2' })
       allow(Captain::Llm::AssistantActionClassifierService).to receive(:new).and_return(mock_action_classifier_service)
@@ -155,13 +156,13 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
       context 'when documentation sufficiency gate is enabled' do
         let(:weak_search_result) do
-          Captain::DocumentationSearchService::Result.new(
+          {
             query: 'current plan limits',
             queries: ['current plan limits'],
             matches: [],
             status: 'weak',
             reason: 'no_results'
-          )
+          }
         end
 
         before do
@@ -173,10 +174,10 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         end
 
         it 'replaces an unsupported answer with the bounded fallback from the gate' do
-          allow(mock_llm_chat_service).to receive(:generate_response) do
-            Captain::DocumentationSearchService.record(weak_search_result)
+          allow(mock_llm_chat_service).to receive(:documentation_searches).and_return([weak_search_result])
+          allow(mock_llm_chat_service).to receive(:generate_response).and_return(
             { 'response' => 'Your current plan has unlimited usage.' }
-          end
+          )
           allow(mock_documentation_sufficiency_service).to receive(:evaluate).and_return(
             {
               'decision' => 'insufficient',
@@ -195,10 +196,10 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         end
 
         it 'keeps the assistant response when the gate finds enough support' do
-          allow(mock_llm_chat_service).to receive(:generate_response) do
-            Captain::DocumentationSearchService.record(weak_search_result)
+          allow(mock_llm_chat_service).to receive(:documentation_searches).and_return([weak_search_result])
+          allow(mock_llm_chat_service).to receive(:generate_response).and_return(
             { 'response' => 'Billing settings show current plan usage.' }
-          end
+          )
           allow(mock_documentation_sufficiency_service).to receive(:evaluate).and_return(
             { 'decision' => 'sufficient', 'reason' => 'answers_exact_question', 'fallback_response' => '', 'model' => 'gpt-4.1' }
           )
@@ -208,7 +209,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           expect(conversation.messages.outgoing.last.content).to eq('Billing settings show current plan usage.')
         end
 
-        it 'checks high-risk answers even when no documentation search was recorded' do
+        it 'checks answers even when no documentation search was recorded' do
           allow(mock_llm_chat_service).to receive(:generate_response).and_return(
             { 'response' => 'Your current plan costs $99 per agent per month.' }
           )
@@ -227,7 +228,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           ).and_return(
             {
               'decision' => 'insufficient',
-              'reason' => 'unsupported_high_risk_claim',
+              'reason' => 'unsupported_specific_claim',
               'fallback_response' => "I couldn't find enough information to answer that confidently. Would you like support?",
               'model' => 'gpt-4.1'
             }
@@ -455,6 +456,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       allow(Captain::OpenAiMessageBuilderService).to receive(:new).with(message: anything).and_return(mock_message_builder)
       allow(mock_message_builder).to receive(:generate_content).and_return('Hello with image')
       allow(mock_llm_chat_service).to receive(:generate_response).and_return({ 'response' => 'Test response' })
+      allow(mock_llm_chat_service).to receive(:documentation_searches).and_return([])
     end
 
     context 'when ActiveStorage::FileNotFoundError occurs' do
@@ -567,6 +569,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       allow(Captain::Llm::AssistantChatService).to receive(:new).and_return(mock_llm_chat_service)
       allow(account).to receive(:feature_enabled?).and_return(false)
       allow(account).to receive(:feature_enabled?).with('captain_integration_v2').and_return(false)
+      allow(mock_llm_chat_service).to receive(:documentation_searches).and_return([])
     end
 
     context 'when handoff occurs outside business hours' do

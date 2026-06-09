@@ -1,4 +1,9 @@
 class Captain::Tools::SearchDocumentationService < Captain::Tools::BaseTool
+  def initialize(assistant, user: nil, on_search: nil)
+    super(assistant, user: user)
+    @on_search = on_search
+  end
+
   def self.name
     'search_documentation'
   end
@@ -17,7 +22,7 @@ class Captain::Tools::SearchDocumentationService < Captain::Tools::BaseTool
       scope: assistant.responses.approved,
       account_id: assistant.account_id
     ).search(translated_query)
-    Captain::DocumentationSearchService.record(result)
+    @on_search&.call(Captain::DocumentationSearchService.serialize(result))
 
     Captain::DocumentationSearchService.format_for_tool(result, no_results_message: 'No FAQs found for the given query')
   end

@@ -26,18 +26,9 @@
 class Captain::AssistantResponse < ApplicationRecord
   self.table_name = 'captain_assistant_responses'
   SEARCH_LIMIT = 5
-  KEYWORD_SEARCH_LIMIT_MULTIPLIER = 2
-  SEARCH_STOP_WORDS = %w[
-    about after all also and any are but can for from has have how into its may more not now off our out
-    the their them then there these they this was what when where which who why with you your
-  ].freeze
   SearchMatch = Struct.new(
     :response,
     :semantic_distance,
-    :keyword_score,
-    :keyword_coverage,
-    :matched_terms,
-    :retrieval_methods,
     keyword_init: true
   ) do
     def to_h
@@ -46,11 +37,7 @@ class Captain::AssistantResponse < ApplicationRecord
         question: response.question,
         answer: response.answer,
         source: response.documentable&.try(:external_link),
-        semantic_distance: semantic_distance,
-        keyword_score: keyword_score,
-        keyword_coverage: keyword_coverage,
-        matched_terms: matched_terms,
-        retrieval_methods: retrieval_methods
+        semantic_distance: semantic_distance
       }
     end
   end
@@ -80,10 +67,7 @@ class Captain::AssistantResponse < ApplicationRecord
   end
 
   def self.search_with_metadata(query, account_id: nil, limit: SEARCH_LIMIT)
-    semantic_matches = semantic_search_matches(query, account_id: account_id, limit: limit)
-    keyword_matches = keyword_search_matches(query, limit: limit * KEYWORD_SEARCH_LIMIT_MULTIPLIER)
-
-    merge_search_matches(semantic_matches, keyword_matches).first(limit)
+    semantic_search_matches(query, account_id: account_id, limit: limit)
   end
 
   def self.semantic_search_matches(query, account_id:, limit:)
@@ -91,89 +75,8 @@ class Captain::AssistantResponse < ApplicationRecord
     nearest_neighbors(:embedding, embedding, distance: 'cosine').limit(limit).map do |response|
       SearchMatch.new(
         response: response,
-        semantic_distance: response.neighbor_distance&.to_f,
-        keyword_score: 0,
-        keyword_coverage: 0.0,
-        matched_terms: [],
-        retrieval_methods: ['semantic']
+        semantic_distance: response.neighbor_distance&.to_f
       )
-    end
-  end
-
-  def self.keyword_search_matches(query, limit:)
-    terms = search_terms(query)
-    return [] if terms.empty?
-
-    matches = keyword_search_scope(terms).limit(limit).map do |response|
-      matched_terms = matched_terms_for(response, terms)
-      SearchMatch.new(
-        response: response,
-        semantic_distance: nil,
-        keyword_score: matched_terms.size,
-        keyword_coverage: matched_terms.size.to_f / terms.size,
-        matched_terms: matched_terms,
-        retrieval_methods: ['keyword']
-      )
-    end
-    matches.sort_by { |match| [-match.keyword_score, match.response.id] }
-  end
-
-  def self.keyword_search_scope(terms)
-    conditions = []
-    values = []
-
-    terms.each do |term|
-      pattern = "%#{sanitize_sql_like(term)}%"
-      conditions << '(question ILIKE ? OR answer ILIKE ?)'
-      values.push(pattern, pattern)
-    end
-
-    where(conditions.join(' OR '), *values)
-  end
-
-  def self.search_terms(query)
-    query.to_s.downcase.scan(/[[:alnum:]]+/).filter_map do |term|
-      next if term.length < 3
-      next if SEARCH_STOP_WORDS.include?(term)
-
-      term
-    end.uniq
-  end
-
-  def self.matched_terms_for(response, terms)
-    text = "#{response.question} #{response.answer}".downcase
-    terms.select { |term| text.include?(term) }
-  end
-
-  def self.merge_search_matches(semantic_matches, keyword_matches)
-    matches_by_response_id = {}
-
-    semantic_matches.each do |match|
-      matches_by_response_id[match.response.id] = match
-    end
-
-    keyword_matches.each do |keyword_match|
-      existing = matches_by_response_id[keyword_match.response.id]
-      if existing
-        merge_keyword_match!(existing, keyword_match)
-      else
-        matches_by_response_id[keyword_match.response.id] = keyword_match
-      end
-    end
-
-    sort_search_matches(matches_by_response_id.values)
-  end
-
-  def self.merge_keyword_match!(existing, keyword_match)
-    existing.keyword_score = keyword_match.keyword_score
-    existing.keyword_coverage = keyword_match.keyword_coverage
-    existing.matched_terms = keyword_match.matched_terms
-    existing.retrieval_methods |= keyword_match.retrieval_methods
-  end
-
-  def self.sort_search_matches(matches)
-    matches.sort_by do |match|
-      [match.semantic_distance || 1.0, -match.keyword_score, match.response.id]
     end
   end
 

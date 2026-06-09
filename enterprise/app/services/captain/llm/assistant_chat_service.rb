@@ -1,5 +1,6 @@
 class Captain::Llm::AssistantChatService < Llm::BaseAiService
   include Captain::ChatHelper
+  attr_reader :documentation_searches
 
   def initialize(assistant: nil, conversation: nil, source: nil)
     super()
@@ -11,6 +12,7 @@ class Captain::Llm::AssistantChatService < Llm::BaseAiService
 
     @messages = [system_message]
     @response = ''
+    @documentation_searches = []
     @tools = build_tools
   end
 
@@ -30,7 +32,13 @@ class Captain::Llm::AssistantChatService < Llm::BaseAiService
   private
 
   def build_tools
-    tools = [Captain::Tools::SearchDocumentationService.new(@assistant, user: nil)]
+    tools = [
+      Captain::Tools::SearchDocumentationService.new(
+        @assistant,
+        user: nil,
+        on_search: ->(search) { @documentation_searches << search }
+      )
+    ]
     return tools unless custom_tools_enabled?
 
     tools + @assistant.account.captain_custom_tools.enabled.map do |ct|

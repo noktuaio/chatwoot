@@ -9,7 +9,7 @@ class Captain::DocumentationSufficiencySchema < RubyLLM::Schema
     wrong_intent
     missing_constraint
     generic_evidence
-    unsupported_high_risk_claim
+    unsupported_specific_claim
   ].freeze
 
   string :decision,

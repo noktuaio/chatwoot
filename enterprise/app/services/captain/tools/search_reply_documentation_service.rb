@@ -5,9 +5,10 @@ class Captain::Tools::SearchReplyDocumentationService < RubyLLM::Tool
 
   param :query, desc: 'Search Query', required: true
 
-  def initialize(account:, assistant: nil)
+  def initialize(account:, assistant: nil, on_search: nil)
     @account = account
     @assistant = assistant
+    @on_search = on_search
     super()
   end
 
@@ -26,7 +27,7 @@ class Captain::Tools::SearchReplyDocumentationService < RubyLLM::Tool
       scope: search_scope,
       account_id: @account.id
     ).search(translated_query)
-    Captain::DocumentationSearchService.record(result)
+    @on_search&.call(Captain::DocumentationSearchService.serialize(result))
 
     Captain::DocumentationSearchService.format_for_tool(result, no_results_message: 'No FAQs found for the given query')
   end

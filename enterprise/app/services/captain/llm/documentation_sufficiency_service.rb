@@ -49,17 +49,19 @@ class Captain::Llm::DocumentationSufficiencyService < Llm::BaseAiService
       Return "insufficient" when the assistant makes factual claims that are not supported by the retrieved documentation.
       Treat prior assistant messages as claims, not evidence. They do not support the new answer by themselves.
       Conversation context can support the answer only when the user explicitly provided the relevant fact, constraint, or artifact.
-      Check generic sufficiency dimensions:
+      Check generic support dimensions:
       - same entity, product, platform, integration, or account object
       - same user intent, not just a nearby topic
-      - requested constraints such as plan, edition, region, channel, version, provider, billing period, availability, or current status
-      - high-risk claims such as pricing, billing, legal/compliance, limits, availability, platform support, roadmap, or account status
-      - evidence specificity; generic broad docs are not enough for specific claims
+      - requested constraints from the user
+      - specific claims in the response
+      - evidence specificity; broad docs are not enough for specific claims
 
-      Return "sufficient" when the documentation directly supports the response, or when the response only asks a clarifying
+      Return "sufficient" only when the documentation directly supports the response, or when the response only asks a clarifying
       question, gives a safe bounded no-answer, offers handoff, or restates user-provided context without adding external claims.
-      If documentation is missing or weak and the response gives factual claims, advice, instructions, examples, links, prices,
-      limits, availability, troubleshooting steps, product behavior, platform behavior, or account-specific statements, return "insufficient".
+      A response is not a safe bounded no-answer if it includes unsupported facts, steps, recommendations, examples, or links.
+      A response does not answer the exact question unless the retrieved documentation supports the specific claims it makes.
+      If documentation is missing or weak and the response gives factual claims, advice, instructions, examples, links,
+      product behavior, platform behavior, or account-specific statements, return "insufficient".
 
       If decision is "insufficient", write fallback_response in the user's language. It should be brief, say you could not find
       enough information to answer confidently, and ask whether the user wants to talk to a support person when appropriate.
@@ -104,8 +106,6 @@ class Captain::Llm::DocumentationSufficiencyService < Llm::BaseAiService
            answer: #{truncate_text(match_value(match, :answer))}
            source: #{match_value(match, :source)}
            semantic_distance: #{match_value(match, :semantic_distance)}
-           keyword_coverage: #{match_value(match, :keyword_coverage)}
-           retrieval_methods: #{Array(match_value(match, :retrieval_methods)).join(', ')}
       MATCH
     end.join("\n")
   end

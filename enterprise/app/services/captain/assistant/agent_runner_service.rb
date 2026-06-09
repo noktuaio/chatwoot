@@ -6,10 +6,7 @@ class Captain::Assistant::AgentRunnerService
   include Captain::Assistant::RunnerCallbacksHelper
   include Captain::Assistant::TracePayloadHelper
 
-  CONVERSATION_STATE_ATTRIBUTES = %i[
-    id display_id inbox_id contact_id status priority
-    label_list custom_attributes additional_attributes
-  ].freeze
+  CONVERSATION_STATE_ATTRIBUTES = %i[id display_id inbox_id contact_id status priority label_list custom_attributes additional_attributes].freeze
 
   CONTACT_STATE_ATTRIBUTES = %i[
     id name email phone_number identifier contact_type
@@ -19,6 +16,7 @@ class Captain::Assistant::AgentRunnerService
   CONTACT_INBOX_STATE_ATTRIBUTES = %i[id hmac_verified].freeze
 
   CAMPAIGN_STATE_ATTRIBUTES = %i[id title message campaign_type description].freeze
+
   def initialize(assistant:, conversation: nil, callbacks: {}, source: nil)
     @assistant = assistant
     @conversation = conversation
@@ -100,6 +98,7 @@ class Captain::Assistant::AgentRunnerService
     response = output.is_a?(Hash) ? output.with_indifferent_access : { 'response' => output.to_s, 'reasoning' => 'Processed by agent' }
     response['agent_name'] = result.context&.dig(:current_agent)
     response['handoff_tool_called'] = result.context&.dig(:captain_v2_handoff_tool_called) || false
+    response['documentation_searches'] = result.context&.dig(:state, :documentation_searches).to_a
     response
   end
 
@@ -115,7 +114,8 @@ class Captain::Assistant::AgentRunnerService
     state = {
       account_id: @assistant.account_id,
       assistant_id: @assistant.id,
-      assistant_config: @assistant.config
+      assistant_config: @assistant.config,
+      documentation_searches: []
     }
     state[:source] = @source if @source.present?
 

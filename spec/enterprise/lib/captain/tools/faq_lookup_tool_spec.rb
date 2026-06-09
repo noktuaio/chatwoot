@@ -4,7 +4,8 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
   let(:account) { create(:account) }
   let(:assistant) { create(:captain_assistant, account: account) }
   let(:tool) { described_class.new(assistant) }
-  let(:tool_context) { Struct.new(:state).new({}) }
+  let(:documentation_searches) { [] }
+  let(:tool_context) { Struct.new(:state).new({ documentation_searches: documentation_searches }) }
   let(:documentation_search_service) { instance_double(Captain::DocumentationSearchService) }
 
   before do
@@ -29,6 +30,20 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
   end
 
   describe '#perform' do
+    def search_match(response)
+      Captain::AssistantResponse::SearchMatch.new(response: response, semantic_distance: 0.2)
+    end
+
+    def search_result(query:, matches:, status:, reason:)
+      {
+        query: query,
+        queries: [query],
+        matches: matches,
+        status: status,
+        reason: reason
+      }
+    end
+
     context 'when FAQs exist' do
       let(:document) { create(:captain_document, assistant: assistant) }
       let!(:response1) do
@@ -50,24 +65,10 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
       end
 
       before do
-        matches = [response1, response2].map do |response|
-          Captain::AssistantResponse::SearchMatch.new(
-            response: response,
-            semantic_distance: 0.2,
-            keyword_score: 0,
-            keyword_coverage: 0.0,
-            matched_terms: [],
-            retrieval_methods: ['semantic']
-          )
-        end
-        search_result = Captain::DocumentationSearchService::Result.new(
-          query: 'password reset',
-          queries: ['password reset'],
-          matches: matches,
-          status: 'sufficient',
-          reason: 'semantic_match'
+        matches = [response1, response2].map { |response| search_match(response) }
+        allow(documentation_search_service).to receive(:search).and_return(
+          search_result(query: 'password reset', matches: matches, status: 'found', reason: 'semantic_match')
         )
-        allow(documentation_search_service).to receive(:search).and_return(search_result)
       end
 
       it 'searches FAQs and returns formatted responses' do
@@ -77,6 +78,7 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
         expect(result).to include('Answer: Click on forgot password link')
         expect(result).to include('Question: How to change email?')
         expect(result).to include('Answer: Go to settings and update email')
+        expect(documentation_searches.first[:status]).to eq('found')
       end
 
       it 'includes source link when document has external_link' do
@@ -91,7 +93,7 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
         expect(tool).to receive(:log_tool_usage).with('searching', { query: 'password reset' })
         expect(tool).to receive(:log_tool_usage).with(
           'found_results',
-          { query: 'password reset', count: 2, status: 'sufficient', reason: 'semantic_match' }
+          { query: 'password reset', count: 2, status: 'found', reason: 'semantic_match' }
         )
 
         tool.perform(tool_context, query: 'password reset')
@@ -100,14 +102,9 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
 
     context 'when no FAQs found' do
       before do
-        search_result = Captain::DocumentationSearchService::Result.new(
-          query: 'nonexistent topic',
-          queries: ['nonexistent topic'],
-          matches: [],
-          status: 'weak',
-          reason: 'no_results'
+        allow(documentation_search_service).to receive(:search).and_return(
+          search_result(query: 'nonexistent topic', matches: [], status: 'weak', reason: 'no_results')
         )
-        allow(documentation_search_service).to receive(:search).and_return(search_result)
       end
 
       it 'returns no results message' do
@@ -126,14 +123,9 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
 
     context 'with blank query' do
       it 'handles empty query' do
-        search_result = Captain::DocumentationSearchService::Result.new(
-          query: '',
-          queries: [],
-          matches: [],
-          status: 'weak',
-          reason: 'no_results'
+        allow(documentation_search_service).to receive(:search).and_return(
+          search_result(query: '', matches: [], status: 'weak', reason: 'no_results')
         )
-        allow(documentation_search_service).to receive(:search).and_return(search_result)
 
         result = tool.perform(tool_context, query: '')
         expect(result).to include('No relevant FAQs found for: ')
