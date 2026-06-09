@@ -94,7 +94,13 @@ class Enterprise::Billing::SwitchCurrencyService
   def cancel_subscriptions(subscriptions)
     subscriptions.each do |subscription|
       Stripe::Subscription.update(subscription.id, metadata: { SWITCH_METADATA_KEY => 'true' })
-      Stripe::Subscription.cancel(subscription.id, { prorate: false })
+      begin
+        Stripe::Subscription.cancel(subscription.id, { prorate: false })
+      rescue Stripe::StripeError
+        # Clear the flag so a still-live sub isn't permanently skipped by the webhook guard.
+        Stripe::Subscription.update(subscription.id, metadata: { SWITCH_METADATA_KEY => '' })
+        raise
+      end
     end
   end
 
