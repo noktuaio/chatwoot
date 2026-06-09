@@ -71,6 +71,13 @@ const subscribedQuantity = computed(() => {
   return customAttributes.value.subscribed_quantity;
 });
 
+const billingCurrency = computed(() => {
+  if (!customAttributes.value.billing_currency) return '';
+  return t(
+    getCurrencyConfig(customAttributes.value.billing_currency).i18nLabelKey
+  );
+});
+
 const subscriptionRenewsOn = computed(() => {
   if (!customAttributes.value.subscription_ends_on) return '';
   const endDate = new Date(customAttributes.value.subscription_ends_on);
@@ -246,6 +253,11 @@ onMounted(handleBillingPageLogic);
               v-if="subscriptionRenewsOn"
               :label="$t('BILLING_SETTINGS.CURRENT_PLAN.RENEWS_ON')"
               :value="subscriptionRenewsOn"
+            />
+            <DetailItem
+              v-if="billingCurrency"
+              :label="$t('BILLING_SETTINGS.CURRENT_PLAN.CURRENCY')"
+              :value="billingCurrency"
             />
           </div>
         </BillingCard>
