@@ -28,6 +28,7 @@ class Enterprise::Billing::SwitchCurrencyService
   end
 
   def validate!
+    raise Error, I18n.t('errors.billing.currency_switch_unavailable') unless Enterprise::Billing::Currencies.rollout_enabled?(account.locale)
     raise Error, I18n.t('errors.billing.unsupported_currency') unless Enterprise::Billing::Currencies.supported?(currency)
     raise Error, I18n.t('errors.billing.same_currency') if target_currency == account.billing_currency
     raise Error, I18n.t('errors.billing.stripe_customer_not_configured') if stripe_customer_id.blank?
@@ -35,8 +36,8 @@ class Enterprise::Billing::SwitchCurrencyService
 
   # Free plan: no subscription churn — record the preference and sync the Stripe customer.
   def switch_free_plan
-    sync_stripe_customer_location
     persist_currency(account.custom_attributes.merge('billing_currency' => target_currency))
+    sync_stripe_customer_location
   end
 
   # Replace all live subs with one paid sub in the target currency, preserving seats and paid-through.
@@ -54,10 +55,10 @@ class Enterprise::Billing::SwitchCurrencyService
       key: paid_subscription.id
     }
 
-    sync_stripe_customer_location
     new_subscription = replace_subscriptions(subscriptions, change)
 
     persist_currency(build_custom_attributes(new_subscription, plan))
+    sync_stripe_customer_location
     Enterprise::Billing::ReconcilePlanFeaturesService.new(account: account).perform
   end
 
