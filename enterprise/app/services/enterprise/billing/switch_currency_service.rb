@@ -11,18 +11,25 @@ class Enterprise::Billing::SwitchCurrencyService
 
   pattr_initialize [:account!, :currency!]
 
+  # Ordered most-reversible first so any failure aborts cleanly: validate -> customer sync (idempotent,
+  # before any cancellation) -> subscription replacement (self-reverting) -> local DB persist (last, alone).
   def perform
     validate!
     reject_unsettled_paid_subscription!
 
     subscriptions = live_subscriptions
     paid_subscription = subscriptions.find { |subscription| !default_price?(subscription) }
+    validate_payment_method! if paid_subscription
 
-    if paid_subscription
-      switch_paid_plan(subscriptions, paid_subscription)
-    else
-      switch_free_plan(subscriptions)
-    end
+    # Sync the customer before touching subscriptions: a failure here leaves nothing cancelled and the DB
+    # untouched, so the controller's error matches state and a retry re-runs the whole switch.
+    sync_stripe_customer_location
+
+    attributes = paid_subscription ? switch_paid_plan(subscriptions, paid_subscription) : switch_free_plan(subscriptions)
+
+    # Persist last: the local DB write is the only step after Stripe succeeds, and it gates retries via same_currency.
+    persist_currency(attributes)
+    Enterprise::Billing::ReconcilePlanFeaturesService.new(account: account).perform if paid_subscription
   end
 
   private
@@ -38,18 +45,12 @@ class Enterprise::Billing::SwitchCurrencyService
     raise Error, I18n.t('errors.billing.stripe_customer_not_configured') if stripe_customer_id.blank?
   end
 
-  # Free plan: recreate the default sub in the new currency (so a later upgrade starts there); sync the Stripe customer.
+  # Free plan: recreate the default sub in the new currency so a later upgrade starts there. Returns the attributes to persist.
   def switch_free_plan(subscriptions)
     default_subscription = subscriptions.find { |subscription| default_price?(subscription) }
-    attributes = if default_subscription
-                   recreated_default_attributes(subscriptions, default_subscription)
-                 else
-                   account.custom_attributes.merge('billing_currency' => target_currency)
-                 end
+    return account.custom_attributes.merge('billing_currency' => target_currency) unless default_subscription
 
-    # Persist last: it sets billing_currency, which gates retries via the same_currency check.
-    sync_stripe_customer_location
-    persist_currency(attributes)
+    recreated_default_attributes(subscriptions, default_subscription)
   end
 
   def recreated_default_attributes(subscriptions, default_subscription)
@@ -64,10 +65,8 @@ class Enterprise::Billing::SwitchCurrencyService
     build_custom_attributes(replace_subscriptions(subscriptions, change), plan)
   end
 
-  # Replace all live subs with one paid sub in the target currency, preserving seats and paid-through.
+  # Replace all live subs with one paid sub in the target currency, preserving seats and paid-through. Returns the attributes to persist.
   def switch_paid_plan(subscriptions, paid_subscription)
-    validate_payment_method!
-
     plan = current_plan(paid_subscription)
     raise Error, I18n.t('errors.billing.unknown_plan') if plan.blank?
 
@@ -79,12 +78,7 @@ class Enterprise::Billing::SwitchCurrencyService
       key: paid_subscription.id
     }
 
-    new_subscription = replace_subscriptions(subscriptions, change)
-
-    # Persist last: it sets billing_currency, which gates retries via the same_currency check.
-    sync_stripe_customer_location
-    persist_currency(build_custom_attributes(new_subscription, plan))
-    Enterprise::Billing::ReconcilePlanFeaturesService.new(account: account).perform
+    build_custom_attributes(replace_subscriptions(subscriptions, change), plan)
   end
 
   def resolve_new_price_id(plan)
@@ -173,7 +167,7 @@ class Enterprise::Billing::SwitchCurrencyService
     @all_subscriptions ||= Stripe::Subscription.list(customer: stripe_customer_id, status: 'all', limit: 100).data
   end
 
-  # Includes trialing (a prior switch leaves the new sub trialing); excludes past_due, which is handled by reject_past_due_paid_subscription!.
+  # Includes trialing (a prior switch leaves the new sub trialing); unsettled paid subs are caught by reject_unsettled_paid_subscription!.
   def live_subscriptions
     all_subscriptions.select { |subscription| %w[active trialing].include?(subscription.status) }
   end
