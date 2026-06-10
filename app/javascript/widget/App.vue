@@ -201,21 +201,27 @@ export default {
       });
     },
     setArticleView(isArticle) {
-      // Only resize when the page type actually changes, so navigating between
-      // two articles (or two listing pages) doesn't trigger a needless mask.
-      if (!this.isIFrame || isArticle === this.isArticleView) return;
-      this.isArticleView = isArticle;
+      // portalPageLoaded is delivered asynchronously and can arrive after we've
+      // already left the article view; ignore it unless we're still on that
+      // route so the expanded width can't leak onto the listing or other views.
+      if (!this.isIFrame || this.$route.name !== 'article-viewer') return;
 
-      // Mask the iframe while the widget resizes so its text reflow happens
-      // off-screen, then reveal it once the size transition has settled.
-      emitter.emit(ON_ARTICLE_VIEW_RESIZING, true);
+      // Re-assert the width on every page load (the SDK toggles are idempotent)
+      // so the holder always reflects the current page, then only mask the
+      // reflow when the width actually changes to avoid a needless flash.
+      const didChange = isArticle !== this.isArticleView;
+      this.isArticleView = isArticle;
       IFrameHelper.sendMessage({
         event: isArticle ? 'expandWidget' : 'collapseWidget',
       });
-      setTimeout(
-        () => emitter.emit(ON_ARTICLE_VIEW_RESIZING, false),
-        ARTICLE_VIEW_RESIZE_DURATION
-      );
+
+      if (didChange) {
+        emitter.emit(ON_ARTICLE_VIEW_RESIZING, true);
+        setTimeout(
+          () => emitter.emit(ON_ARTICLE_VIEW_RESIZING, false),
+          ARTICLE_VIEW_RESIZE_DURATION
+        );
+      }
     },
     registerUnreadEvents() {
       emitter.on(ON_AGENT_MESSAGE_RECEIVED, () => {
