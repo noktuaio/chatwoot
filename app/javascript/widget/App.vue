@@ -177,7 +177,12 @@ export default {
         locale,
         prefersDarkMode: this.prefersDarkMode,
       });
-      this.router.push({ name: 'article-viewer', query: { link } });
+      // Add a timestamp so the route always changes, even when the same article
+      // is requested again or the iframe was browsed to another page.
+      this.router.push({
+        name: 'article-viewer',
+        query: { link, v: Date.now() },
+      });
     },
     registerUnreadEvents() {
       emitter.on(ON_AGENT_MESSAGE_RECEIVED, () => {
