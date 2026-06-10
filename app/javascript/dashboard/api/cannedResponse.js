@@ -1,15 +1,20 @@
 /* global axios */
 
-import ApiClient from './ApiClient';
+import CacheEnabledApiClient from './CacheEnabledApiClient';
 
-class CannedResponse extends ApiClient {
+class CannedResponse extends CacheEnabledApiClient {
   constructor() {
-    super('canned_responses', { accountScoped: true });
+    super('canned_responses', {
+      accountScoped: true,
+      cacheModel: 'canned_response',
+    });
   }
 
-  get({ searchKey }) {
-    const url = searchKey ? `${this.url}?search=${searchKey}` : this.url;
-    return axios.get(url);
+  get({ searchKey } = {}) {
+    if (searchKey) {
+      return axios.get(`${this.url}?search=${searchKey}`);
+    }
+    return super.get(true);
   }
 }
 

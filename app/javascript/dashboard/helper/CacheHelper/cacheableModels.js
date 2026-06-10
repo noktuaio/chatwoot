@@ -12,6 +12,12 @@ export const cacheableModels = [
   { name: 'inbox', setMutation: 'inboxes/SET_INBOXES' },
   { name: 'label', setMutation: 'labels/SET_LABELS' },
   { name: 'team', setMutation: 'teams/SET_TEAMS' },
+  { name: 'canned_response', setMutation: 'SET_CANNED' },
+  { name: 'account_user', setMutation: 'agents/SET_AGENTS' },
+  {
+    name: 'custom_attribute_definition',
+    setMutation: 'attributes/SET_CUSTOM_ATTRIBUTE',
+  },
 ];
 
 export const cacheableModelNames = cacheableModels.map(model => model.name);

@@ -1,10 +1,10 @@
 /* global axios */
 
-import ApiClient from './ApiClient';
+import CacheEnabledApiClient from './CacheEnabledApiClient';
 
-class Agents extends ApiClient {
+class Agents extends CacheEnabledApiClient {
   constructor() {
-    super('agents', { accountScoped: true });
+    super('agents', { accountScoped: true, cacheModel: 'account_user' });
   }
 
   bulkInvite({ emails }) {

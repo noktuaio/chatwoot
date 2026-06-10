@@ -44,7 +44,7 @@ export const actions = {
   get: async ({ commit }) => {
     commit(types.default.SET_AGENT_FETCHING_STATUS, true);
     try {
-      const response = await AgentAPI.get();
+      const response = await AgentAPI.get(true);
       commit(types.default.SET_AGENT_FETCHING_STATUS, false);
       commit(types.default.SET_AGENTS, response.data);
     } catch (error) {

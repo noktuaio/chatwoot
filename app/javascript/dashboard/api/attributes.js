@@ -1,13 +1,15 @@
-/* global axios */
-import ApiClient from './ApiClient';
+import CacheEnabledApiClient from './CacheEnabledApiClient';
 
-class AttributeAPI extends ApiClient {
+class AttributeAPI extends CacheEnabledApiClient {
   constructor() {
-    super('custom_attribute_definitions', { accountScoped: true });
+    super('custom_attribute_definitions', {
+      accountScoped: true,
+      cacheModel: 'custom_attribute_definition',
+    });
   }
 
   getAttributesByModel() {
-    return axios.get(this.url);
+    return super.get(true);
   }
 }
 

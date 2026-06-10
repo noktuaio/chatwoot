@@ -1,6 +1,7 @@
 import { dispatchCacheRevalidations } from '../../CacheHelper/dispatchCacheRevalidations';
 import InboxesAPI from 'dashboard/api/inboxes';
 import LabelsAPI from 'dashboard/api/labels';
+import CannedResponseAPI from 'dashboard/api/cannedResponse';
 import TeamsAPI from 'dashboard/api/teams';
 
 vi.mock('dashboard/api/inboxes', () => ({
@@ -18,6 +19,27 @@ vi.mock('dashboard/api/labels', () => ({
   },
 }));
 vi.mock('dashboard/api/teams', () => ({
+  default: {
+    validateCacheKey: vi.fn(),
+    refetchAndCommit: vi.fn(),
+    extractDataFromResponse: vi.fn(),
+  },
+}));
+vi.mock('dashboard/api/cannedResponse', () => ({
+  default: {
+    validateCacheKey: vi.fn(),
+    refetchAndCommit: vi.fn(),
+    extractDataFromResponse: vi.fn(),
+  },
+}));
+vi.mock('dashboard/api/agents', () => ({
+  default: {
+    validateCacheKey: vi.fn(),
+    refetchAndCommit: vi.fn(),
+    extractDataFromResponse: vi.fn(),
+  },
+}));
+vi.mock('dashboard/api/attributes', () => ({
   default: {
     validateCacheKey: vi.fn(),
     refetchAndCommit: vi.fn(),
@@ -71,16 +93,16 @@ describe('dispatchCacheRevalidations', () => {
   it('swallows per-model errors so one failure does not block the rest', async () => {
     InboxesAPI.validateCacheKey.mockResolvedValue(false);
     InboxesAPI.refetchAndCommit.mockRejectedValue(new Error('network down'));
-    TeamsAPI.validateCacheKey.mockResolvedValue(false);
-    TeamsAPI.refetchAndCommit.mockResolvedValue({ data: [] });
-    TeamsAPI.extractDataFromResponse.mockReturnValue([{ id: 7 }]);
+    CannedResponseAPI.validateCacheKey.mockResolvedValue(false);
+    CannedResponseAPI.refetchAndCommit.mockResolvedValue({ data: [] });
+    CannedResponseAPI.extractDataFromResponse.mockReturnValue([{ id: 7 }]);
 
     await dispatchCacheRevalidations(store, {
       inbox: 'inbox-key',
-      team: 'team-key',
+      canned_response: 'canned-key',
     });
 
-    expect(store.commit).toHaveBeenCalledWith('teams/SET_TEAMS', [{ id: 7 }]);
+    expect(store.commit).toHaveBeenCalledWith('SET_CANNED', [{ id: 7 }]);
     expect(store.commit).toHaveBeenCalledTimes(1);
   });
 });

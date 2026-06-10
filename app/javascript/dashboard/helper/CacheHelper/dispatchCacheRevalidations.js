@@ -1,3 +1,6 @@
+import AgentAPI from 'dashboard/api/agents';
+import AttributeAPI from 'dashboard/api/attributes';
+import CannedResponseAPI from 'dashboard/api/cannedResponse';
 import InboxesAPI from 'dashboard/api/inboxes';
 import LabelsAPI from 'dashboard/api/labels';
 import TeamsAPI from 'dashboard/api/teams';
@@ -10,6 +13,9 @@ const apiByModel = {
   inbox: InboxesAPI,
   label: LabelsAPI,
   team: TeamsAPI,
+  canned_response: CannedResponseAPI,
+  account_user: AgentAPI,
+  custom_attribute_definition: AttributeAPI,
 };
 
 const revalidateModel = async (store, model, newKey) => {

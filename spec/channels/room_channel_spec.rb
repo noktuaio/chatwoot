@@ -27,7 +27,7 @@ RSpec.describe RoomChannel do
 
     cache_event = transmissions.find { |message| message['event'] == 'account.cache_invalidated' }
     expect(cache_event['data']['account_id']).to eq(account.id)
-    expect(cache_event['data']['cache_keys'].keys).to match_array(%w[label inbox team])
+    expect(cache_event['data']['cache_keys'].keys).to match_array(%w[label inbox team canned_response account_user custom_attribute_definition])
   end
 
   it 'does not transmit cache keys to contact subscribers' do
