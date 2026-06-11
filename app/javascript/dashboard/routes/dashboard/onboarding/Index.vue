@@ -122,8 +122,10 @@ const normalizeWebsiteUrl = raw => {
 const handleSubmit = async () => {
   // Block submit while enrichment is still running so users can't bypass
   // the form with empty values — the controller would otherwise clear
-  // onboarding_step and persist incomplete data.
-  if (isEnriching.value) return;
+  // onboarding_step and persist incomplete data. Also guard against
+  // re-entry while a submit is in flight (double-click/Enter), which would
+  // fire parallel requests that can duplicate the auto-created inbox/portal.
+  if (isEnriching.value || isSubmitting.value) return;
 
   v$.value.$touch();
   if (v$.value.$invalid) {
