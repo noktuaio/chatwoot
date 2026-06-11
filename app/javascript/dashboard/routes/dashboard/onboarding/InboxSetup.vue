@@ -42,8 +42,9 @@ const {
 
 const channelsDialogRef = ref(null);
 
+// The initial inboxes fetch happens in WebWidgetCreationStatus, which polls
+// `inboxes/get` from its own mount — no need to dispatch it here too.
 onMounted(() => {
-  store.dispatch('inboxes/get');
   useTrack(ONBOARDING_EVENTS.INBOX_SETUP_VISITED);
 });
 
