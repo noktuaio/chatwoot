@@ -4,6 +4,8 @@ module Enterprise::Api::V1::Accounts::OnboardingsController
     render json: help_center_generation_status
   end
 
+  private
+
   def create_onboarding_inboxes
     super
     create_help_center
@@ -14,8 +16,6 @@ module Enterprise::Api::V1::Accounts::OnboardingsController
     @account.custom_attributes.delete('help_center_generation_id')
     super
   end
-
-  private
 
   def create_help_center
     return if website.blank?
