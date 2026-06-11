@@ -52,11 +52,17 @@ const CARD_CLASS = {
 const channelCards = computed(() =>
   CHANNEL_LIST.filter(
     channel => channel.setupLater || isConfigured(channel.type)
-  ).map(channel => ({
-    ...channel,
-    availability: channelAvailability(channel),
-    connected: isChannelConnected(props.inboxes, channel.inbox),
-  }))
+  ).map(channel => {
+    const connected = isChannelConnected(props.inboxes, channel.inbox);
+    // Website inboxes are only auto-created during onboarding — there is no
+    // manual creation path, so an unconnected Website card defers rather than
+    // offering a click that can't do anything.
+    const availability =
+      channel.type === 'website' && !connected
+        ? 'setupLater'
+        : channelAvailability(channel);
+    return { ...channel, availability, connected };
+  })
 );
 
 const dialogRef = ref(null);
