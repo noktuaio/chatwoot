@@ -68,14 +68,18 @@ RSpec.describe 'Onboarding API', type: :request do
       end
 
       it 'invokes HelpCenterCreationService when website is present' do
-        service = instance_double(Onboarding::HelpCenterCreationService, perform: nil)
-        allow(Onboarding::HelpCenterCreationService).to receive(:new).and_return(service)
+        # Resolve via constantize at example time (fresh each call, reload-safe);
+        # Zeitwerk reloads between examples can leave a directly referenced
+        # constant uninitialized or identity-stale.
+        service_class = 'Onboarding::HelpCenterCreationService'.constantize
+        service = instance_double(service_class, perform: nil)
+        allow(service_class).to receive(:new).and_return(service)
 
         patch "/api/v1/accounts/#{account.id}/onboarding",
               params: { website: 'acme.com', onboarding_step: 'account_details' },
               headers: admin.create_new_auth_token, as: :json
 
-        expect(Onboarding::HelpCenterCreationService).to have_received(:new) do |arg_account, arg_user|
+        expect(service_class).to have_received(:new) do |arg_account, arg_user|
           expect(arg_account.id).to eq(account.id)
           expect(arg_user.id).to eq(admin.id)
         end
@@ -114,7 +118,7 @@ RSpec.describe 'Onboarding API', type: :request do
       end
 
       it 'does not create another web widget inbox' do
-        expect(Onboarding::WebWidgetCreationService).not_to receive(:new)
+        expect('Onboarding::WebWidgetCreationService'.constantize).not_to receive(:new)
 
         patch "/api/v1/accounts/#{account.id}/onboarding",
               params: { onboarding_step: 'inbox_setup' },
