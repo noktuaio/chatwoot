@@ -1,58 +1,74 @@
+<script setup>
+import { useStoreGetters, useStore } from 'dashboard/composables/store';
+import { computed, onMounted, ref } from 'vue';
+import { useBranding } from 'shared/composables/useBranding';
+import { picoSearch } from '@scmmishra/pico-search';
+import IntegrationItem from './IntegrationItem.vue';
+import SettingsLayout from '../SettingsLayout.vue';
+import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
+
+const store = useStore();
+const getters = useStoreGetters();
+const { replaceInstallationName } = useBranding();
+
+const searchQuery = ref('');
+const uiFlags = getters['integrations/getUIFlags'];
+
+const integrationList = computed(
+  () => getters['integrations/getAppIntegrations'].value
+);
+
+const filteredIntegrationList = computed(() => {
+  const query = searchQuery.value.trim();
+  if (!query) return integrationList.value;
+  return picoSearch(integrationList.value, query, ['name', 'description']);
+});
+
+onMounted(() => {
+  store.dispatch('integrations/get');
+});
+</script>
+
 <template>
-  <div class="flex-shrink flex-grow overflow-auto p-4">
-    <div class="flex flex-col">
-      <div class="flex flex-col">
-        <div>
-          <div
-            v-for="item in integrationsList"
+  <SettingsLayout
+    :is-loading="uiFlags.isFetching"
+    :loading-message="$t('INTEGRATION_SETTINGS.LOADING')"
+  >
+    <template #header>
+      <BaseSettingsHeader
+        v-model:search-query="searchQuery"
+        :title="$t('INTEGRATION_SETTINGS.HEADER')"
+        :description="
+          replaceInstallationName($t('INTEGRATION_SETTINGS.DESCRIPTION'))
+        "
+        :link-text="$t('INTEGRATION_SETTINGS.LEARN_MORE')"
+        :search-placeholder="$t('INTEGRATION_SETTINGS.SEARCH_PLACEHOLDER')"
+        feature-name="integrations"
+      />
+    </template>
+    <template #body>
+      <div class="flex-grow flex-shrink overflow-auto">
+        <span
+          v-if="!filteredIntegrationList.length && searchQuery"
+          class="flex-1 flex items-center justify-center py-20 text-center text-body-main !text-base text-n-slate-11"
+        >
+          {{ $t('INTEGRATION_SETTINGS.NO_RESULTS') }}
+        </span>
+        <div
+          v-else
+          class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+        >
+          <IntegrationItem
+            v-for="item in filteredIntegrationList"
+            :id="item.id"
             :key="item.id"
-            class="bg-white dark:bg-slate-800 border border-solid border-slate-75 dark:border-slate-700/50 rounded-sm mb-4 p-4"
-          >
-            <integration
-              :integration-id="item.id"
-              :integration-logo="item.logo"
-              :integration-name="item.name"
-              :integration-description="item.description"
-              :integration-enabled="item.enabled"
-              :integration-action="item.action"
-            />
-          </div>
-          <div
-            class="bg-white dark:bg-slate-800 border border-solid border-slate-75 dark:border-slate-700/50 rounded-sm mb-4 p-4"
-          >
-            <integration
-              integration-id="dashboard-apps"
-              integration-logo="dashboard-apps.svg"
-              :integration-name="
-                $t('INTEGRATION_SETTINGS.DASHBOARD_APPS.TITLE')
-              "
-              :integration-description="
-                $t('INTEGRATION_SETTINGS.DASHBOARD_APPS.DESCRIPTION')
-              "
-              integration-enabled
-              integration-action="/dashboard-apps"
-            />
-          </div>
+            :logo="item.logo"
+            :name="item.name"
+            :description="item.description"
+            :enabled="item.enabled"
+          />
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </SettingsLayout>
 </template>
-<script>
-import { mapGetters } from 'vuex';
-import Integration from './Integration.vue';
-
-export default {
-  components: {
-    Integration,
-  },
-  computed: {
-    ...mapGetters({
-      integrationsList: 'integrations/getIntegrations',
-    }),
-  },
-  mounted() {
-    this.$store.dispatch('integrations/get');
-  },
-};
-</script>

@@ -1,65 +1,15 @@
-<template>
-  <div
-    v-if="isLoading"
-    class="flex flex-1 items-center h-full bg-black-25 justify-center"
-  >
-    <spinner size="" />
-  </div>
-  <div
-    v-else
-    class="w-full h-full flex overflow-auto bg-slate-50 items-center justify-center"
-  >
-    <div
-      class="flex bg-white shadow-lg rounded-lg flex-col w-full lg:w-2/5 h-full lg:h-auto"
-    >
-      <div class="w-full my-0 m-auto px-12 pt-12 pb-6">
-        <img v-if="logo" :src="logo" alt="Chatwoot logo" class="logo mb-6" />
-        <p
-          v-if="!isRatingSubmitted"
-          class="text-black-700 text-lg leading-relaxed mb-8"
-        >
-          {{ $t('SURVEY.DESCRIPTION', { inboxName }) }}
-        </p>
-        <banner
-          v-if="shouldShowBanner"
-          :show-success="shouldShowSuccessMesage"
-          :show-error="shouldShowErrorMesage"
-          :message="message"
-        />
-        <label
-          v-if="!isRatingSubmitted"
-          class="text-base font-medium text-black-800 mb-4"
-        >
-          {{ $t('SURVEY.RATING.LABEL') }}
-        </label>
-        <rating
-          :selected-rating="selectedRating"
-          @selectRating="selectRating"
-        />
-        <feedback
-          v-if="enableFeedbackForm"
-          :is-updating="isUpdating"
-          :is-button-disabled="isButtonDisabled"
-          :selected-rating="selectedRating"
-          @sendFeedback="sendFeedback"
-        />
-      </div>
-      <div class="mb-3">
-        <branding />
-      </div>
-    </div>
-  </div>
-</template>
-
 <script>
+import { useAlert } from 'dashboard/composables';
 import Branding from 'shared/components/Branding.vue';
 import Spinner from 'shared/components/Spinner.vue';
 import Rating from 'survey/components/Rating.vue';
 import Feedback from 'survey/components/Feedback.vue';
 import Banner from 'survey/components/Banner.vue';
-import configMixin from 'shared/mixins/configMixin';
+import StarRating from 'shared/components/StarRating.vue';
+import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import { getSurveyDetails, updateSurvey } from 'survey/api/survey';
-import alertMixin from 'shared/mixins/alertMixin';
+
+import { CSAT_DISPLAY_TYPES } from 'shared/constants/messages';
 
 export default {
   name: 'Response',
@@ -69,15 +19,12 @@ export default {
     Spinner,
     Banner,
     Feedback,
+    StarRating,
   },
-  mixins: [alertMixin, configMixin],
-  props: {
-    showHomePage: {
-      type: Boolean,
-      default: false,
-    },
+  setup() {
+    const { formatMessage } = useMessageFormatter();
+    return { formatMessage };
   },
-
   data() {
     return {
       surveyDetails: null,
@@ -85,9 +32,12 @@ export default {
       errorMessage: null,
       selectedRating: null,
       feedbackMessage: '',
+      hasSubmittedFeedback: false,
       isUpdating: false,
       logo: '',
       inboxName: '',
+      displayType: CSAT_DISPLAY_TYPES.EMOJI,
+      messageContent: '',
     };
   },
   computed: {
@@ -99,10 +49,20 @@ export default {
       return this.surveyDetails && this.surveyDetails.rating;
     },
     isFeedbackSubmitted() {
-      return this.surveyDetails && this.surveyDetails.feedback_message;
+      return (
+        this.hasSubmittedFeedback || !!this.surveyDetails?.feedback_message
+      );
     },
     isButtonDisabled() {
-      return !(this.selectedRating && this.feedback);
+      if (!this.selectedRating) return true;
+      if (this.isUpdating) return true;
+      return false;
+    },
+    isEmojiType() {
+      return this.displayType === CSAT_DISPLAY_TYPES.EMOJI;
+    },
+    isStarType() {
+      return this.displayType === CSAT_DISPLAY_TYPES.STAR;
     },
     shouldShowBanner() {
       return this.isRatingSubmitted || this.errorMessage;
@@ -110,10 +70,10 @@ export default {
     enableFeedbackForm() {
       return !this.isFeedbackSubmitted && this.isRatingSubmitted;
     },
-    shouldShowErrorMesage() {
+    shouldShowErrorMessage() {
       return !!this.errorMessage;
     },
-    shouldShowSuccessMesage() {
+    shouldShowSuccessMessage() {
       return !!this.isRatingSubmitted;
     },
     message() {
@@ -122,18 +82,22 @@ export default {
       }
       return this.$t('SURVEY.RATING.SUCCESS_MESSAGE');
     },
+    formattedMessageContent() {
+      return this.formatMessage(this.messageContent, false);
+    },
   },
   async mounted() {
     this.getSurveyDetails();
   },
   methods: {
     selectRating(rating) {
+      if (this.isFeedbackSubmitted || this.isUpdating) return;
       this.selectedRating = rating;
       this.updateSurveyDetails();
     },
     sendFeedback(message) {
       this.feedbackMessage = message;
-      this.updateSurveyDetails();
+      this.updateSurveyDetails({ markFeedbackSubmitted: true });
     },
     async getSurveyDetails() {
       this.isLoading = true;
@@ -144,6 +108,10 @@ export default {
         this.surveyDetails = result?.data?.csat_survey_response;
         this.selectedRating = this.surveyDetails?.rating;
         this.feedbackMessage = this.surveyDetails?.feedback_message || '';
+        this.displayType = result.data.display_type || CSAT_DISPLAY_TYPES.EMOJI;
+        this.messageContent =
+          result.data.content ||
+          this.$t('SURVEY.DESCRIPTION', { inboxName: this.inboxName });
         this.setLocale(result.data.locale);
       } catch (error) {
         const errorMessage = error?.response?.data?.message;
@@ -152,7 +120,7 @@ export default {
         this.isLoading = false;
       }
     },
-    async updateSurveyDetails() {
+    async updateSurveyDetails({ markFeedbackSubmitted = false } = {}) {
       this.isUpdating = true;
       try {
         const data = {
@@ -173,9 +141,13 @@ export default {
           rating: this.selectedRating,
           feedback_message: this.feedbackMessage,
         };
+        if (markFeedbackSubmitted) {
+          this.hasSubmittedFeedback = true;
+        }
       } catch (error) {
         const errorMessage = error?.response?.data?.error;
         this.errorMessage = errorMessage || this.$t('SURVEY.API.ERROR_MESSAGE');
+        useAlert(this.errorMessage);
       } finally {
         this.isUpdating = false;
       }
@@ -187,10 +159,69 @@ export default {
 };
 </script>
 
-<style scoped lang="scss">
-@import '~widget/assets/scss/variables.scss';
+<template>
+  <div
+    v-if="isLoading"
+    class="flex items-center justify-center flex-1 h-full min-h-screen bg-n-background"
+  >
+    <Spinner size="" />
+  </div>
+  <div
+    v-else
+    class="flex items-center justify-center w-full h-full min-h-screen overflow-auto bg-n-background"
+  >
+    <div
+      class="flex flex-col w-full h-full bg-n-solid-1 rounded-lg border border-solid border-n-weak shadow-md lg:w-2/5 lg:h-auto"
+    >
+      <div class="w-full px-12 pt-12 pb-6 m-auto my-0">
+        <img v-if="logo" :src="logo" alt="Chatwoot logo" class="mb-6 logo" />
+        <div
+          v-if="!isRatingSubmitted"
+          v-dompurify-html="formattedMessageContent"
+          class="mb-8 text-lg leading-relaxed text-n-slate-12 prose prose-bubble"
+        />
+        <Banner
+          v-if="shouldShowBanner"
+          :show-success="shouldShowSuccessMessage"
+          :show-error="shouldShowErrorMessage"
+          :message="message"
+        />
+        <label
+          v-if="!isRatingSubmitted"
+          class="mb-4 text-base font-medium text-n-slate-11"
+        >
+          {{ $t('SURVEY.RATING.LABEL') }}
+        </label>
+        <Rating
+          v-if="isEmojiType"
+          :selected-rating="selectedRating"
+          :is-disabled="isFeedbackSubmitted || isUpdating"
+          @select-rating="selectRating"
+        />
+        <StarRating
+          v-if="isStarType"
+          :selected-rating="selectedRating"
+          :is-disabled="isFeedbackSubmitted || isUpdating"
+          class="[&>button>span]:text-4xl !justify-start !px-0"
+          @select-rating="selectRating"
+        />
+        <Feedback
+          v-if="enableFeedbackForm"
+          :is-updating="isUpdating"
+          :is-button-disabled="isButtonDisabled"
+          :selected-rating="selectedRating"
+          @send-feedback="sendFeedback"
+        />
+      </div>
+      <div class="mb-3">
+        <Branding />
+      </div>
+    </div>
+  </div>
+</template>
 
+<style scoped lang="scss">
 .logo {
-  max-height: $space-larger;
+  max-height: 3rem;
 }
 </style>

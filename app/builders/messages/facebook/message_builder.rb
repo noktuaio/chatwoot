@@ -53,7 +53,23 @@ class Messages::Facebook::MessageBuilder < Messages::Messenger::MessageBuilder
   end
 
   def conversation
-    @conversation ||= Conversation.find_by(conversation_params) || build_conversation
+    @conversation ||= set_conversation_based_on_inbox_config
+  end
+
+  def set_conversation_based_on_inbox_config
+    if @inbox.lock_to_single_conversation
+      Conversation.where(conversation_params).order(created_at: :desc).first || build_conversation
+    else
+      find_or_build_for_multiple_conversations
+    end
+  end
+
+  def find_or_build_for_multiple_conversations
+    # If lock to single conversation is disabled, we will create a new conversation if previous conversation is resolved
+    last_conversation = Conversation.where(conversation_params).where.not(status: :resolved).order(created_at: :desc).first
+    return build_conversation if last_conversation.nil?
+
+    last_conversation
   end
 
   def build_conversation
@@ -76,8 +92,16 @@ class Messages::Facebook::MessageBuilder < Messages::Messenger::MessageBuilder
   def fallback_params(attachment)
     {
       fallback_title: attachment['title'],
-      external_url: attachment['url']
+      external_url: attachment['url'] || attachment.dig('payload', 'url')
     }
+  end
+
+  # Facebook shared posts point to page URLs, not downloadable media URLs.
+  # Keep this Facebook-only so Messenger/Instagram share attachments still use the parent media handling.
+  def normalize_file_type(type)
+    return :fallback if type.to_sym == :share
+
+    super
   end
 
   def conversation_params
@@ -89,15 +113,19 @@ class Messages::Facebook::MessageBuilder < Messages::Messenger::MessageBuilder
   end
 
   def message_params
+    content_attributes = {
+      in_reply_to_external_id: response.in_reply_to_external_id
+    }
+    content_attributes[:external_echo] = true if @outgoing_echo
+
     {
       account_id: conversation.account_id,
       inbox_id: conversation.inbox_id,
       message_type: @message_type,
+      status: @outgoing_echo ? :delivered : :sent,
       content: response.content,
       source_id: response.identifier,
-      content_attributes: {
-        in_reply_to_external_id: response.in_reply_to_external_id
-      },
+      content_attributes: content_attributes,
       sender: @outgoing_echo ? nil : @contact_inbox.contact
     }
   end

@@ -18,6 +18,10 @@ class Integrations::Slack::SendOnSlackService < Base::SendOnChannelService
     slack_client.chat_unfurl(
       event
     )
+    # You may wonder why we're not requesting reauthorization and disabling hooks when scope errors occur.
+    # Since link unfurling is just a nice-to-have feature that doesn't affect core functionality, we will silently ignore these errors.
+  rescue Slack::Web::Api::Errors::MissingScope => e
+    Rails.logger.warn "Slack: Missing scope error: #{e.message}"
   end
 
   private
@@ -58,10 +62,12 @@ class Integrations::Slack::SendOnSlackService < Base::SendOnChannelService
   end
 
   def message_text
-    if message.content.present?
-      message.content.gsub(MENTION_REGEX, '\1')
+    content = message.processed_message_content || message.content
+
+    if content.present?
+      content.gsub(MENTION_REGEX, '\1')
     else
-      message.content
+      content
     end
   end
 
@@ -95,8 +101,9 @@ class Integrations::Slack::SendOnSlackService < Base::SendOnChannelService
 
   def send_message
     post_message if message_content.present?
-    upload_file if message.attachments.any?
-  rescue Slack::Web::Api::Errors::AccountInactive, Slack::Web::Api::Errors::MissingScope, Slack::Web::Api::Errors::InvalidAuth,
+    upload_files if message.attachments.any?
+  rescue Slack::Web::Api::Errors::IsArchived, Slack::Web::Api::Errors::AccountInactive, Slack::Web::Api::Errors::MissingScope,
+         Slack::Web::Api::Errors::InvalidAuth,
          Slack::Web::Api::Errors::ChannelNotFound, Slack::Web::Api::Errors::NotInChannel => e
     Rails.logger.error e
     hook.prompt_reauthorization!
@@ -114,26 +121,52 @@ class Integrations::Slack::SendOnSlackService < Base::SendOnChannelService
     )
   end
 
-  def upload_file
-    result = slack_client.files_upload({
-      channels: hook.reference_id,
-      initial_comment: 'Attached File!',
-      thread_ts: conversation.identifier
-    }.merge(file_information))
-    Rails.logger.info(result)
+  def upload_files
+    files = build_files_array
+    return if files.empty?
+
+    begin
+      result = slack_client.files_upload_v2(
+        files: files,
+        initial_comment: 'Attached File!',
+        thread_ts: conversation.identifier,
+        channel_id: hook.reference_id
+      )
+      Rails.logger.info "slack_upload_result: #{result}"
+    rescue Slack::Web::Api::Errors::SlackError => e
+      Rails.logger.error "Failed to upload files: #{e.message}"
+    ensure
+      files.each { |file| file[:content]&.clear }
+    end
   end
 
-  def file_type
-    File.extname(message.attachments.first.download_url).strip.downcase[1..]
+  def build_files_array
+    message.attachments.filter_map do |attachment|
+      next unless attachment.with_attached_file?
+
+      build_file_payload(attachment)
+    end
   end
 
-  def file_information
+  def build_file_payload(attachment)
+    content = download_attachment_content(attachment)
+    return if content.blank?
+
     {
-      filename: message.attachments.first.file.filename,
-      filetype: file_type,
-      content: message.attachments.first.file.download,
-      title: message.attachments.first.file.filename
+      filename: attachment.file.filename.to_s,
+      content: content,
+      title: attachment.file.filename.to_s
     }
+  end
+
+  def download_attachment_content(attachment)
+    buffer = +''
+    attachment.file.blob.open do |file|
+      while (chunk = file.read(64.kilobytes))
+        buffer << chunk
+      end
+    end
+    buffer
   end
 
   def sender_name(sender)
@@ -143,12 +176,12 @@ class Integrations::Slack::SendOnSlackService < Base::SendOnChannelService
   def sender_type(sender)
     if sender.instance_of?(Contact)
       'Contact'
-    elsif message.message_type == 'template' && sender.nil?
-      'Bot'
+    elsif sender.instance_of?(User)
+      'Agent'
     elsif message.message_type == 'activity' && sender.nil?
       'System'
     else
-      'Agent'
+      'Bot'
     end
   end
 

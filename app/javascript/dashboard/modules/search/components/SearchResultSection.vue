@@ -1,69 +1,58 @@
+<script setup>
+import { computed } from 'vue';
+
+import Icon from 'dashboard/components-next/icon/Icon.vue';
+
+const props = defineProps({
+  title: {
+    type: String,
+    default: '',
+  },
+  empty: {
+    type: Boolean,
+    default: false,
+  },
+  query: {
+    type: String,
+    default: '',
+  },
+  showTitle: {
+    type: Boolean,
+    default: true,
+  },
+  isFetching: {
+    type: Boolean,
+    default: true,
+  },
+});
+
+const titleCase = computed(() => props.title.toLowerCase());
+</script>
+
 <template>
-  <section class="result-section">
-    <div v-if="showTitle" class="header">
-      <h3 class="text-sm text-slate-800 dark:text-slate-100">{{ title }}</h3>
+  <section class="mx-0 mb-3">
+    <div
+      v-if="showTitle"
+      class="sticky top-0 pt-2 py-3 z-20 bg-gradient-to-b from-n-surface-1 from-80% to-transparent mb-3 -mx-1.5 px-1.5"
+    >
+      <h3 class="text-sm text-n-slate-11">{{ title }}</h3>
     </div>
-    <woot-loading-state v-if="isFetching" :message="'Searching'" />
-    <slot v-else />
-    <div v-if="empty && !isFetching" class="empty">
-      <fluent-icon icon="info" size="16px" class="icon" />
-      <p class="empty-state__text">
+    <slot />
+    <woot-loading-state
+      v-if="isFetching"
+      :message="empty ? $t('SEARCH.SEARCHING_DATA') : $t('SEARCH.LOADING_DATA')"
+    />
+    <div
+      v-if="empty && !isFetching"
+      class="flex items-start justify-center px-4 py-6 rounded-xl bg-n-slate-2 dark:bg-n-solid-1"
+    >
+      <Icon
+        icon="i-lucide-info"
+        class="text-n-slate-11 size-4 flex-shrink-0 mt-[3px]"
+      />
+      <p class="mx-2 my-0 text-center text-n-slate-11">
         {{ $t('SEARCH.EMPTY_STATE', { item: titleCase, query }) }}
       </p>
     </div>
   </section>
 </template>
-
-<script>
-export default {
-  props: {
-    title: {
-      type: String,
-      default: '',
-    },
-    empty: {
-      type: Boolean,
-      default: false,
-    },
-    query: {
-      type: String,
-      default: '',
-    },
-    showTitle: {
-      type: Boolean,
-      default: true,
-    },
-    isFetching: {
-      type: Boolean,
-      default: true,
-    },
-  },
-  computed: {
-    titleCase() {
-      return this.title.toLowerCase();
-    },
-  },
-};
-</script>
-
-<style scoped lang="scss">
-.result-section {
-  @apply my-2 mx-0;
-}
-.search-list {
-  @apply m-0 py-4 px-0 list-none;
-}
-.header {
-  @apply sticky top-0 p-2 z-50 bg-white dark:bg-slate-900 mb-0.5;
-}
-
-.empty {
-  @apply flex items-center justify-center py-6 px-4 m-2 bg-slate-25 dark:bg-slate-800 rounded-md;
-  .icon {
-    @apply text-slate-500 dark:text-slate-300;
-  }
-  .empty-state__text {
-    @apply text-slate-500 dark:text-slate-300 text-center my-0 mx-2;
-  }
-}
-</style>

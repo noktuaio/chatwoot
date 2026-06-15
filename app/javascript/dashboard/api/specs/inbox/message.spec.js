@@ -15,10 +15,10 @@ describe('#ConversationAPI', () => {
   describe('API calls', () => {
     const originalAxios = window.axios;
     const axiosMock = {
-      post: jest.fn(() => Promise.resolve()),
-      get: jest.fn(() => Promise.resolve()),
-      patch: jest.fn(() => Promise.resolve()),
-      delete: jest.fn(() => Promise.resolve()),
+      post: vi.fn(() => Promise.resolve()),
+      get: vi.fn(() => Promise.resolve()),
+      patch: vi.fn(() => Promise.resolve()),
+      delete: vi.fn(() => Promise.resolve()),
     };
 
     beforeEach(() => {
@@ -82,6 +82,30 @@ describe('#ConversationAPI', () => {
         to_emails: '',
         template_params: undefined,
       });
+    });
+
+    it('appends is_voice_message when isVoiceMessage is true', () => {
+      const formPayload = buildCreatePayload({
+        message: 'voice message',
+        echoId: 42,
+        isPrivate: false,
+        files: [new Blob(['audio-data'], { type: 'audio/ogg' })],
+        isVoiceMessage: true,
+      });
+      expect(formPayload).toBeInstanceOf(FormData);
+      expect(formPayload.get('is_voice_message')).toEqual('true');
+    });
+
+    it('does not append is_voice_message when isVoiceMessage is false', () => {
+      const formPayload = buildCreatePayload({
+        message: 'regular audio',
+        echoId: 43,
+        isPrivate: false,
+        files: [new Blob(['audio-data'], { type: 'audio/ogg' })],
+        isVoiceMessage: false,
+      });
+      expect(formPayload).toBeInstanceOf(FormData);
+      expect(formPayload.get('is_voice_message')).toBeNull();
     });
   });
 });

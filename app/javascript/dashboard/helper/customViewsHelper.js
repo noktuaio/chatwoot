@@ -21,6 +21,7 @@ export const getAttributeInputType = (key, allCustomAttributes) => {
   const customAttribute = allCustomAttributes.find(
     attr => attr.attribute_key === key
   );
+
   const { attribute_display_type } = customAttribute;
   const filterInputTypes = generateCustomAttributesInputType(
     attribute_display_type
@@ -35,6 +36,13 @@ export const getValuesName = (values, list, idKey, nameKey) => {
     name: item ? item[nameKey] : values[0],
   };
 };
+
+const getValuesForContact = (values, contacts) => ({
+  id: values[0],
+  name:
+    contacts?.find(contact => contact.id === values[0])?.name ||
+    `Contact #${values[0]}`,
+});
 
 export const getValuesForStatus = values => {
   return values.map(value => ({ id: value, name: value }));
@@ -68,10 +76,23 @@ const getValuesForCountries = (values, countries) => {
   }));
 };
 
+const getValuesForPriority = (values, priority) => {
+  return priority.filter(option => values.includes(option.id));
+};
+
 export const getValuesForFilter = (filter, params) => {
   const { attribute_key, values } = filter;
-  const { languages, countries, agents, inboxes, teams, campaigns, labels } =
-    params;
+  const {
+    languages,
+    countries,
+    agents,
+    inboxes,
+    teams,
+    campaigns,
+    labels,
+    priority,
+    contacts,
+  } = params;
   switch (attribute_key) {
     case 'status':
       return getValuesForStatus(values);
@@ -81,17 +102,18 @@ export const getValuesForFilter = (filter, params) => {
       return getValuesName(values, inboxes, 'id', 'name');
     case 'team_id':
       return getValuesName(values, teams, 'id', 'name');
+    case 'contact_id':
+      return getValuesForContact(values, contacts);
     case 'campaign_id':
       return getValuesName(values, campaigns, 'id', 'title');
-    case 'labels': {
+    case 'labels':
       return getValuesForLabels(values, labels);
-    }
-    case 'browser_language': {
+    case 'priority':
+      return getValuesForPriority(values, priority);
+    case 'browser_language':
       return getValuesForLanguages(values, languages);
-    }
-    case 'country_code': {
+    case 'country_code':
       return getValuesForCountries(values, countries);
-    }
     default:
       return { id: values[0], name: values[0] };
   }
@@ -100,9 +122,9 @@ export const getValuesForFilter = (filter, params) => {
 export const generateValuesForEditCustomViews = (filter, params) => {
   const { attribute_key, filter_operator, values } = filter;
   const { filterTypes, allCustomAttributes } = params;
-  const inboxType = getInputType(attribute_key, filter_operator, filterTypes);
+  const inputType = getInputType(attribute_key, filter_operator, filterTypes);
 
-  if (inboxType === undefined) {
+  if (inputType === undefined) {
     const filterInputTypes = getAttributeInputType(
       attribute_key,
       allCustomAttributes
@@ -112,7 +134,7 @@ export const generateValuesForEditCustomViews = (filter, params) => {
       : { id: values[0], name: values[0] };
   }
 
-  return inboxType === 'multi_select' || inboxType === 'search_select'
+  return inputType === 'multi_select' || inputType === 'search_select'
     ? getValuesForFilter(filter, params)
     : values[0].toString();
 };

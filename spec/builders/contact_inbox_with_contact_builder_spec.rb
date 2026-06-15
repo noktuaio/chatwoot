@@ -39,6 +39,21 @@ describe ContactInboxWithContactBuilder do
       expect(contact_inbox.inbox_id).to eq(inbox.id)
     end
 
+    it 'truncates long contact names before creating the contact' do
+      long_name = 'a' * 300
+
+      contact_inbox = described_class.new(
+        source_id: '123456',
+        inbox: inbox,
+        contact_attributes: {
+          name: long_name,
+          email: 'testemail@example.com'
+        }
+      ).perform
+
+      expect(contact_inbox.contact.name).to eq(long_name.first(ApplicationRecord::MAX_STRING_COLUMN_LENGTH))
+    end
+
     it 'doesnot create contact if it already exist with identifier' do
       contact_inbox = described_class.new(
         source_id: '123456',
@@ -94,6 +109,34 @@ describe ContactInboxWithContactBuilder do
       ).perform
 
       expect(contact_inbox.contact.id).to be(contact.id)
+    end
+
+    it 'reuses contact if it exists with the same source_id in a Facebook inbox when creating for Instagram inbox' do
+      instagram_source_id = '123456789'
+
+      # Create a Facebook page inbox with a contact using the same source_id
+      facebook_inbox = create(:inbox, channel_type: 'Channel::FacebookPage', account: account)
+      facebook_contact = create(:contact, account: account)
+      facebook_contact_inbox = create(:contact_inbox, contact: facebook_contact, inbox: facebook_inbox, source_id: instagram_source_id)
+
+      # Create an Instagram inbox
+      instagram_inbox = create(:inbox, channel_type: 'Channel::Instagram', account: account)
+
+      # Try to create a contact inbox with same source_id for Instagram
+      contact_inbox = described_class.new(
+        source_id: instagram_source_id,
+        inbox: instagram_inbox,
+        contact_attributes: {
+          name: 'Instagram User',
+          email: 'instagram_user@example.com'
+        }
+      ).perform
+
+      # Should reuse the existing contact from Facebook
+      expect(contact_inbox.contact.id).to eq(facebook_contact.id)
+      # Make sure the contact inbox is not the same as the Facebook contact inbox
+      expect(contact_inbox.id).not_to eq(facebook_contact_inbox.id)
+      expect(contact_inbox.inbox_id).to eq(instagram_inbox.id)
     end
   end
 end

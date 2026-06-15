@@ -6,6 +6,7 @@
     "LIST": {
       "404": "இந்த குழுவில் செயலில் உள்ள உரையாடல்கள் எதுவும் இல்லை."
     },
+    "FAILED_TO_SEND": "Failed to send",
     "TAB_HEADING": "உரையாடல்கள்",
     "MENTION_HEADING": "Mentions",
     "UNATTENDED_HEADING": "Unattended",
@@ -75,6 +76,9 @@
       },
       "waiting_since_desc": {
         "TEXT": "Pending Response: Shortest first"
+      },
+      "priority_desc_created_at_asc": {
+        "TEXT": "Priority: Highest first, Created: Oldest first"
       }
     },
     "ATTACHMENTS": {
@@ -93,8 +97,17 @@
       "location": {
         "CONTENT": "இருப்பிடம்"
       },
+      "ig_reel": {
+        "CONTENT": "Instagram Reel"
+      },
       "fallback": {
         "CONTENT": "ஒரு URL ஐப் பகிர்ந்துள்ளார்"
+      },
+      "contact": {
+        "CONTENT": "Shared contact"
+      },
+      "embed": {
+        "CONTENT": "Embedded content"
       }
     },
     "CHAT_SORT_BY_FILTER": {
@@ -126,6 +139,8 @@
     "NO_CONTENT": "No content available",
     "HIDE_QUOTED_TEXT": "Hide Quoted Text",
     "SHOW_QUOTED_TEXT": "Show Quoted Text",
-    "MESSAGE_READ": "Read"
+    "MESSAGE_READ": "Read",
+    "SENDING": "Sending",
+    "UNREAD_COUNT_OVERFLOW": "9+"
   }
 }

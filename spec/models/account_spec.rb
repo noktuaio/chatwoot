@@ -3,15 +3,11 @@
 require 'rails_helper'
 
 RSpec.describe Account do
-  it { is_expected.to validate_numericality_of(:auto_resolve_duration).is_greater_than_or_equal_to(1) }
-  it { is_expected.to validate_numericality_of(:auto_resolve_duration).is_less_than_or_equal_to(999) }
-
   it { is_expected.to have_many(:users).through(:account_users) }
   it { is_expected.to have_many(:account_users) }
   it { is_expected.to have_many(:inboxes).dependent(:destroy_async) }
   it { is_expected.to have_many(:conversations).dependent(:destroy_async) }
   it { is_expected.to have_many(:contacts).dependent(:destroy_async) }
-  it { is_expected.to have_many(:telegram_bots).dependent(:destroy_async) }
   it { is_expected.to have_many(:canned_responses).dependent(:destroy_async) }
   it { is_expected.to have_many(:facebook_pages).class_name('::Channel::FacebookPage').dependent(:destroy_async) }
   it { is_expected.to have_many(:web_widgets).class_name('::Channel::WebWidget').dependent(:destroy_async) }
@@ -25,6 +21,12 @@ RSpec.describe Account do
   # This validation happens in ApplicationRecord
   describe 'length validations' do
     let(:account) { create(:account) }
+
+    it 'validates name presence' do
+      account.name = ''
+      account.valid?
+      expect(account.errors[:name]).to include("can't be blank")
+    end
 
     it 'validates name length' do
       account.name = 'a' * 256
@@ -43,7 +45,46 @@ RSpec.describe Account do
     let(:account) { create(:account) }
 
     it 'returns ChatwootApp.max limits' do
-      expect(account.usage_limits).to eq({ agents: ChatwootApp.max_limit, inboxes: ChatwootApp.max_limit })
+      expect(account.usage_limits[:agents]).to eq(ChatwootApp.max_limit)
+      expect(account.usage_limits[:inboxes]).to eq(ChatwootApp.max_limit)
+    end
+  end
+
+  describe 'conversation unread counts feature flag' do
+    let(:account) { create(:account) }
+    let(:inbox) { create(:inbox, account: account) }
+    let(:store) { Conversations::UnreadCounts::Store }
+    let(:inbox_key) { store.inbox_key(account.id, inbox.id) }
+
+    after do
+      store.clear_account!(account.id)
+    end
+
+    it 'clears unread count cache when the feature is enabled' do
+      build_unread_count_cache
+
+      account.enable_features!(:conversation_unread_counts)
+
+      expect(store.base_ready?(account.id)).to be(false)
+      expect(store.assignment_ready?(account.id)).to be(false)
+      expect(store.counts_for_keys([inbox_key])).to eq(inbox_key => 0)
+    end
+
+    it 'clears unread count cache when the feature is disabled' do
+      account.enable_features!(:conversation_unread_counts)
+      build_unread_count_cache
+
+      account.disable_features!(:conversation_unread_counts)
+
+      expect(store.base_ready?(account.id)).to be(false)
+      expect(store.assignment_ready?(account.id)).to be(false)
+      expect(store.counts_for_keys([inbox_key])).to eq(inbox_key => 0)
+    end
+
+    def build_unread_count_cache
+      store.mark_base_ready!(account.id)
+      store.mark_assignment_ready!(account.id)
+      store.add_base_membership(account_id: account.id, inbox_id: inbox.id, label_ids: [], conversation_id: 1)
     end
   end
 
@@ -105,6 +146,245 @@ RSpec.describe Account do
       expect(account.locale).to eq('en')
       account.destroy
       expect(ActiveRecord::Base.connection.execute(query).count).to eq(0)
+    end
+  end
+
+  describe 'locale' do
+    it 'returns correct language if the value is set' do
+      account = create(:account, locale: 'fr')
+      expect(account.locale).to eq('fr')
+      expect(account.locale_english_name).to eq('french')
+    end
+
+    it 'returns english if the value is not set' do
+      account = create(:account, locale: nil)
+      expect(account.locale).to be_nil
+      expect(account.locale_english_name).to eq('english')
+    end
+
+    it 'returns english if the value is empty string' do
+      account = create(:account, locale: '')
+      expect(account.locale).to be_nil
+      expect(account.locale_english_name).to eq('english')
+    end
+
+    it 'returns correct language if the value has country code' do
+      account = create(:account, locale: 'pt_BR')
+      expect(account.locale).to eq('pt_BR')
+      expect(account.locale_english_name).to eq('portuguese')
+    end
+  end
+
+  describe 'settings' do
+    let(:account) { create(:account) }
+
+    context 'when auto_resolve_after' do
+      it 'validates minimum value' do
+        account.settings = { auto_resolve_after: 4 }
+        expect(account).to be_invalid
+        expect(account.errors.messages).to eq({ auto_resolve_after: ['must be greater than or equal to 10'] })
+      end
+
+      it 'validates maximum value' do
+        account.settings = { auto_resolve_after: 1_439_857 }
+        expect(account).to be_invalid
+        expect(account.errors.messages).to eq({ auto_resolve_after: ['must be less than or equal to 1439856'] })
+      end
+
+      it 'allows valid values' do
+        account.settings = { auto_resolve_after: 15 }
+        expect(account).to be_valid
+
+        account.settings = { auto_resolve_after: 1_439_856 }
+        expect(account).to be_valid
+      end
+
+      it 'allows null values' do
+        account.settings = { auto_resolve_after: nil }
+        expect(account).to be_valid
+      end
+    end
+
+    context 'when auto_resolve_message' do
+      it 'allows string values' do
+        account.settings = { auto_resolve_message: 'This conversation has been resolved automatically.' }
+        expect(account).to be_valid
+      end
+
+      it 'allows empty string' do
+        account.settings = { auto_resolve_message: '' }
+        expect(account).to be_valid
+      end
+
+      it 'allows nil values' do
+        account.settings = { auto_resolve_message: nil }
+        expect(account).to be_valid
+      end
+    end
+
+    context 'when using store_accessor' do
+      it 'correctly gets and sets auto_resolve_after' do
+        account.auto_resolve_after = 30
+        expect(account.auto_resolve_after).to eq(30)
+        expect(account.settings['auto_resolve_after']).to eq(30)
+      end
+
+      it 'correctly gets and sets auto_resolve_message' do
+        message = 'This conversation was automatically resolved'
+        account.auto_resolve_message = message
+        expect(account.auto_resolve_message).to eq(message)
+        expect(account.settings['auto_resolve_message']).to eq(message)
+      end
+
+      it 'defaults captain_auto_resolve_mode to legacy when captain_tasks is disabled' do
+        allow(account).to receive(:feature_enabled?).with('captain_tasks').and_return(false)
+
+        expect(account.captain_auto_resolve_mode).to eq('legacy')
+        expect(account).to be_captain_auto_resolve_legacy
+      end
+
+      it 'defaults captain_auto_resolve_mode to evaluated when captain_tasks is enabled' do
+        allow(account).to receive(:feature_enabled?).with('captain_tasks').and_return(true)
+
+        expect(account.captain_auto_resolve_mode).to eq('evaluated')
+        expect(account).to be_captain_auto_resolve_evaluated
+      end
+
+      it 'correctly gets and sets captain_auto_resolve_mode' do
+        account.captain_auto_resolve_mode = 'legacy'
+
+        expect(account.captain_auto_resolve_mode).to eq('legacy')
+        expect(account.settings['captain_auto_resolve_mode']).to eq('legacy')
+        expect(account).to be_captain_auto_resolve_legacy
+      end
+
+      it 'allows clearing captain_auto_resolve_mode to fall back to feature defaults' do
+        allow(account).to receive(:feature_enabled?).with('captain_tasks').and_return(false)
+        account.captain_auto_resolve_mode = nil
+
+        expect(account).to be_valid
+        expect(account.captain_auto_resolve_mode).to eq('legacy')
+        expect(account.settings['captain_auto_resolve_mode']).to be_nil
+      end
+
+      it 'falls back to disabled mode from legacy settings key' do
+        account.settings = { 'captain_disable_auto_resolve' => true }
+
+        expect(account.captain_auto_resolve_mode).to eq('disabled')
+        expect(account).to be_captain_auto_resolve_disabled
+      end
+
+      it 'handles nil values correctly' do
+        account.auto_resolve_after = nil
+        account.auto_resolve_message = nil
+        expect(account.auto_resolve_after).to be_nil
+        expect(account.auto_resolve_message).to be_nil
+      end
+    end
+
+    context 'when using with_auto_resolve scope' do
+      it 'finds accounts with auto_resolve_after set' do
+        account.update(auto_resolve_after: 40 * 24 * 60)
+        expect(described_class.with_auto_resolve.pluck(:id)).to include(account.id)
+      end
+
+      it 'does not find accounts without auto_resolve_after' do
+        account.update(auto_resolve_after: nil)
+        expect(described_class.with_auto_resolve.pluck(:id)).not_to include(account.id)
+      end
+    end
+
+    context 'when support_email is set' do
+      it 'allows a plain email address' do
+        account.support_email = 'support@example.com'
+        expect(account).to be_valid
+      end
+
+      it 'allows display-name format' do
+        account.support_email = 'Support Team <support@example.com>'
+        expect(account).to be_valid
+      end
+
+      it 'allows blank values' do
+        account.support_email = ''
+        expect(account).to be_valid
+      end
+
+      it 'rejects malformed strings with no email part' do
+        account.support_email = 'Smith Smith'
+        expect(account).not_to be_valid
+        expect(account.errors[:support_email]).to include(I18n.t('errors.account.support_email.invalid'))
+      end
+    end
+
+    context 'when reporting_timezone is set' do
+      it 'allows valid timezone names' do
+        account.reporting_timezone = 'America/New_York'
+
+        expect(account).to be_valid
+      end
+
+      it 'rejects invalid timezone names' do
+        account.reporting_timezone = 'Invalid/Timezone'
+
+        expect(account).not_to be_valid
+        expect(account.errors[:reporting_timezone]).to include(I18n.t('errors.account.reporting_timezone.invalid'))
+      end
+    end
+  end
+
+  describe 'captain_preferences' do
+    let(:account) { create(:account) }
+
+    describe 'with no saved preferences' do
+      it 'returns defaults from llm.yml' do
+        prefs = account.captain_preferences
+
+        expect(prefs[:features].values).to all(be false)
+
+        Llm::Models.feature_keys.each do |feature|
+          expect(prefs[:models][feature]).to eq(Llm::Models.default_model_for(feature))
+        end
+      end
+    end
+
+    describe 'with saved model preferences' do
+      it 'returns saved preferences merged with defaults' do
+        account.update!(captain_models: { 'editor' => 'gpt-4.1-mini', 'assistant' => 'gpt-5.2' })
+
+        prefs = account.captain_preferences
+
+        expect(prefs[:models]['editor']).to eq('gpt-4.1-mini')
+        expect(prefs[:models]['assistant']).to eq('gpt-5.2')
+        expect(prefs[:models]['copilot']).to eq(Llm::Models.default_model_for('copilot'))
+      end
+    end
+
+    describe 'with saved feature preferences' do
+      it 'returns saved feature states' do
+        account.update!(captain_features: { 'editor' => true, 'assistant' => true })
+
+        prefs = account.captain_preferences
+
+        expect(prefs[:features]['editor']).to be true
+        expect(prefs[:features]['assistant']).to be true
+        expect(prefs[:features]['copilot']).to be false
+      end
+    end
+
+    describe 'validation' do
+      it 'rejects invalid model for a feature' do
+        account.captain_models = { 'label_suggestion' => 'gpt-5.1' }
+
+        expect(account).not_to be_valid
+        expect(account.errors[:captain_models].first).to include('not a valid model for label_suggestion')
+      end
+
+      it 'accepts valid model for a feature' do
+        account.captain_models = { 'editor' => 'gpt-4.1-mini', 'label_suggestion' => 'gpt-4.1-nano' }
+
+        expect(account).to be_valid
+      end
     end
   end
 end

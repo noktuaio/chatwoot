@@ -5,7 +5,7 @@ import types from '../../../mutation-types';
 describe('#mutations', () => {
   let state = {};
   beforeEach(() => {
-    state = article;
+    state = JSON.parse(JSON.stringify(article));
   });
 
   describe('#SET_UI_FLAG', () => {
@@ -47,14 +47,43 @@ describe('#mutations', () => {
   });
 
   describe('#ARTICLES_META', () => {
+    beforeEach(() => {
+      state.meta = {};
+    });
+
     it('add meta to state', () => {
       mutations[types.SET_ARTICLES_META](state, {
         articles_count: 3,
         current_page: 1,
       });
       expect(state.meta).toEqual({
-        count: 3,
-        currentPage: 1,
+        articles_count: 3,
+        current_page: 1,
+      });
+    });
+
+    it('preserves existing meta values and updates only provided keys', () => {
+      state.meta = {
+        all_articles_count: 56,
+        archived_articles_count: 5,
+        articles_count: 56,
+        current_page: '1',
+        draft_articles_count: 26,
+        published_count: 25,
+      };
+
+      mutations[types.SET_ARTICLES_META](state, {
+        articles_count: 3,
+        draft_articles_count: 27,
+      });
+
+      expect(state.meta).toEqual({
+        all_articles_count: 56,
+        archived_articles_count: 5,
+        current_page: '1',
+        articles_count: 3,
+        draft_articles_count: 27,
+        published_count: 25,
       });
     });
   });
@@ -64,29 +93,43 @@ describe('#mutations', () => {
       mutations[types.ADD_ARTICLE_ID](state, 3);
       expect(state.articles.allIds).toEqual([1, 2, 3]);
     });
-    it('Does not invalid article with empty data passed', () => {
-      mutations[types.ADD_ARTICLE_ID](state, {});
-      expect(state).toEqual(article);
+    it('does not add duplicate article id to state', () => {
+      mutations[types.ADD_ARTICLE_ID](state, 1);
+      expect(state.articles.allIds).toEqual([1, 2]);
     });
   });
 
   describe('#UPDATE_ARTICLE', () => {
-    it('does not updates if empty object is passed', () => {
+    it('does not update if empty object is passed', () => {
       mutations[types.UPDATE_ARTICLE](state, {});
       expect(state).toEqual(article);
     });
-    it('does not updates if object id is not present ', () => {
+
+    it('does not update if object id is not present in the state', () => {
       mutations[types.UPDATE_ARTICLE](state, { id: 5 });
       expect(state).toEqual(article);
     });
-    it(' updates if object with id already present in the state', () => {
-      mutations[types.UPDATE_ARTICLE](state, {
+
+    it('updates if object with id is already present in the state', () => {
+      const updatedArticle = {
         id: 2,
-        title: 'How do I change my registered email address',
-      });
-      expect(state.articles.byId[2].title).toEqual(
-        'How do I change my registered email address'
-      );
+        title: 'Updated Title',
+        content: 'Updated Content',
+      };
+      mutations[types.UPDATE_ARTICLE](state, updatedArticle);
+      expect(state.articles.byId[2].title).toEqual('Updated Title');
+      expect(state.articles.byId[2].content).toEqual('Updated Content');
+    });
+
+    it('preserves the original position when updating an article', () => {
+      const originalPosition = state.articles.byId[2].position;
+      const updatedArticle = {
+        id: 2,
+        title: 'Updated Title',
+        content: 'Updated Content',
+      };
+      mutations[types.UPDATE_ARTICLE](state, updatedArticle);
+      expect(state.articles.byId[2].position).toEqual(originalPosition);
     });
   });
 
@@ -107,10 +150,57 @@ describe('#mutations', () => {
       expect(state.articles.allIds).toEqual([]);
       expect(state.articles.byId).toEqual({});
       expect(state.articles.uiFlags).toEqual({
-        byId: {
-          1: { isFetching: false, isUpdating: true, isDeleting: false },
-        },
+        byId: {},
       });
+    });
+  });
+
+  describe('#SET_ARTICLE_POSITIONS', () => {
+    it('updates positions for articles in the store', () => {
+      const positionsHash = { 1: 1, 2: 2 };
+      mutations[types.SET_ARTICLE_POSITIONS](state, positionsHash);
+
+      expect(state.articles.byId[1].position).toEqual(1);
+      expect(state.articles.byId[2].position).toEqual(2);
+    });
+
+    it('does not update articles that are not in the store', () => {
+      const positionsHash = { 999: 5 };
+      mutations[types.SET_ARTICLE_POSITIONS](state, positionsHash);
+
+      expect(state.articles.byId[999]).toBeUndefined();
+    });
+
+    it('preserves other article properties when updating position', () => {
+      const originalTitle = state.articles.byId[1].title;
+      const positionsHash = { 1: 3 };
+      mutations[types.SET_ARTICLE_POSITIONS](state, positionsHash);
+
+      expect(state.articles.byId[1].position).toEqual(3);
+      expect(state.articles.byId[1].title).toEqual(originalTitle);
+    });
+
+    it('re-sorts allIds by position after update', () => {
+      state.articles.byId[1].position = 1;
+      state.articles.byId[2].position = 2;
+      state.articles.allIds = [1, 2];
+
+      mutations[types.SET_ARTICLE_POSITIONS](state, { 1: 3, 2: 1 });
+
+      expect(state.articles.allIds).toEqual([2, 1]);
+    });
+
+    it('UPDATE_ARTICLE preserves reordered position after SET_ARTICLE_POSITIONS', () => {
+      mutations[types.SET_ARTICLE_POSITIONS](state, { 2: 1 });
+      expect(state.articles.byId[2].position).toEqual(1);
+
+      mutations[types.UPDATE_ARTICLE](state, {
+        id: 2,
+        title: 'Updated Title',
+        status: 'published',
+      });
+      expect(state.articles.byId[2].position).toEqual(1);
+      expect(state.articles.byId[2].title).toEqual('Updated Title');
     });
   });
 });

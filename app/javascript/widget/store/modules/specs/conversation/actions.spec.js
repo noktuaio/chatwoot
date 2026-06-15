@@ -2,11 +2,11 @@ import { actions } from '../../conversation/actions';
 import getUuid from '../../../../helpers/uuid';
 import { API } from 'widget/helpers/axios';
 
-jest.mock('../../../../helpers/uuid');
-jest.mock('widget/helpers/axios');
+vi.mock('../../../../helpers/uuid');
+vi.mock('widget/helpers/axios');
 
-const commit = jest.fn();
-const dispatch = jest.fn();
+const commit = vi.fn();
+const dispatch = vi.fn();
 
 describe('#actions', () => {
   describe('#createConversation', () => {
@@ -17,7 +17,8 @@ describe('#actions', () => {
           messages: [{ id: 1, content: 'This is a test message' }],
         },
       });
-      let windowSpy = jest.spyOn(window, 'window', 'get');
+
+      let windowSpy = vi.spyOn(window, 'window', 'get');
       windowSpy.mockImplementation(() => ({
         WOOT_WIDGET: {
           $root: {
@@ -96,8 +97,8 @@ describe('#actions', () => {
     it('sends correct mutations', async () => {
       const mockDate = new Date(1466424490000);
       getUuid.mockImplementationOnce(() => '1111');
-      const spy = jest.spyOn(global, 'Date').mockImplementation(() => mockDate);
-      const windowSpy = jest.spyOn(window, 'window', 'get');
+      const spy = vi.spyOn(global, 'Date').mockImplementation(() => mockDate);
+      const windowSpy = vi.spyOn(window, 'window', 'get');
       windowSpy.mockImplementation(() => ({
         WOOT_WIDGET: {
           $root: {
@@ -110,20 +111,45 @@ describe('#actions', () => {
           search: '?param=1',
         },
       }));
+      const state = { pendingCustomAttributes: {}, pendingLabels: [] };
       await actions.sendMessage(
-        { commit, dispatch },
+        { commit, dispatch, state },
         { content: 'hello', replyTo: 124 }
       );
       spy.mockRestore();
       windowSpy.mockRestore();
       expect(dispatch).toBeCalledWith('sendMessageWithData', {
-        attachments: undefined,
-        content: 'hello',
-        created_at: 1466424490,
-        id: '1111',
-        message_type: 0,
-        replyTo: 124,
-        status: 'in_progress',
+        message: {
+          attachments: undefined,
+          content: 'hello',
+          created_at: 1466424490,
+          id: '1111',
+          message_type: 0,
+          replyTo: 124,
+          status: 'in_progress',
+        },
+        pendingCustomAttributes: {},
+        pendingLabels: [],
+      });
+    });
+
+    it('includes pending metadata when available', async () => {
+      const mockDate = new Date(1466424490000);
+      getUuid.mockImplementationOnce(() => '2222');
+      const spy = vi.spyOn(global, 'Date').mockImplementation(() => mockDate);
+      const state = {
+        pendingCustomAttributes: { plan: 'enterprise' },
+        pendingLabels: ['vip'],
+      };
+      await actions.sendMessage(
+        { commit, dispatch, state },
+        { content: 'hello' }
+      );
+      spy.mockRestore();
+      expect(dispatch).toBeCalledWith('sendMessageWithData', {
+        message: expect.objectContaining({ content: 'hello' }),
+        pendingCustomAttributes: { plan: 'enterprise' },
+        pendingLabels: ['vip'],
       });
     });
   });
@@ -132,12 +158,13 @@ describe('#actions', () => {
     it('sends correct mutations', () => {
       const mockDate = new Date(1466424490000);
       getUuid.mockImplementationOnce(() => '1111');
-      const spy = jest.spyOn(global, 'Date').mockImplementation(() => mockDate);
+      const spy = vi.spyOn(global, 'Date').mockImplementation(() => mockDate);
       const thumbUrl = '';
       const attachment = { thumbUrl, fileType: 'file' };
+      const state = { pendingCustomAttributes: {}, pendingLabels: [] };
 
       actions.sendAttachment(
-        { commit, dispatch },
+        { commit, dispatch, state },
         { attachment, replyTo: 135 }
       );
       spy.mockRestore();
@@ -176,6 +203,58 @@ describe('#actions', () => {
         getters: { getConversationSize: 0 },
       });
       expect(commit.mock.calls).toEqual([]);
+    });
+  });
+
+  describe('#setCustomAttributes', () => {
+    it('queues to pending state when no conversation exists', async () => {
+      const rootGetters = {
+        'conversationAttributes/getConversationParams': { id: '' },
+      };
+      await actions.setCustomAttributes(
+        { commit, rootGetters },
+        { plan: 'enterprise' }
+      );
+      expect(commit).toBeCalledWith('setPendingCustomAttributes', {
+        plan: 'enterprise',
+      });
+    });
+
+    it('calls API when conversation exists', async () => {
+      API.post.mockResolvedValue({ data: {} });
+      const rootGetters = {
+        'conversationAttributes/getConversationParams': { id: 123 },
+      };
+      await actions.setCustomAttributes(
+        { commit, rootGetters },
+        { plan: 'enterprise' }
+      );
+      expect(commit).not.toBeCalledWith(
+        'setPendingCustomAttributes',
+        expect.anything()
+      );
+    });
+  });
+
+  describe('#deleteCustomAttribute', () => {
+    it('removes from pending state when no conversation exists', async () => {
+      const rootGetters = {
+        'conversationAttributes/getConversationParams': { id: '' },
+      };
+      await actions.deleteCustomAttribute({ commit, rootGetters }, 'plan');
+      expect(commit).toBeCalledWith('removePendingCustomAttribute', 'plan');
+    });
+
+    it('calls API when conversation exists', async () => {
+      API.post.mockResolvedValue({ data: {} });
+      const rootGetters = {
+        'conversationAttributes/getConversationParams': { id: 123 },
+      };
+      await actions.deleteCustomAttribute({ commit, rootGetters }, 'plan');
+      expect(commit).not.toBeCalledWith(
+        'removePendingCustomAttribute',
+        expect.anything()
+      );
     });
   });
 

@@ -5,6 +5,7 @@ export const getters = {
     return { isFetching: false, isUpdating: false, isDeleting: false };
   },
   isFetching: state => state.uiFlags.isFetching,
+  isCreating: state => state.uiFlags.isCreating,
   categoryById:
     (...getterArguments) =>
     categoryId => {
@@ -19,6 +20,16 @@ export const getters = {
       return _getters.categoryById(id);
     });
     return categories;
+  },
+  allCategoriesSortedByPosition: (...getterArguments) => {
+    const [state, _getters] = getterArguments;
+    const categories = state.categories.allIds
+      .map(id => _getters.categoryById(id))
+      .filter(category => category !== undefined);
+    // Sort by position so reordered categories stay in correct order after store updates
+    return categories.sort(
+      (a, b) => (a.position ?? Infinity) - (b.position ?? Infinity)
+    );
   },
   categoriesByLocaleCode:
     (...getterArguments) =>

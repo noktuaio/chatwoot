@@ -11,21 +11,23 @@ json.account_id portal.account_id
 
 json.config do
   json.allowed_locales do
-    json.array! portal.config['allowed_locales'].each do |locale|
+    json.array! portal.allowed_locale_codes.each do |locale|
       json.partial! 'api/v1/models/portal_config', formats: [:json], locale: locale, portal: portal
     end
+  end
+  json.default_locale portal.default_locale
+  json.layout portal.layout
+  json.social_profiles portal.social_profiles
+  json.locale_translations portal.config['locale_translations'] || {}
+end
+
+if portal.channel_web_widget
+  json.inbox do
+    json.partial! 'api/v1/models/inbox', formats: [:json], resource: portal.channel_web_widget.inbox
   end
 end
 
 json.logo portal.file_base_data if portal.logo.present?
-
-json.portal_members do
-  if portal.members.any?
-    json.array! portal.members.each do |member|
-      json.partial! 'api/v1/models/agent', formats: [:json], resource: member
-    end
-  end
-end
 
 json.meta do
   json.all_articles_count articles.try(:size)
@@ -35,4 +37,11 @@ json.meta do
   json.mine_articles_count articles.search_by_author(current_user.id).try(:size) if current_user.present? && articles.any?
   json.categories_count portal.categories.try(:size)
   json.default_locale portal.default_locale
+end
+
+if portal.ssl_settings.present?
+  json.ssl_settings do
+    json.status portal.ssl_settings['cf_status']
+    json.verification_errors portal.ssl_settings['cf_verification_errors']
+  end
 end

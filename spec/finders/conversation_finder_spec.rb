@@ -57,6 +57,16 @@ describe ConversationFinder do
 
         expect(result[:conversations].map(&:id)).not_to include(restricted_conversation.id)
       end
+
+      it 'returns only the conversations from the inbox if inbox_id filter is passed' do
+        conversation = create(:conversation, account: account, inbox_id: inbox.id)
+        params = { inbox_id: restricted_inbox.id }
+        result = described_class.new(admin, params).perform
+
+        conversation_ids = result[:conversations].map(&:id)
+        expect(conversation_ids).not_to include(conversation.id)
+        expect(conversation_ids).to include(restricted_conversation.id)
+      end
     end
 
     context 'with assignee_type all' do
@@ -83,6 +93,67 @@ describe ConversationFinder do
       it 'returns all conversations' do
         result = conversation_finder.perform
         expect(result[:conversations].length).to be 5
+      end
+    end
+
+    context 'with unread sort' do
+      let(:params) { { status: 'open', sort_by: 'unread' } }
+
+      it 'returns all conversations matching the selected status with the highest unread count first' do
+        most_unread_conversation = create(:conversation, account: account, inbox: inbox,
+                                                         agent_last_seen_at: 1.hour.ago)
+        unread_conversation = create(:conversation, account: account, inbox: inbox,
+                                                    agent_last_seen_at: 1.hour.ago)
+        read_conversation = create(:conversation, account: account, inbox: inbox,
+                                                  agent_last_seen_at: 1.minute.from_now)
+        resolved_unread_conversation = create(:conversation, account: account, inbox: inbox, status: 'resolved',
+                                                             agent_last_seen_at: 1.hour.ago)
+
+        [most_unread_conversation, unread_conversation, read_conversation, resolved_unread_conversation].each do |conversation|
+          create(:message, account: account, inbox: inbox, conversation: conversation,
+                           message_type: :incoming, created_at: 5.minutes.ago)
+        end
+        create(:message, account: account, inbox: inbox, conversation: most_unread_conversation,
+                         message_type: :incoming, created_at: 4.minutes.ago)
+        resolved_unread_conversation.update!(status: 'resolved')
+        read_conversation.update!(last_activity_at: 1.minute.from_now)
+        unread_conversation.update!(last_activity_at: 2.minutes.from_now)
+
+        result = conversation_finder.perform
+        conversation_ids = result[:conversations].map(&:id)
+
+        expect(conversation_ids).to include(most_unread_conversation.id, unread_conversation.id, read_conversation.id)
+        expect(conversation_ids).not_to include(resolved_unread_conversation.id)
+        expect(conversation_ids.index(most_unread_conversation.id)).to be < conversation_ids.index(unread_conversation.id)
+        expect(conversation_ids.index(unread_conversation.id)).to be < conversation_ids.index(read_conversation.id)
+      end
+
+      it 'includes private incoming messages in unread counts used for ordering' do
+        private_unread_conversation = create(:conversation, account: account, inbox: inbox,
+                                                            agent_last_seen_at: 1.hour.ago)
+        unread_conversation = create(:conversation, account: account, inbox: inbox,
+                                                    agent_last_seen_at: 1.hour.ago)
+        read_conversation = create(:conversation, account: account, inbox: inbox,
+                                                  agent_last_seen_at: 1.minute.from_now)
+
+        2.times do
+          create(:message, account: account, inbox: inbox, conversation: private_unread_conversation,
+                           message_type: :incoming, private: true, created_at: 5.minutes.ago)
+        end
+        create(:message, account: account, inbox: inbox, conversation: unread_conversation,
+                         message_type: :incoming, created_at: 5.minutes.ago)
+        create(:message, account: account, inbox: inbox, conversation: read_conversation,
+                         message_type: :incoming, created_at: 5.minutes.ago)
+        private_unread_conversation.update!(last_activity_at: 10.minutes.ago)
+        unread_conversation.update!(last_activity_at: 2.minutes.from_now)
+        read_conversation.update!(last_activity_at: 1.minute.from_now)
+
+        result = conversation_finder.perform
+        conversation_ids = result[:conversations].map(&:id)
+
+        expect(private_unread_conversation.unread_incoming_messages.count).to eq 2
+        expect(conversation_ids.index(private_unread_conversation.id)).to be < conversation_ids.index(unread_conversation.id)
+        expect(conversation_ids.index(unread_conversation.id)).to be < conversation_ids.index(read_conversation.id)
       end
     end
 
@@ -177,6 +248,32 @@ describe ConversationFinder do
         create_list(:conversation, 50, account: account, inbox: inbox, assignee: user_1)
         result = conversation_finder.perform
         expect(result[:conversations].length).to be 25
+      end
+    end
+
+    context 'with perform_meta_only' do
+      let(:params) { { assignee_type: 'assigned' } }
+
+      it 'returns only count without conversations' do
+        result = conversation_finder.perform_meta_only
+        expect(result).to have_key(:count)
+        expect(result).not_to have_key(:conversations)
+      end
+
+      it 'returns the correct counts' do
+        result = conversation_finder.perform_meta_only
+        expect(result[:count]).to eq({
+                                       mine_count: 2,
+                                       assigned_count: 3,
+                                       unassigned_count: 1,
+                                       all_count: 4
+                                     })
+      end
+
+      it 'returns same counts as perform' do
+        meta_result = conversation_finder.perform_meta_only
+        full_result = conversation_finder.perform
+        expect(meta_result[:count]).to eq(full_result[:count])
       end
     end
 

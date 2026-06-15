@@ -4,6 +4,7 @@ import { ON_AGENT_MESSAGE_RECEIVED } from '../constants/widgetBusEvents';
 import { IFrameHelper } from 'widget/helpers/utils';
 import { shouldTriggerMessageUpdateEvent } from './IframeEventHelper';
 import { CHATWOOT_ON_MESSAGE } from '../constants/sdkEvents';
+import { emitter } from '../../shared/helpers/mitt';
 
 const isMessageInActiveConversation = (getters, message) => {
   const { conversation_id: conversationId } = message;
@@ -12,9 +13,11 @@ const isMessageInActiveConversation = (getters, message) => {
   return activeConversationId && conversationId !== activeConversationId;
 };
 
+const WIDGET_PRESENCE_INTERVAL = 60000;
+
 class ActionCableConnector extends BaseActionCableConnector {
   constructor(app, pubsubToken) {
-    super(app, pubsubToken);
+    super(app, pubsubToken, '', WIDGET_PRESENCE_INTERVAL);
     this.events = {
       'message.created': this.onMessageCreated,
       'message.updated': this.onMessageUpdated,
@@ -33,6 +36,9 @@ class ActionCableConnector extends BaseActionCableConnector {
 
   onReconnect = () => {
     this.syncLatestMessages();
+    // Re-fetch conversation attributes so a status change (e.g. auto-resolve)
+    // that happened while disconnected is reflected, keeping the reply box state correct.
+    this.app.$store.dispatch('conversationAttributes/getAttributes');
   };
 
   setLastMessageId = () => {
@@ -57,7 +63,7 @@ class ActionCableConnector extends BaseActionCableConnector {
 
     this.app.$store
       .dispatch('conversation/addOrUpdateMessage', data)
-      .then(() => window.bus.$emit(ON_AGENT_MESSAGE_RECEIVED));
+      .then(() => emitter.emit(ON_AGENT_MESSAGE_RECEIVED));
 
     IFrameHelper.sendMessage({
       event: 'onEvent',

@@ -1,19 +1,19 @@
 {
   "SURVEY": {
-    "DESCRIPTION": "Dear customer 👋, please take a few moments to share feedback about the conversation you had with %{inboxName}.",
+    "DESCRIPTION": "親愛的客戶👋，請花一些時間分享您與 {inboxName} 對話的反饋。",
     "RATING": {
-      "LABEL": "Rate your conversation",
+      "LABEL": "為此對話評分",
       "SUCCESS_MESSAGE": "感謝您提交的評分"
     },
     "FEEDBACK": {
-      "LABEL": "Do you have any thoughts you'd like to share?",
-      "PLACEHOLDER": "Your feedback (optional)",
-      "BUTTON_TEXT": "Submit feedback"
+      "LABEL": "有什麼想法想分享嗎？",
+      "PLACEHOLDER": "您的反饋(可選)",
+      "BUTTON_TEXT": "提交反饋"
     },
     "API": {
-      "SUCCESS_MESSAGE": "Survey updated successfully",
+      "SUCCESS_MESSAGE": "标签已成功更新",
       "ERROR_MESSAGE": "無法連接伺服器，請稍後再試"
     }
   },
-  "POWERED_BY": "Powered by Chatwoot"
+  "POWERED_BY": "由 Chatwoot 支援"
 }

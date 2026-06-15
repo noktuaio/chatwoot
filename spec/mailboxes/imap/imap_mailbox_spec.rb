@@ -30,6 +30,51 @@ RSpec.describe Imap::ImapMailbox do
       end
     end
 
+    context 'when the email with has empty text content' do
+      let(:inbound_mail) { create_inbound_email_from_fixture('attachments_without_text.eml') }
+
+      it 'creates a converstation and a message properly' do
+        expect do
+          class_instance.process(inbound_mail.mail, channel)
+        end.to change(Conversation, :count).by(1)
+
+        expect(conversation.contact.email).to eq(inbound_mail.mail.from.first)
+        expect(conversation.messages.last.attachments.count).to be 2
+      end
+    end
+
+    context 'when the email has attachments with no filename' do
+      let(:inbound_mail) { create_inbound_email_from_fixture('attachments_without_filename.eml') }
+
+      it 'creates a conversation and a message with properly named attachments' do
+        expect do
+          class_instance.process(inbound_mail.mail, channel)
+        end.to change(Conversation, :count).by(1)
+
+        last_message = conversation.messages.last
+        expect(last_message.attachments.count).to be 2
+
+        filenames = last_message.attachments.map(&:file).map { |file| file.blob.filename.to_s }
+        expect(filenames.all? { |filename| filename.present? && filename.start_with?('attachment_') }).to be true
+      end
+    end
+
+    context 'when the email has inline attachments other than images' do
+      let(:inbound_mail) { create_inbound_email_from_fixture('email_with_inline_pdf.eml') }
+
+      it 'creates a conversation and a message with non-image files as regular attachments' do
+        expect do
+          class_instance.process(inbound_mail.mail, channel)
+        end.to change(Conversation, :count).by(1)
+
+        last_message = conversation.messages.last
+        expect(last_message.attachments.count).to be 1
+
+        attachment = last_message.attachments.first
+        expect(attachment.file.blob.filename.to_s).to eq 'dummy.pdf'
+      end
+    end
+
     context 'when the email has 15 or more attachments' do
       let(:inbound_mail) { create_inbound_email_from_fixture('multiple_attachments.eml') }
 
@@ -51,6 +96,60 @@ RSpec.describe Imap::ImapMailbox do
         expect(conversation.contact.email).to eq(contact.email)
         expect(conversation.additional_attributes['source']).to eq('email')
         expect(conversation.messages.empty?).to be false
+      end
+    end
+
+    context 'when a new email contains null bytes' do
+      let(:inbound_mail) do
+        Mail.new.tap do |mail|
+          mail.from = 'email@gmail.com'
+          mail.to = 'imap@gmail.com'
+          mail.subject = "Hello\u0000"
+          mail.message_id = "message\u0000@example.com"
+          mail['In-Reply-To'] = "source\u0000@example.com"
+          mail.references = ["reference\u0000@example.com"]
+          mail.content_type = 'text/plain'
+          mail.body = "Body\u0000 text"
+        end
+      end
+
+      it 'creates sanitized conversation and message records' do
+        expect { class_instance.process(inbound_mail, channel) }.to change(Conversation, :count).by(1)
+
+        message = conversation.messages.last
+
+        expect(conversation.additional_attributes['in_reply_to']).to eq('source@example.com')
+        expect(conversation.additional_attributes['mail_subject']).to eq('Hello')
+        expect(message.source_id).to eq('message@example.com')
+        expect(message.content).to eq('Body text')
+        expect(message.content_attributes.to_json).not_to include('\u0000')
+      end
+    end
+
+    context 'when a new email with invalid from' do
+      let(:inbound_mail) { create_inbound_email_from_mail(from: 'invalidemail', to: 'imap@gmail.com', subject: 'Hello!') }
+
+      it 'does not create a new conversation' do
+        expect { class_instance.process(inbound_mail.mail, channel) }.not_to raise_error
+      end
+    end
+
+    context 'when an auto reply email' do
+      let(:auto_reply_mail) { create_inbound_email_from_fixture('auto_reply.eml') }
+
+      it 'does not create a new conversation' do
+        expect { class_instance.process(auto_reply_mail.mail, channel) }.to change(Conversation, :count)
+        expect(Conversation.last.additional_attributes['auto_reply']).to be true
+      end
+    end
+
+    context 'when the email is bounced' do
+      let!(:bounced_mail) { create_inbound_email_from_fixture('bounced_gmail.eml') }
+
+      it 'processes the bounced email' do
+        expect { class_instance.process(bounced_mail.mail, channel) }.to change(Message, :count)
+        expect(Message.last.content_attributes['email']['auto_reply']).to be true
+        expect(Conversation.last.additional_attributes['auto_reply']).to be true
       end
     end
 
@@ -190,6 +289,55 @@ RSpec.describe Imap::ImapMailbox do
       it 'creates conversation taking the first in_reply_to email' do
         class_instance.process(multiple_in_reply_to_mail, channel)
         expect(conversation.additional_attributes['in_reply_to']).to eq(multiple_in_reply_to_mail.in_reply_to.first)
+      end
+    end
+
+    context 'when a reply to a conversation started by an agent' do
+      let(:agent_conversation) { create(:conversation, account: account, inbox: channel.inbox, assignee: agent) }
+      let(:reply_mail_with_fallback_reference) do
+        # Simulate an email reply with a reference that matches FALLBACK_PATTERN
+        reference_id = "account/#{account.id}/conversation/#{agent_conversation.uuid}@chatwoot.com"
+        create_inbound_email_from_mail(
+          from: 'email@gmail.com',
+          to: 'imap@gmail.com',
+          subject: 'Re: Agent started conversation',
+          references: [reference_id]
+        )
+      end
+
+      it 'appends email to the existing conversation using FALLBACK_PATTERN' do
+        expect(agent_conversation.messages.size).to eq(0)
+
+        class_instance.process(reply_mail_with_fallback_reference.mail, channel)
+
+        agent_conversation.reload
+        expect(agent_conversation.messages.size).to eq(1)
+        expect(agent_conversation.messages.last.content_attributes['email']['from']).to eq(reply_mail_with_fallback_reference.mail.from)
+      end
+    end
+
+    context 'when references contain both message and fallback patterns' do
+      let(:agent_conversation) { create(:conversation, account: account, inbox: channel.inbox, assignee: agent) }
+      let(:reply_mail_with_multiple_references) do
+        # Multiple references including both patterns
+        fallback_reference = "account/#{account.id}/conversation/#{agent_conversation.uuid}@chatwoot.com"
+        other_reference = 'some-other-message-id@example.com'
+        create_inbound_email_from_mail(
+          from: 'email@gmail.com',
+          to: 'imap@gmail.com',
+          subject: 'Re: Multiple references',
+          references: [other_reference, fallback_reference]
+        )
+      end
+
+      it 'finds conversation using fallback pattern when message lookup fails' do
+        expect(agent_conversation.messages.size).to eq(0)
+
+        class_instance.process(reply_mail_with_multiple_references.mail, channel)
+
+        agent_conversation.reload
+        expect(agent_conversation.messages.size).to eq(1)
+        expect(agent_conversation.messages.last.content_attributes['email']['from']).to eq(reply_mail_with_multiple_references.mail.from)
       end
     end
   end

@@ -5,19 +5,17 @@ class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
   before_action :check_authorization
 
   def index
-    builder = V2::ReportBuilder.new(Current.account, report_params)
-    data = builder.build
+    builder = V2::Reports::Conversations::ReportBuilder.new(Current.account, report_params)
+    data = builder.timeseries
     render json: data
   end
 
   def summary
-    render json: summary_metrics
+    render json: build_summary(:summary)
   end
 
   def bot_summary
-    summary = V2::ReportBuilder.new(Current.account, current_summary_params).bot_summary
-    summary[:previous] = V2::ReportBuilder.new(Current.account, previous_summary_params).bot_summary
-    render json: summary
+    render json: build_summary(:bot_summary)
   end
 
   def agents
@@ -40,6 +38,11 @@ class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
     generate_csv('teams_report', 'api/v2/accounts/reports/teams')
   end
 
+  def conversations_summary
+    @report_data = generate_conversations_report
+    generate_csv('conversations_summary_report', 'api/v2/accounts/reports/conversations_summary')
+  end
+
   def conversation_traffic
     @report_data = generate_conversations_heatmap_report
     timezone_offset = (params[:timezone_offset] || 0).to_f
@@ -59,6 +62,31 @@ class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
     render json: bot_metrics
   end
 
+  def inbox_label_matrix
+    builder = V2::Reports::InboxLabelMatrixBuilder.new(
+      account: Current.account,
+      params: inbox_label_matrix_params
+    )
+    render json: builder.build
+  end
+
+  def first_response_time_distribution
+    builder = V2::Reports::FirstResponseTimeDistributionBuilder.new(
+      account: Current.account,
+      params: first_response_time_distribution_params
+    )
+    render json: builder.build
+  end
+
+  OUTGOING_MESSAGES_ALLOWED_GROUP_BY = %w[agent team inbox label].freeze
+
+  def outgoing_messages_count
+    return head :unprocessable_entity unless OUTGOING_MESSAGES_ALLOWED_GROUP_BY.include?(params[:group_by])
+
+    builder = V2::Reports::OutgoingMessagesCountBuilder.new(Current.account, outgoing_messages_count_params)
+    render json: builder.build
+  end
+
   private
 
   def generate_csv(filename, template)
@@ -68,7 +96,7 @@ class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
   end
 
   def check_authorization
-    raise Pundit::NotAuthorizedError unless Current.account_user.administrator?
+    authorize :report, :view?
   end
 
   def common_params
@@ -126,13 +154,38 @@ class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
     }
   end
 
-  def summary_metrics
-    summary = V2::ReportBuilder.new(Current.account, current_summary_params).summary
-    summary[:previous] = V2::ReportBuilder.new(Current.account, previous_summary_params).summary
-    summary
+  def build_summary(method)
+    builder = V2::Reports::Conversations::MetricBuilder
+    current_summary = builder.new(Current.account, current_summary_params).send(method)
+    previous_summary = builder.new(Current.account, previous_summary_params).send(method)
+    current_summary.merge(previous: previous_summary)
   end
 
   def conversation_metrics
     V2::ReportBuilder.new(Current.account, conversation_params).conversation_metrics
+  end
+
+  def inbox_label_matrix_params
+    {
+      since: params[:since],
+      until: params[:until],
+      inbox_ids: params[:inbox_ids],
+      label_ids: params[:label_ids]
+    }
+  end
+
+  def first_response_time_distribution_params
+    {
+      since: params[:since],
+      until: params[:until]
+    }
+  end
+
+  def outgoing_messages_count_params
+    {
+      group_by: params[:group_by],
+      since: params[:since],
+      until: params[:until]
+    }
   end
 end

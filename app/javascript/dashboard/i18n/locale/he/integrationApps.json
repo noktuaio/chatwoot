@@ -1,8 +1,11 @@
 {
   "INTEGRATION_APPS": {
     "FETCHING": "שליפת אינטגרציות",
-    "NO_HOOK_CONFIGURED": "אין %{integrationId} אינטגרציות מוגדרות בחשבון זה.",
+    "NO_HOOK_CONFIGURED": "אין {integrationId} אינטגרציות מוגדרות בחשבון זה.",
     "HEADER": "יישומים",
+    "COUNT": "{n} integration | {n} integrations",
+    "SEARCH_PLACEHOLDER": "חיפוש...",
+    "NO_RESULTS": "No results found matching your search",
     "STATUS": {
       "ENABLED": "מופעל",
       "DISABLED": "כבוי"
@@ -31,6 +34,7 @@
     "LIST": {
       "FETCHING": "הוצאת קרס אינטגרציה",
       "INBOX": "תיבת הדואר הנכנס",
+      "ACTIONS": "פעולות",
       "DELETE": {
         "BUTTON_TEXT": "מחק"
       }
@@ -42,6 +46,7 @@
           "PLACEHOLDER": "בחר תיבת דואר"
         },
         "SUBMIT": "צור",
+        "VALIDATING_OPENAI": "Validating with OpenAI...",
         "CANCEL": "ביטול"
       },
       "API": {
@@ -56,7 +61,7 @@
       "BUTTON_TEXT": "התנתק"
     },
     "SIDEBAR_DESCRIPTION": {
-      "DIALOGFLOW": "Dialogflow היא פלטפורמה להבנת שפה טבעית שמקלה לעצב ולשלב ממשק משתמש לשיחה באפליקציה לנייד, באפליקציית האינטרנט, במכשיר, בבוט, במערכת התגובה הקולית האינטראקטיבית שלך וכן הלאה. <br /> <br /> שילוב Dialogflow עם %{installationName} מאפשר לך להגדיר בוט Dialogflow עם תיבות הדואר הנכנס שלך, המאפשר לבוט לטפל בשאילתות בהתחלה ולמסור אותן לסוכן בעת הצורך. ניתן להשתמש ב-Dialogflow כדי להכשיר את הלידים, להפחית את עומס העבודה של סוכנים על ידי מתן שאלות נפוצות וכו'. <br /> <br /> כדי להוסיף את Dialogflow, עליך ליצור חשבון שירות במסוף הפרויקט של גוגל ולשתף את האישורים. אנא עיין במסמכי Dialogflow למידע נוסף."
+      "DIALOGFLOW": "Dialogflow היא פלטפורמה לעיבוד שפה טבעית לבניית ממשקי שיחה. שילובה עם {installationName} מאפשר לבוטים לטפל בשאילתות תחילה ולהעביר אותן לסוכנים בעת הצורך. זה עוזר לאמת לידים ולהפחית את עומס העבודה של הסוכן על ידי מענה על שאלות נפוצות. כדי להוסיף את Dialogflow, צור חשבון שירות ב-Google Console ושתף את פרטי הכניסה. עיין בתיעוד לפרטים"
     }
   }
 }

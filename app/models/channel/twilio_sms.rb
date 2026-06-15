@@ -2,16 +2,22 @@
 #
 # Table name: channel_twilio_sms
 #
-#  id                    :bigint           not null, primary key
-#  account_sid           :string           not null
-#  api_key_sid           :string
-#  auth_token            :string           not null
-#  medium                :integer          default("sms")
-#  messaging_service_sid :string
-#  phone_number          :string
-#  created_at            :datetime         not null
-#  updated_at            :datetime         not null
-#  account_id            :integer          not null
+#  id                             :bigint           not null, primary key
+#  account_sid                    :string           not null
+#  api_key_secret                 :string
+#  api_key_sid                    :string
+#  auth_token                     :string           not null
+#  content_templates              :jsonb
+#  content_templates_last_updated :datetime
+#  medium                         :integer          default("sms")
+#  messaging_service_sid          :string
+#  phone_number                   :string
+#  provider_config                :jsonb
+#  twiml_app_sid                  :string
+#  voice_enabled                  :boolean          default(FALSE), not null
+#  created_at                     :datetime         not null
+#  updated_at                     :datetime         not null
+#  account_id                     :integer          not null
 #
 # Indexes
 #
@@ -26,9 +32,17 @@ class Channel::TwilioSms < ApplicationRecord
 
   self.table_name = 'channel_twilio_sms'
 
+  # TODO: Remove guard once encryption keys become mandatory (target 3-4 releases out).
+  encrypts :auth_token if Chatwoot.encryption_configured?
+
   validates :account_sid, presence: true
   # The same parameter is used to store api_key_secret if api_key authentication is opted
   validates :auth_token, presence: true
+
+  EDITABLE_ATTRS = [
+    :account_sid,
+    :auth_token
+  ].freeze
 
   # Must have _one_ of messaging_service_sid _or_ phone_number, and messaging_service_sid is preferred
   validates :messaging_service_sid, uniqueness: true, presence: true, unless: :phone_number?
@@ -41,8 +55,9 @@ class Channel::TwilioSms < ApplicationRecord
     medium == 'sms' ? 'Twilio SMS' : 'Whatsapp'
   end
 
-  def messaging_window_enabled?
-    medium == 'whatsapp'
+  # Mutes only the incoming side of calling; default on, so only an explicit false disables inbound.
+  def inbound_calls_enabled?
+    provider_config['inbound_calls_enabled'] != false
   end
 
   def send_message(to:, body:, media_url: nil)
@@ -52,8 +67,6 @@ class Channel::TwilioSms < ApplicationRecord
     client.messages.create(**params)
   end
 
-  private
-
   def client
     if api_key_sid.present?
       Twilio::REST::Client.new(api_key_sid, auth_token, account_sid)
@@ -61,6 +74,8 @@ class Channel::TwilioSms < ApplicationRecord
       Twilio::REST::Client.new(account_sid, auth_token)
     end
   end
+
+  private
 
   def send_message_from
     if messaging_service_sid?
@@ -70,3 +85,5 @@ class Channel::TwilioSms < ApplicationRecord
     end
   end
 end
+
+Channel::TwilioSms.prepend_mod_with('Channel::TwilioSms')

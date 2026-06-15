@@ -9,6 +9,7 @@ export default [
     widget_color: null,
     website_token: null,
     enable_auto_assignment: true,
+    instagram_id: 123456789,
   },
   {
     id: 2,
@@ -60,6 +61,22 @@ export default [
     channel_id: 6,
     name: 'Test Widget 6',
     channel_type: 'Channel::Sms',
+    provider: 'default',
+  },
+  {
+    id: 7,
+    channel_id: 7,
+    name: 'Test Instagram 1',
+    channel_type: 'Channel::Instagram',
+    instagram_id: 123456789,
+    provider: 'default',
+  },
+  {
+    id: 8,
+    channel_id: 8,
+    name: 'Test TikTok 1',
+    channel_type: 'Channel::Tiktok',
+    business_id: 123456789,
     provider: 'default',
   },
 ];

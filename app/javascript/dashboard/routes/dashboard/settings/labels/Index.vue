@@ -1,206 +1,211 @@
+<script setup>
+import { useAlert } from 'dashboard/composables';
+import { computed, onBeforeMount, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useStoreGetters, useStore } from 'dashboard/composables/store';
+import { picoSearch } from '@scmmishra/pico-search';
+
+import AddLabel from './AddLabel.vue';
+import EditLabel from './EditLabel.vue';
+import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
+import SettingsLayout from '../SettingsLayout.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
+import {
+  BaseTable,
+  BaseTableRow,
+  BaseTableCell,
+} from 'dashboard/components-next/table';
+
+const getters = useStoreGetters();
+const store = useStore();
+const { t } = useI18n();
+
+const loading = ref({});
+const showAddPopup = ref(false);
+const showEditPopup = ref(false);
+const showDeleteConfirmationPopup = ref(false);
+const selectedLabel = ref({});
+const searchQuery = ref('');
+
+const records = computed(() => getters['labels/getLabels'].value);
+
+const filteredRecords = computed(() => {
+  const query = searchQuery.value.trim();
+  if (!query) return records.value;
+  return picoSearch(records.value, query, [
+    { name: 'title', weight: 4 },
+    'description',
+  ]);
+});
+const uiFlags = computed(() => getters['labels/getUIFlags'].value);
+
+const deleteMessage = computed(() => ` ${selectedLabel.value.title}?`);
+
+const openAddPopup = () => {
+  showAddPopup.value = true;
+};
+const hideAddPopup = () => {
+  showAddPopup.value = false;
+};
+
+const openEditPopup = response => {
+  showEditPopup.value = true;
+  selectedLabel.value = response;
+};
+const hideEditPopup = () => {
+  showEditPopup.value = false;
+};
+
+const openDeletePopup = response => {
+  showDeleteConfirmationPopup.value = true;
+  selectedLabel.value = response;
+};
+const closeDeletePopup = () => {
+  showDeleteConfirmationPopup.value = false;
+};
+
+const deleteLabel = async id => {
+  try {
+    await store.dispatch('labels/delete', id);
+    useAlert(t('LABEL_MGMT.DELETE.API.SUCCESS_MESSAGE'));
+  } catch (error) {
+    const errorMessage =
+      error?.message || t('LABEL_MGMT.DELETE.API.ERROR_MESSAGE');
+    useAlert(errorMessage);
+  } finally {
+    loading.value[selectedLabel.value.id] = false;
+  }
+};
+
+const confirmDeletion = () => {
+  loading.value[selectedLabel.value.id] = true;
+  closeDeletePopup();
+  deleteLabel(selectedLabel.value.id);
+};
+
+const tableHeaders = computed(() => {
+  return [
+    t('LABEL_MGMT.LIST.TABLE_HEADER.NAME'),
+    t('LABEL_MGMT.LIST.TABLE_HEADER.DESCRIPTION'),
+    t('LABEL_MGMT.LIST.TABLE_HEADER.COLOR'),
+    t('LABEL_MGMT.LIST.TABLE_HEADER.ACTION'),
+  ];
+});
+
+onBeforeMount(() => {
+  store.dispatch('labels/get');
+});
+</script>
+
 <template>
-  <div class="flex-1 overflow-auto">
-    <woot-button
-      color-scheme="success"
-      class-names="button--fixed-top"
-      icon="add-circle"
-      @click="openAddPopup"
-    >
-      {{ $t('LABEL_MGMT.HEADER_BTN_TXT') }}
-    </woot-button>
-    <div class="flex flex-row gap-4 p-8">
-      <div class="w-full xl:w-3/5">
-        <p
-          v-if="!uiFlags.isFetching && !records.length"
-          class="flex h-full items-center flex-col justify-center"
-        >
-          {{ $t('LABEL_MGMT.LIST.404') }}
-        </p>
-        <woot-loading-state
-          v-if="uiFlags.isFetching"
-          :message="$t('LABEL_MGMT.LOADING')"
-        />
-        <table v-if="!uiFlags.isFetching && records.length" class="woot-table">
-          <thead>
-            <th
-              v-for="thHeader in $t('LABEL_MGMT.LIST.TABLE_HEADER')"
-              :key="thHeader"
-            >
-              {{ thHeader }}
-            </th>
-          </thead>
-          <tbody>
-            <tr v-for="(label, index) in records" :key="label.title">
-              <td class="label-title">
-                <span class="overflow-hidden whitespace-nowrap text-ellipsis">{{
-                  label.title
-                }}</span>
-              </td>
-              <td>{{ label.description }}</td>
-              <td>
-                <div class="label-color--container">
+  <SettingsLayout
+    :is-loading="uiFlags.isFetching"
+    :loading-message="$t('LABEL_MGMT.LOADING')"
+    :no-records-found="!records.length"
+    :no-records-message="$t('LABEL_MGMT.LIST.404')"
+  >
+    <template #header>
+      <BaseSettingsHeader
+        v-model:search-query="searchQuery"
+        :title="$t('LABEL_MGMT.HEADER')"
+        :description="$t('LABEL_MGMT.DESCRIPTION')"
+        :link-text="$t('LABEL_MGMT.LEARN_MORE')"
+        :search-placeholder="$t('LABEL_MGMT.SEARCH_PLACEHOLDER')"
+        feature-name="labels"
+      >
+        <template v-if="records?.length" #count>
+          <span class="text-body-main text-n-slate-11">
+            {{ $t('LABEL_MGMT.COUNT', { n: records.length }) }}
+          </span>
+        </template>
+        <template #actions>
+          <Button
+            :label="$t('LABEL_MGMT.HEADER_BTN_TXT')"
+            size="sm"
+            @click="openAddPopup"
+          />
+        </template>
+      </BaseSettingsHeader>
+    </template>
+    <template #body>
+      <BaseTable
+        :headers="tableHeaders"
+        :items="filteredRecords"
+        :no-data-message="
+          searchQuery ? $t('LABEL_MGMT.NO_RESULTS') : $t('LABEL_MGMT.LIST.404')
+        "
+      >
+        <template #row="{ items }">
+          <BaseTableRow v-for="label in items" :key="label.title" :item="label">
+            <template #default>
+              <BaseTableCell>
+                <span class="text-body-main text-n-slate-12">
+                  {{ label.title }}
+                </span>
+              </BaseTableCell>
+
+              <BaseTableCell>
+                <span class="text-body-main text-n-slate-11">
+                  {{ label.description }}
+                </span>
+              </BaseTableCell>
+
+              <BaseTableCell>
+                <div class="flex items-center">
                   <span
-                    class="label-color--display"
+                    class="w-4 h-4 ltr:mr-2 rtl:ml-2 border border-solid rounded border-n-weak"
                     :style="{ backgroundColor: label.color }"
                   />
-                  {{ label.color }}
+                  <span class="text-body-main text-n-slate-12">
+                    {{ label.color }}
+                  </span>
                 </div>
-              </td>
-              <td class="button-wrapper">
-                <woot-button
-                  v-tooltip.top="$t('LABEL_MGMT.FORM.EDIT')"
-                  variant="smooth"
-                  size="tiny"
-                  color-scheme="secondary"
-                  class-names="grey-btn"
-                  :is-loading="loading[label.id]"
-                  icon="edit"
-                  @click="openEditPopup(label)"
-                />
-                <woot-button
-                  v-tooltip.top="$t('LABEL_MGMT.FORM.DELETE')"
-                  variant="smooth"
-                  color-scheme="alert"
-                  size="tiny"
-                  icon="dismiss-circle"
-                  class-names="grey-btn"
-                  :is-loading="loading[label.id]"
-                  @click="openDeletePopup(label, index)"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              </BaseTableCell>
 
-      <div class="w-1/3 hidden xl:block">
-        <span v-dompurify-html="$t('LABEL_MGMT.SIDEBAR_TXT')" />
-      </div>
-    </div>
-    <woot-modal :show.sync="showAddPopup" :on-close="hideAddPopup">
-      <add-label @close="hideAddPopup" />
+              <BaseTableCell align="end">
+                <div class="flex gap-3 justify-end flex-shrink-0">
+                  <Button
+                    v-tooltip.top="$t('LABEL_MGMT.FORM.EDIT')"
+                    icon="i-woot-edit-pen"
+                    slate
+                    sm
+                    :is-loading="loading[label.id]"
+                    @click="openEditPopup(label)"
+                  />
+                  <Button
+                    v-tooltip.top="$t('LABEL_MGMT.FORM.DELETE')"
+                    icon="i-woot-bin"
+                    slate
+                    sm
+                    class="hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
+                    :is-loading="loading[label.id]"
+                    @click="openDeletePopup(label)"
+                  />
+                </div>
+              </BaseTableCell>
+            </template>
+          </BaseTableRow>
+        </template>
+      </BaseTable>
+    </template>
+
+    <woot-modal v-model:show="showAddPopup" :on-close="hideAddPopup">
+      <AddLabel @close="hideAddPopup" />
     </woot-modal>
 
-    <woot-modal :show.sync="showEditPopup" :on-close="hideEditPopup">
-      <edit-label
-        :selected-response="selectedResponse"
-        @close="hideEditPopup"
-      />
+    <woot-modal v-model:show="showEditPopup" :on-close="hideEditPopup">
+      <EditLabel :selected-response="selectedLabel" @close="hideEditPopup" />
     </woot-modal>
 
     <woot-delete-modal
-      :show.sync="showDeleteConfirmationPopup"
+      v-model:show="showDeleteConfirmationPopup"
       :on-close="closeDeletePopup"
       :on-confirm="confirmDeletion"
       :title="$t('LABEL_MGMT.DELETE.CONFIRM.TITLE')"
       :message="$t('LABEL_MGMT.DELETE.CONFIRM.MESSAGE')"
       :message-value="deleteMessage"
-      :confirm-text="deleteConfirmText"
-      :reject-text="deleteRejectText"
+      :confirm-text="$t('LABEL_MGMT.DELETE.CONFIRM.YES')"
+      :reject-text="$t('LABEL_MGMT.DELETE.CONFIRM.NO')"
     />
-  </div>
+  </SettingsLayout>
 </template>
-<script>
-import { mapGetters } from 'vuex';
-
-import AddLabel from './AddLabel.vue';
-import EditLabel from './EditLabel.vue';
-import alertMixin from 'shared/mixins/alertMixin';
-
-export default {
-  components: {
-    AddLabel,
-    EditLabel,
-  },
-  mixins: [alertMixin],
-  data() {
-    return {
-      loading: {},
-      showAddPopup: false,
-      showEditPopup: false,
-      showDeleteConfirmationPopup: false,
-      selectedResponse: {},
-    };
-  },
-  computed: {
-    ...mapGetters({
-      records: 'labels/getLabels',
-      uiFlags: 'labels/getUIFlags',
-    }),
-    // Delete Modal
-    deleteConfirmText() {
-      return this.$t('LABEL_MGMT.DELETE.CONFIRM.YES');
-    },
-    deleteRejectText() {
-      return this.$t('LABEL_MGMT.DELETE.CONFIRM.NO');
-    },
-    deleteMessage() {
-      return ` ${this.selectedResponse.title}?`;
-    },
-  },
-  mounted() {
-    this.$store.dispatch('labels/get');
-  },
-  methods: {
-    openAddPopup() {
-      this.showAddPopup = true;
-    },
-    hideAddPopup() {
-      this.showAddPopup = false;
-    },
-
-    openEditPopup(response) {
-      this.showEditPopup = true;
-      this.selectedResponse = response;
-    },
-    hideEditPopup() {
-      this.showEditPopup = false;
-    },
-
-    openDeletePopup(response) {
-      this.showDeleteConfirmationPopup = true;
-      this.selectedResponse = response;
-    },
-    closeDeletePopup() {
-      this.showDeleteConfirmationPopup = false;
-    },
-
-    confirmDeletion() {
-      this.loading[this.selectedResponse.id] = true;
-      this.closeDeletePopup();
-      this.deleteLabel(this.selectedResponse.id);
-    },
-    deleteLabel(id) {
-      this.$store
-        .dispatch('labels/delete', id)
-        .then(() => {
-          this.showAlert(this.$t('LABEL_MGMT.DELETE.API.SUCCESS_MESSAGE'));
-        })
-        .catch(() => {
-          this.showAlert(this.$t('LABEL_MGMT.DELETE.API.ERROR_MESSAGE'));
-        })
-        .finally(() => {
-          this.loading[this.selectedResponse.id] = false;
-        });
-    },
-  },
-};
-</script>
-
-<style scoped lang="scss">
-@import '~dashboard/assets/scss/variables';
-
-.label-color--container {
-  @apply flex items-center;
-}
-
-.label-color--display {
-  @apply rounded h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1 border border-solid border-slate-50 dark:border-slate-700;
-}
-
-.label-title {
-  span {
-    @apply w-60 inline-block;
-  }
-}
-</style>

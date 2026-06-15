@@ -6,6 +6,7 @@
     "LIST": {
       "404": "Er zijn geen actieve gesprekken in deze groep."
     },
+    "FAILED_TO_SEND": "Failed to send",
     "TAB_HEADING": "Gesprekken",
     "MENTION_HEADING": "Vermeldingen",
     "UNATTENDED_HEADING": "Onbeheer",
@@ -75,6 +76,9 @@
       },
       "waiting_since_desc": {
         "TEXT": "Pending Response: Shortest first"
+      },
+      "priority_desc_created_at_asc": {
+        "TEXT": "Priority: Highest first, Created: Oldest first"
       }
     },
     "ATTACHMENTS": {
@@ -93,8 +97,17 @@
       "location": {
         "CONTENT": "Locatie"
       },
+      "ig_reel": {
+        "CONTENT": "Instagram Reel"
+      },
       "fallback": {
         "CONTENT": "heeft een url gedeeld"
+      },
+      "contact": {
+        "CONTENT": "Shared contact"
+      },
+      "embed": {
+        "CONTENT": "Embedded content"
       }
     },
     "CHAT_SORT_BY_FILTER": {
@@ -126,6 +139,8 @@
     "NO_CONTENT": "Geen inhoud beschikbaar",
     "HIDE_QUOTED_TEXT": "Verberg geciteerde tekst",
     "SHOW_QUOTED_TEXT": "Toon geciteerde tekst",
-    "MESSAGE_READ": "Lezen"
+    "MESSAGE_READ": "Lezen",
+    "SENDING": "Sending",
+    "UNREAD_COUNT_OVERFLOW": "9+"
   }
 }

@@ -1,12 +1,12 @@
 class Imap::FetchEmailService < Imap::BaseFetchEmailService
-  def perform
+  def fetch_emails
     fetch_mail_for_channel
   end
 
   private
 
   def authentication_type
-    'PLAIN'
+    channel.imap_authentication || 'plain'
   end
 
   def imap_password

@@ -6,6 +6,7 @@
     "LIST": {
       "404": "ഈ ഗ്രൂപ്പിൽ സജീവ സംഭാഷണങ്ങളൊന്നുമില്ല."
     },
+    "FAILED_TO_SEND": "Failed to send",
     "TAB_HEADING": "സംഭാഷണങ്ങൾ",
     "MENTION_HEADING": "പരാമർശിക്കുന്നു",
     "UNATTENDED_HEADING": "Unattended",
@@ -75,6 +76,9 @@
       },
       "waiting_since_desc": {
         "TEXT": "Pending Response: Shortest first"
+      },
+      "priority_desc_created_at_asc": {
+        "TEXT": "Priority: Highest first, Created: Oldest first"
       }
     },
     "ATTACHMENTS": {
@@ -93,8 +97,17 @@
       "location": {
         "CONTENT": "സ്ഥാനം"
       },
+      "ig_reel": {
+        "CONTENT": "Instagram Reel"
+      },
       "fallback": {
         "CONTENT": "ഒരു യു. ആർ. എൽ പങ്കിട്ടു"
+      },
+      "contact": {
+        "CONTENT": "Shared contact"
+      },
+      "embed": {
+        "CONTENT": "Embedded content"
       }
     },
     "CHAT_SORT_BY_FILTER": {
@@ -126,6 +139,8 @@
     "NO_CONTENT": "ഉള്ളടക്കമൊന്നും ലഭ്യമല്ല",
     "HIDE_QUOTED_TEXT": "ഉദ്ധരിച്ച വാചകം മറയ്ക്കുക",
     "SHOW_QUOTED_TEXT": "ഉദ്ധരിച്ച വാചകം കാണിക്കുക",
-    "MESSAGE_READ": "Read"
+    "MESSAGE_READ": "Read",
+    "SENDING": "Sending",
+    "UNREAD_COUNT_OVERFLOW": "9+"
   }
 }

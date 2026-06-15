@@ -10,7 +10,8 @@ RSpec.describe AutomationRules::ConditionValidationService do
         rule.conditions = [
           { 'values': ['open'], 'attribute_key': 'status', 'query_operator': nil, 'filter_operator': 'equal_to' },
           { 'values': ['+918484'], 'attribute_key': 'phone_number', 'query_operator': 'OR', 'filter_operator': 'contains' },
-          { 'values': ['test'], 'attribute_key': 'email', 'query_operator': nil, 'filter_operator': 'contains' }
+          { 'values': ['test'], 'attribute_key': 'email', 'query_operator': 'OR', 'filter_operator': 'contains' },
+          { 'values': [true], 'attribute_key': 'private_note', 'query_operator': nil, 'filter_operator': 'equal_to' }
         ]
         rule.save
       end
@@ -38,6 +39,17 @@ RSpec.describe AutomationRules::ConditionValidationService do
         rule.conditions = [
           { 'values': ['open'], 'attribute_key': 'status', 'query_operator': nil, 'filter_operator': 'not-a-filter-operator' }
         ]
+        rule.save
+      end
+
+      it 'returns false' do
+        expect(described_class.new(rule).perform).to be(false)
+      end
+    end
+
+    context 'with wrong query operator' do
+      before do
+        rule.conditions = [{ 'values': ['open'], 'attribute_key': 'status', 'query_operator': 'invalid', 'filter_operator': 'attribute_changed' }]
         rule.save
       end
 

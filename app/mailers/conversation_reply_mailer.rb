@@ -1,5 +1,11 @@
 class ConversationReplyMailer < ApplicationMailer
+  # We needs to expose large attachments to the view as links
+  # Small attachments are linked as mail attachments directly
+  attr_reader :large_attachments
+
   include ConversationReplyMailerHelper
+  include ReferencesHeaderBuilder
+  include EmailAddressParseable
   default from: ENV.fetch('MAILER_SENDER_EMAIL', 'Chatwoot <accounts@chatwoot.com>')
   layout :choose_layout
 
@@ -30,12 +36,11 @@ class ConversationReplyMailer < ApplicationMailer
   end
 
   def email_reply(message)
-    return unless smtp_config_set_or_development?
-
     init_conversation_attributes(message.conversation)
+    return unless smtp_config_set_or_development? || email_smtp_enabled? || (email_imap_enabled? && email_oauth_enabled?)
+
     @message = message
-    reply_mail_object = prepare_mail(true)
-    message.update(source_id: reply_mail_object.message_id)
+    prepare_mail(true)
   end
 
   def conversation_transcript(conversation, to_email)
@@ -96,11 +101,11 @@ class ConversationReplyMailer < ApplicationMailer
   end
 
   def custom_sender_name
-    current_message&.sender&.available_name || @agent&.available_name || 'Notifications'
+    current_message&.sender&.available_name || @agent&.available_name || I18n.t('conversations.reply.email.header.notifications')
   end
 
   def business_name
-    @inbox.business_name || @inbox.name
+    @inbox.sanitized_business_name
   end
 
   def from_email
@@ -135,10 +140,6 @@ class ConversationReplyMailer < ApplicationMailer
     sender_name(@channel.email)
   end
 
-  def parse_email(email_string)
-    Mail::Address.new(email_string).address
-  end
-
   def inbox_from_email_address
     return @inbox.email_address if @inbox.email_address
 
@@ -156,6 +157,7 @@ class ConversationReplyMailer < ApplicationMailer
   end
 
   def conversation_reply_email_id
+    # Find the last incoming message's message_id to reply to
     content_attributes = @conversation.messages.incoming.last&.content_attributes
 
     if content_attributes && content_attributes['email'] && content_attributes['email']['message_id']
@@ -163,6 +165,10 @@ class ConversationReplyMailer < ApplicationMailer
     end
 
     nil
+  end
+
+  def references_header
+    build_references_header(@conversation, in_reply_to_email)
   end
 
   def cc_bcc_emails

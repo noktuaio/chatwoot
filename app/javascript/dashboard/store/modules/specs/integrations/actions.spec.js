@@ -3,9 +3,9 @@ import { actions } from '../../integrations';
 import types from '../../../mutation-types';
 import integrationsList from './fixtures';
 
-const commit = jest.fn();
+const commit = vi.fn();
 global.axios = axios;
-jest.mock('axios');
+vi.mock('axios');
 
 const errorMessage = { message: 'Incorrect header' };
 describe('#actions', () => {
@@ -105,7 +105,9 @@ describe('#actions', () => {
     });
     it('sends correct actions if API is error', async () => {
       axios.post.mockRejectedValue(errorMessage);
-      await expect(actions.createHook({ commit })).rejects.toThrow(Error);
+      await expect(actions.createHook({ commit })).rejects.toEqual(
+        errorMessage
+      );
       expect(commit.mock.calls).toEqual([
         [types.SET_INTEGRATIONS_UI_FLAG, { isCreatingHook: true }],
         [types.SET_INTEGRATIONS_UI_FLAG, { isCreatingHook: false }],

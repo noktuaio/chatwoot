@@ -1,15 +1,20 @@
 class ApplicationRecord < ActiveRecord::Base
+  MAX_STRING_COLUMN_LENGTH = 255
+  MAX_TEXT_COLUMN_LENGTH = 20_000
+
   include Events::Types
   self.abstract_class = true
 
   before_validation :validates_column_content_length
 
   # the models that exposed in email templates through liquid
-  DROPPABLES = %w[Account Channel Conversation Inbox User Message].freeze
+  def droppables
+    %w[Account Channel Conversation Inbox User Message]
+  end
 
   # ModelDrop class should exist in app/drops
   def to_drop
-    return unless DROPPABLES.include?(self.class.name)
+    return unless droppables.include?(self.class.name)
 
     "#{self.class.name}Drop".constantize.new(self)
   end
@@ -35,7 +40,7 @@ class ApplicationRecord < ActiveRecord::Base
   end
 
   def validate_content_length(column)
-    max_length = column.type == :text ? 20_000 : 255
+    max_length = column.type == :text ? MAX_TEXT_COLUMN_LENGTH : MAX_STRING_COLUMN_LENGTH
     return if self[column.name].nil? || self[column.name].length <= max_length
 
     errors.add(column.name.to_sym, "is too long (maximum is #{max_length} characters)")
@@ -47,3 +52,5 @@ class ApplicationRecord < ActiveRecord::Base
     end
   end
 end
+
+ApplicationRecord.prepend_mod_with('ApplicationRecord')

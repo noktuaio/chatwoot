@@ -3,6 +3,7 @@ class ApplicationController < ActionController::Base
   include RequestExceptionHandler
   include Pundit::Authorization
   include SwitchLocale
+  include TrackSessionActivity
 
   skip_before_action :verify_authenticity_token
 
@@ -25,3 +26,4 @@ class ApplicationController < ActionController::Base
     }
   end
 end
+ApplicationController.include_mod_with('Concerns::ApplicationControllerConcern')

@@ -1,8 +1,11 @@
 {
   "INTEGRATION_APPS": {
     "FETCHING": "Preuzimanje integracija",
-    "NO_HOOK_CONFIGURED": "Nema %{integrationId} integracija podešenih na ovom nalogu.",
+    "NO_HOOK_CONFIGURED": "Nema {integrationId} integracija podešenih na ovom nalogu.",
     "HEADER": "Aplikacije",
+    "COUNT": "{n} integration | {n} integrations",
+    "SEARCH_PLACEHOLDER": "Search...",
+    "NO_RESULTS": "No results found matching your search",
     "STATUS": {
       "ENABLED": "Omogućeno",
       "DISABLED": "Onemogućeno"
@@ -31,6 +34,7 @@
     "LIST": {
       "FETCHING": "Preuzimanje zakački integracija",
       "INBOX": "Prijemno sanduče",
+      "ACTIONS": "Akcije",
       "DELETE": {
         "BUTTON_TEXT": "Izbriši"
       }
@@ -42,6 +46,7 @@
           "PLACEHOLDER": "Izaberi prijemno sanduče"
         },
         "SUBMIT": "Napravi",
+        "VALIDATING_OPENAI": "Validating with OpenAI...",
         "CANCEL": "Otkaži"
       },
       "API": {
@@ -56,7 +61,7 @@
       "BUTTON_TEXT": "Prekini vezu"
     },
     "SIDEBAR_DESCRIPTION": {
-      "DIALOGFLOW": "Dialogflow je platforma za razumevanje prirodnog jezika koja olakšava dizajniranje i integraciju interfejsa korisnika razgovora u vašu aplikaciju za mobilne telefone, wev aplikaciju, uređaj, bot, sistem interaktivnog glasovnog odgovora itd. <br /> <br /> Dialogflow integracija sa %{installationName} vam omogućava da podesite Dialogflow bot sa vašim prijemnim sandučićima što omogućava botu da rešava početne upite i prosleđuje ih agentu kada je to potrebno. Dialogflow se može koristiti za kvalifikaciju tragova, smanjenje opterećenja agenata prosleđivanjem često postavljanih pitanja itd. <br /> <br /> Da bi ste dodali Dialogflow, morate da kreirate servisni nalog u konzoli vašeg Google projekta i podeliti kredencijale. Konsultujte Dialogflow dokumentaciju za dodatne informacije."
+      "DIALOGFLOW": "Dialogflow is a natural language processing platform for building conversational interfaces. Integrating it with {installationName} lets bots handle queries first and transfer them to agents when needed. It helps qualify leads and reduce agent workload by answering FAQs. To add Dialogflow, create a Service Account in Google Console and share the credentials. Refer to the docs for details"
     }
   }
 }

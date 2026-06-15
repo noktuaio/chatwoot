@@ -10,6 +10,7 @@
 #  enabled                            :boolean          default(TRUE)
 #  message                            :text             not null
 #  scheduled_at                       :datetime
+#  template_params                    :jsonb
 #  title                              :string           not null
 #  trigger_only_during_business_hours :boolean          default(FALSE)
 #  trigger_rules                      :jsonb
@@ -37,13 +38,16 @@ class Campaign < ApplicationRecord
   validate :validate_campaign_inbox
   validate :validate_url
   validate :prevent_completed_campaign_from_update, on: :update
+  validate :sender_must_belong_to_account
+  validate :inbox_must_belong_to_account
+
   belongs_to :account
   belongs_to :inbox
   belongs_to :sender, class_name: 'User', optional: true
 
   enum campaign_type: { ongoing: 0, one_off: 1 }
   # TODO : enabled attribute is unneccessary . lets move that to the campaign status with additional statuses like draft, disabled etc.
-  enum campaign_status: { active: 0, completed: 1 }
+  enum campaign_status: { active: 0, completed: 1, processing: 2 }
 
   has_many :conversations, dependent: :nullify, autosave: true
 
@@ -52,13 +56,37 @@ class Campaign < ApplicationRecord
 
   def trigger!
     return unless one_off?
-    return if completed?
+    return unless feature_enabled?
+    return unless mark_processing!
 
-    Twilio::OneoffSmsCampaignService.new(campaign: self).perform if inbox.inbox_type == 'Twilio SMS'
-    Sms::OneoffSmsCampaignService.new(campaign: self).perform if inbox.inbox_type == 'Sms'
+    execute_campaign
   end
 
   private
+
+  def feature_enabled?
+    inbox.inbox_type != 'Whatsapp' || account.feature_enabled?(:whatsapp_campaign)
+  end
+
+  def mark_processing!
+    # Multiple scheduler jobs can pick the same active campaign; lock before flipping status to avoid duplicate sends.
+    with_lock do
+      next if completed? || processing?
+
+      processing!
+    end
+  end
+
+  def execute_campaign
+    case inbox.inbox_type
+    when 'Twilio SMS'
+      Twilio::OneoffSmsCampaignService.new(campaign: self).perform
+    when 'Sms'
+      Sms::OneoffSmsCampaignService.new(campaign: self).perform
+    when 'Whatsapp'
+      Whatsapp::OneoffCampaignService.new(campaign: self).perform
+    end
+  end
 
   def set_display_id
     reload
@@ -67,14 +95,14 @@ class Campaign < ApplicationRecord
   def validate_campaign_inbox
     return unless inbox
 
-    errors.add :inbox, 'Unsupported Inbox type' unless ['Website', 'Twilio SMS', 'Sms'].include? inbox.inbox_type
+    errors.add :inbox, 'Unsupported Inbox type' unless ['Website', 'Twilio SMS', 'Sms', 'Whatsapp'].include? inbox.inbox_type
   end
 
   # TO-DO we clean up with better validations when campaigns evolve into more inboxes
   def ensure_correct_campaign_attributes
     return if inbox.blank?
 
-    if ['Twilio SMS', 'Sms'].include?(inbox.inbox_type)
+    if ['Twilio SMS', 'Sms', 'Whatsapp'].include?(inbox.inbox_type)
       self.campaign_type = 'one_off'
       self.scheduled_at ||= Time.now.utc
     else
@@ -88,6 +116,22 @@ class Campaign < ApplicationRecord
 
     use_http_protocol = trigger_rules['url'].starts_with?('http://') || trigger_rules['url'].starts_with?('https://')
     errors.add(:url, 'invalid') if inbox.inbox_type == 'Website' && !use_http_protocol
+  end
+
+  def inbox_must_belong_to_account
+    return unless inbox
+
+    return if inbox.account_id == account_id
+
+    errors.add(:inbox_id, 'must belong to the same account as the campaign')
+  end
+
+  def sender_must_belong_to_account
+    return unless sender
+
+    return if account.users.exists?(id: sender.id)
+
+    errors.add(:sender_id, 'must belong to the same account as the campaign')
   end
 
   def prevent_completed_campaign_from_update

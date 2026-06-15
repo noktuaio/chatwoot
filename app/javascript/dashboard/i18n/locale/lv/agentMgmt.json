@@ -3,11 +3,13 @@
     "HEADER": "Aģenti",
     "HEADER_BTN_TXT": "Pievienot Aģentu",
     "LOADING": "Aģentu Saraksta Iegūšana",
-    "SIDEBAR_TXT": "<p><b>Aģenti</b></p> <p><b>Aģents</b> ir Jūsu Klientu Atbalsta komandas biedrs.</p><p> Aģenti varēs skatīt jūsu lietotāju ziņojumus un atbildēt uz tiem. Sarakstā ir redzami visi aģenti, kas pašlaik ir jūsu kontā. </p><p> Klikšķiniet uz <b>Pievienot Aģentu</b> lai pievienotu jaunu aģentu. Jūsu pievienotais aģents saņems e-pasta ziņojumu ar apstiprinājuma saiti, lai aktivizētu savu kontu, pēc tam viņš varēs piekļūt Chatwoot un atbildēt uz ziņojumiem. </p><p> Piekļuve Chatwoot funkcijām ir balstīta uz šādām lomām. </p><p> <b>Aģents</b> - Šīs lomas aģentiem ir piekļuve tikai pie iesūtnēm, pārskatiem un sarunām. Viņi var piešķirt sarunas citiem aģentiem, vai sev, un atrisināt sarunas.</p><p> <b>Administrators</b> - Administratoram būs piekļuve pie visām jūsu kontam iespējotajām Chatwoot funkcijām, tostarp iestatījumiem, kā arī visām parasto aģentu privilēģijām.</p>",
+    "DESCRIPTION": "Aģents ir jūsu klientu atbalsta komandas loceklis, kurš var skatīt lietotāja ziņojumus un atbildēt uz tiem. Tālāk esošajā sarakstā ir parādīti visi aģenti jūsu kontā.",
+    "LEARN_MORE": "Uzzināt par lietotāju lomām",
     "AGENT_TYPES": {
       "ADMINISTRATOR": "Administrators",
       "AGENT": "Aģents"
     },
+    "COUNT": "{n} agent | {n} agents",
     "LIST": {
       "404": "Šim kontam nav piesaistīts neviens aģents",
       "TITLE": "Pārvaldīt Jūsu komandas aģentus",
@@ -17,7 +19,8 @@
       "STATUS": "Statuss",
       "ACTIONS": "Darbības",
       "VERIFIED": "Pārbaudīts",
-      "VERIFICATION_PENDING": "Tiek gaidīta verifikācija"
+      "VERIFICATION_PENDING": "Tiek gaidīta verifikācija",
+      "AVAILABLE_CUSTOM_ROLE": "Pieejamās pielāgotu lomu atļaujas"
     },
     "ADD": {
       "TITLE": "Pievienot aģentu Jūsu komandai",
@@ -94,6 +97,8 @@
         "ERROR_MESSAGE": "Nevar izveidot savienojumu ar Woot serveri. Lūdzu, vēlāk pamēģiniet vēlreiz"
       }
     },
+    "SEARCH_PLACEHOLDER": "Meklēt aģentus...",
+    "NO_RESULTS": "No agents found matching your search",
     "SEARCH": {
       "NO_RESULTS": "Nav atrasts."
     },
@@ -102,6 +107,9 @@
       "TITLE": {
         "AGENT": "Izvēlieties aģentu",
         "TEAM": "Izvēlieties komandu"
+      },
+      "LIST": {
+        "NONE": "Nav"
       },
       "SEARCH": {
         "NO_RESULTS": {

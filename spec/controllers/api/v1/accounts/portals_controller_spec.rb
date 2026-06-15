@@ -8,8 +8,6 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
   let(:agent_2) { create(:user, account: account, role: :agent) }
   let!(:portal) { create(:portal, slug: 'portal-1', name: 'test_portal', account_id: account.id) }
 
-  before { create(:portal_member, user: agent, portal: portal) }
-
   describe 'GET /api/v1/accounts/{account.id}/portals' do
     context 'when it is an unauthenticated user' do
       it 'returns unauthorized' do
@@ -23,7 +21,7 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
         portal2 = create(:portal, name: 'test_portal_2', account_id: account.id, slug: 'portal-2')
         expect(portal2.id).not_to be_nil
         get "/api/v1/accounts/#{account.id}/portals",
-            headers: agent.create_new_auth_token
+            headers: admin.create_new_auth_token
 
         expect(response).to have_http_status(:success)
         json_response = response.parsed_body
@@ -45,7 +43,7 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
     context 'when it is an authenticated user' do
       it 'get one portals' do
         get "/api/v1/accounts/#{account.id}/portals/#{portal.slug}",
-            headers: agent.create_new_auth_token
+            headers: admin.create_new_auth_token
 
         expect(response).to have_http_status(:success)
         json_response = response.parsed_body
@@ -62,7 +60,7 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
         create(:article, category_id: es_cat.id, portal_id: portal.id, author_id: agent.id)
 
         get "/api/v1/accounts/#{account.id}/portals/#{portal.slug}?locale=en",
-            headers: agent.create_new_auth_token
+            headers: admin.create_new_auth_token
 
         expect(response).to have_http_status(:success)
         json_response = response.parsed_body
@@ -102,6 +100,41 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
         expect(json_response['name']).to eql('test_portal')
         expect(json_response['custom_domain']).to eql('support.chatwoot.dev')
       end
+
+      it 'creates portal when custom_domain is omitted from request body' do
+        portal_params = {
+          portal: {
+            name: 'test_portal_no_domain',
+            slug: 'test_kbase_no_domain'
+          }
+        }
+        post "/api/v1/accounts/#{account.id}/portals",
+             params: portal_params,
+             headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:success)
+        json_response = response.parsed_body
+        expect(json_response['name']).to eql('test_portal_no_domain')
+        expect(json_response['custom_domain']).to be_nil
+      end
+
+      it 'creates portal when custom_domain is blank' do
+        portal_params = {
+          portal: {
+            name: 'test_portal_blank_domain',
+            slug: 'test_kbase_blank_domain',
+            custom_domain: ''
+          }
+        }
+        post "/api/v1/accounts/#{account.id}/portals",
+             params: portal_params,
+             headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:success)
+        json_response = response.parsed_body
+        expect(json_response['name']).to eql('test_portal_blank_domain')
+        expect(json_response['custom_domain']).to be_blank
+      end
     end
   end
 
@@ -119,7 +152,7 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
         portal_params = {
           portal: {
             name: 'updated_test_portal',
-            config: { 'allowed_locales' => %w[en es] }
+            config: { 'allowed_locales' => %w[en es], 'draft_locales' => ['es'], 'default_locale' => 'en' }
           }
         }
 
@@ -132,8 +165,37 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
         expect(response).to have_http_status(:success)
         json_response = response.parsed_body
         expect(json_response['name']).to eql(portal_params[:portal][:name])
-        expect(json_response['config']).to eql({ 'allowed_locales' => [{ 'articles_count' => 0, 'categories_count' => 0, 'code' => 'en' },
-                                                                       { 'articles_count' => 0, 'categories_count' => 0, 'code' => 'es' }] })
+        expect(json_response['config']).to eql(
+          {
+            'allowed_locales' => [
+              { 'articles_count' => 0, 'categories_count' => 0, 'code' => 'en', 'draft' => false },
+              { 'articles_count' => 0, 'categories_count' => 0, 'code' => 'es', 'draft' => true }
+            ],
+            'default_locale' => 'en',
+            'layout' => 'classic',
+            'social_profiles' => {},
+            'locale_translations' => {}
+          }
+        )
+      end
+
+      it 'preserves drafted locales when draft_locales is omitted' do
+        portal.update!(config: { allowed_locales: %w[en es fr], draft_locales: ['es'], default_locale: 'en' })
+
+        put "/api/v1/accounts/#{account.id}/portals/#{portal.slug}",
+            params: {
+              portal: {
+                config: { allowed_locales: %w[en es fr], default_locale: 'en' }
+              }
+            },
+            headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:success)
+        portal.reload
+        expect(portal.draft_locale_codes).to eq(['es'])
+        expect(response.parsed_body.dig('config', 'allowed_locales')).to include(
+          a_hash_including('code' => 'es', 'draft' => true)
+        )
       end
 
       it 'archive portal' do
@@ -155,6 +217,52 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
 
         portal.reload
         expect(portal.archived).to be_truthy
+      end
+
+      it 'does not raise when blob_id is an integer (existing logo re-sent by frontend)' do
+        portal.logo.attach(io: Rails.root.join('spec/assets/avatar.png').open, filename: 'avatar.png', content_type: 'image/png')
+
+        put "/api/v1/accounts/#{account.id}/portals/#{portal.slug}",
+            params: { portal: { name: 'updated_name' }, blob_id: portal.logo.blob.id },
+            headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['name']).to eq('updated_name')
+        expect(portal.reload.logo).to be_attached
+      end
+
+      it 'does not allow associating an inbox from another account' do
+        other_account = create(:account)
+        foreign_inbox = create(:inbox, account: other_account)
+
+        put "/api/v1/accounts/#{account.id}/portals/#{portal.slug}",
+            params: {
+              portal: { name: portal.name },
+              inbox_id: foreign_inbox.id
+            },
+            headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:not_found)
+        expect(portal.reload.channel_web_widget_id).to be_nil
+      end
+
+      it 'clears associated web widget when inbox selection is blank' do
+        web_widget_inbox = create(:inbox, account: account)
+        portal.update!(channel_web_widget: web_widget_inbox.channel)
+
+        expect(portal.channel_web_widget_id).to eq(web_widget_inbox.channel.id)
+
+        put "/api/v1/accounts/#{account.id}/portals/#{portal.slug}",
+            params: {
+              portal: { name: portal.name },
+              inbox_id: ''
+            },
+            headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:success)
+        portal.reload
+        expect(portal.channel_web_widget_id).to be_nil
+        expect(response.parsed_body['inbox']).to be_nil
       end
     end
   end
@@ -178,38 +286,7 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
     end
   end
 
-  describe 'PUT /api/v1/accounts/{account.id}/portals/{portal.slug}/add_members' do
-    let(:new_account) { create(:account) }
-    let(:new_agent) { create(:user, account: new_account, role: :agent) }
-
-    context 'when it is an unauthenticated user' do
-      it 'returns unauthorized' do
-        put "/api/v1/accounts/#{account.id}/portals/#{portal.slug}/add_members", params: {}
-
-        expect(response).to have_http_status(:unauthorized)
-      end
-    end
-
-    context 'when it is an authenticated user' do
-      it 'add members to the portal' do
-        portal_params = {
-          portal: {
-            member_ids: [agent_1.id, agent_2.id]
-          }
-        }
-        expect(portal.members.count).to be(1)
-
-        put "/api/v1/accounts/#{account.id}/portals/#{portal.slug}/add_members",
-            params: portal_params,
-            headers: admin.create_new_auth_token
-
-        expect(response).to have_http_status(:success)
-        json_response = response.parsed_body
-        expect(portal.reload.member_ids).to include(agent_1.id)
-        expect(json_response['portal_members'].length).to be(3)
-      end
-    end
-  end
+  # Portal members endpoint removed
 
   describe 'DELETE /api/v1/accounts/{account.id}/portals/{portal.slug}/logo' do
     context 'when it is an unauthenticated user' do
@@ -240,6 +317,78 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
 
         expect { portal.logo.attachment.reload }.to raise_error(ActiveRecord::RecordNotFound)
         expect(response).to have_http_status(:success)
+      end
+    end
+  end
+
+  describe 'POST /api/v1/accounts/{account.id}/portals/{portal.slug}/send_instructions' do
+    let(:portal_with_domain) { create(:portal, slug: 'portal-with-domain', account_id: account.id, custom_domain: 'docs.example.com') }
+
+    context 'when it is an unauthenticated user' do
+      it 'returns unauthorized' do
+        post "/api/v1/accounts/#{account.id}/portals/#{portal_with_domain.slug}/send_instructions",
+             params: { email: 'dev@example.com' }
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'when it is an authenticated agent' do
+      it 'returns unauthorized' do
+        post "/api/v1/accounts/#{account.id}/portals/#{portal_with_domain.slug}/send_instructions",
+             headers: agent.create_new_auth_token,
+             params: { email: 'dev@example.com' },
+             as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'when it is an authenticated admin' do
+      it 'returns error when email is missing' do
+        post "/api/v1/accounts/#{account.id}/portals/#{portal_with_domain.slug}/send_instructions",
+             headers: admin.create_new_auth_token,
+             params: {},
+             as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to eq('Email is required')
+      end
+
+      it 'returns error when email is invalid' do
+        post "/api/v1/accounts/#{account.id}/portals/#{portal_with_domain.slug}/send_instructions",
+             headers: admin.create_new_auth_token,
+             params: { email: 'invalid-email' },
+             as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to eq('Invalid email format')
+      end
+
+      it 'returns error when custom domain is not configured' do
+        post "/api/v1/accounts/#{account.id}/portals/#{portal.slug}/send_instructions",
+             headers: admin.create_new_auth_token,
+             params: { email: 'dev@example.com' },
+             as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to eq('Custom domain is not configured')
+      end
+
+      it 'sends instructions successfully' do
+        mailer_double = instance_double(ActionMailer::MessageDelivery)
+        allow(PortalInstructionsMailer).to receive(:send_cname_instructions).and_return(mailer_double)
+        allow(mailer_double).to receive(:deliver_later)
+
+        post "/api/v1/accounts/#{account.id}/portals/#{portal_with_domain.slug}/send_instructions",
+             headers: admin.create_new_auth_token,
+             params: { email: 'dev@example.com' },
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['message']).to eq('Instructions sent successfully')
+        expect(PortalInstructionsMailer).to have_received(:send_cname_instructions)
+          .with(portal: portal_with_domain, recipient_email: 'dev@example.com')
       end
     end
   end

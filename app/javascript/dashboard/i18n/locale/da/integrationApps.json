@@ -1,8 +1,11 @@
 {
   "INTEGRATION_APPS": {
     "FETCHING": "Henter Integrationer",
-    "NO_HOOK_CONFIGURED": "Der er ingen %{integrationId} integrationer konfigureret på denne konto.",
+    "NO_HOOK_CONFIGURED": "Der er ingen {integrationId} integrationer konfigureret på denne konto.",
     "HEADER": "Applikationer",
+    "COUNT": "{n} integration | {n} integrations",
+    "SEARCH_PLACEHOLDER": "Search...",
+    "NO_RESULTS": "No results found matching your search",
     "STATUS": {
       "ENABLED": "Aktiveret",
       "DISABLED": "Deaktiveret"
@@ -31,6 +34,7 @@
     "LIST": {
       "FETCHING": "Henter integrationshoks",
       "INBOX": "Indbakke",
+      "ACTIONS": "Handlinger",
       "DELETE": {
         "BUTTON_TEXT": "Slet"
       }
@@ -42,6 +46,7 @@
           "PLACEHOLDER": "Vælg Indbakke"
         },
         "SUBMIT": "Opret",
+        "VALIDATING_OPENAI": "Validating with OpenAI...",
         "CANCEL": "Annuller"
       },
       "API": {
@@ -56,7 +61,7 @@
       "BUTTON_TEXT": "Afbryd"
     },
     "SIDEBAR_DESCRIPTION": {
-      "DIALOGFLOW": "Dialogflow er en naturlig sprogforståelsesplatform, der gør det nemt at designe og integrere en samtalebrugergrænseflade i din mobile app, webapplikation, enhed, bot, interaktivt talespons system, og så videre. <br /> <br /> Dialogflow integration med %{installationName} giver dig mulighed for at konfigurere en Dialogflow bot med dine indbakker, som lader botten håndtere spørgsmålene i første omgang og overdrage dem til en agent, når det er nødvendigt. Dialogflow kan bruges til at kvalificere kundeemner, reducere arbejdsbyrden af agenter ved at stille ofte stillede spørgsmål osv. <br /> <br /> For at tilføje Dialogflow skal du oprette en servicekonto i din Google-projektkonsol og dele legitimationsoplysningerne. Se Dialogflow dokumenterne for mere information."
+      "DIALOGFLOW": "Dialogflow is a natural language processing platform for building conversational interfaces. Integrating it with {installationName} lets bots handle queries first and transfer them to agents when needed. It helps qualify leads and reduce agent workload by answering FAQs. To add Dialogflow, create a Service Account in Google Console and share the credentials. Refer to the docs for details"
     }
   }
 }

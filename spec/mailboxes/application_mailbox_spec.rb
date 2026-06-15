@@ -41,46 +41,71 @@ RSpec.describe ApplicationMailbox do
     describe 'Support' do
       let!(:channel_email) { create(:channel_email) }
 
-      it 'routes support emails to Support Mailbox when mail is to channel email' do
+      it 'routes support emails to Reply Mailbox when mail is to channel email' do
         # this email is hardcoded in the support.eml, that's why we are updating this
+        # With NewConversationStrategy, all channel emails route to ReplyMailbox
         channel_email.update(email: 'care@example.com')
         dbl = double
-        expect(SupportMailbox).to receive(:new).and_return(dbl)
+        expect(ReplyMailbox).to receive(:new).and_return(dbl)
         expect(dbl).to receive(:perform_processing).and_return(true)
         described_class.route support_mail
       end
 
-      it 'routes support emails to Support Mailbox when mail is to channel forward to email' do
+      it 'routes support emails to Reply Mailbox when mail is to channel forward to email' do
         # this email is hardcoded in the support.eml, that's why we are updating this
+        # With NewConversationStrategy, all channel emails route to ReplyMailbox
         channel_email.update(forward_to_email: 'care@example.com')
         dbl = double
-        expect(SupportMailbox).to receive(:new).and_return(dbl)
+        expect(ReplyMailbox).to receive(:new).and_return(dbl)
         expect(dbl).to receive(:perform_processing).and_return(true)
         described_class.route support_mail
       end
 
-      it 'routes support emails to Support Mailbox with cc email' do
+      it 'routes support emails to Reply Mailbox with cc email' do
+        # With NewConversationStrategy, all channel emails route to ReplyMailbox
         channel_email.update(email: 'test@example.com')
         dbl = double
-        expect(SupportMailbox).to receive(:new).and_return(dbl)
+        expect(ReplyMailbox).to receive(:new).and_return(dbl)
         expect(dbl).to receive(:perform_processing).and_return(true)
         described_class.route reply_cc_mail
+      end
+
+      it 'skips routing when BCC processing is disabled for account' do
+        allow(GlobalConfigService).to receive(:load).with('SKIP_INCOMING_BCC_PROCESSING', '').and_return(channel_email.account_id.to_s)
+
+        # Create a BCC-only email scenario
+        bcc_mail = create_inbound_email_from_fixture('support.eml')
+        bcc_mail.mail['to'] = nil
+        bcc_mail.mail['bcc'] = 'care@example.com'
+
+        channel_email.update(email: 'care@example.com')
+
+        expect(DefaultMailbox).to receive(:new).and_return(double.tap { |d| expect(d).to receive(:perform_processing) })
+        described_class.route bcc_mail
       end
     end
 
     describe 'Invalid Mail To Address' do
-      it 'raises error when mail.to header is malformed' do
-        expect do
-          described_class.route mail_with_invalid_to_address
-        end.to raise_error(StandardError,
-                           'Invalid email to address header <vishnu@chatwoot.com>vishnu@chatwoot.com')
+      let(:logger) { double }
+
+      before do
+        allow(Rails).to receive(:logger).and_return(logger)
+        allow(logger).to receive(:error)
       end
 
-      it 'raises another error when mail.to header is malformed' do
+      it 'will not raise error when mail.to header is malformed format 1' do
+        expect(logger).to receive(:error).with("Email to address header is malformed `#{mail_with_invalid_to_address.mail.to}`")
+        expect do
+          described_class.route mail_with_invalid_to_address
+        end.not_to raise_error
+      end
+
+      it 'will not raise error when mail.to header is malformed format 2' do
+        expect(logger).to receive(:error).with("Email to address header is malformed `#{mail_with_invalid_to_address_2.mail.to}`")
+
         expect do
           described_class.route mail_with_invalid_to_address_2
-        end.to raise_error(StandardError,
-                           'Invalid email to address header vishnu@chatwoot.com www.chatwoot.com')
+        end.not_to raise_error
       end
     end
   end

@@ -1,8 +1,11 @@
 {
   "INTEGRATION_APPS": {
     "FETCHING": "Отримання інтеграцій",
-    "NO_HOOK_CONFIGURED": "Немає сконфігурованих інтеграцій %{integrationId} в цьому обліковому записі.",
+    "NO_HOOK_CONFIGURED": "Немає сконфігурованих інтеграцій {integrationId} в цьому обліковому записі.",
     "HEADER": "Додатки",
+    "COUNT": "{n} integration | {n} integrations",
+    "SEARCH_PLACEHOLDER": "Search...",
+    "NO_RESULTS": "No results found matching your search",
     "STATUS": {
       "ENABLED": "Увімкнено",
       "DISABLED": "Вимкнено"
@@ -31,6 +34,7 @@
     "LIST": {
       "FETCHING": "Отримання інтеграційних хуків",
       "INBOX": "Вхідні",
+      "ACTIONS": "Дії",
       "DELETE": {
         "BUTTON_TEXT": "Видалити"
       }
@@ -42,6 +46,7 @@
           "PLACEHOLDER": "Виділити \"Вхідні\""
         },
         "SUBMIT": "Створити",
+        "VALIDATING_OPENAI": "Validating with OpenAI...",
         "CANCEL": "Скасувати"
       },
       "API": {
@@ -56,7 +61,7 @@
       "BUTTON_TEXT": "Від'єднатись"
     },
     "SIDEBAR_DESCRIPTION": {
-      "DIALOGFLOW": "Dialogflow - це платформа природного розуміння мови, що дозволяє легко розробляти та інтегрувати розмовний інтерфейс користувача у ваш мобільний додаток, веб-додаток, пристрій, бот, інтерактивна система голосової відповіді тощо. <br /> <br /> Dialogflow інтеграція з %{installationName} дозволяє вам налаштувати бота Dialogflow потоку вашими папками \"Вхідні\", що дозволяє боту обробляти запити спочатку, і передавати їх агенту по необхідності. Dialogflow може бути використаний для кваліфікації лідів, зменшення навантаження агентів, надаючи часті запитання та ін. <br /> <br /> Щоб додати Dialogflow, потрібно створити обліковий запис служби в консолі проекту Google і надати доступ до облікових даних. Будь-ласка, зверніться до документації Dialogflow для отримання додаткової інформації."
+      "DIALOGFLOW": "Dialogflow is a natural language processing platform for building conversational interfaces. Integrating it with {installationName} lets bots handle queries first and transfer them to agents when needed. It helps qualify leads and reduce agent workload by answering FAQs. To add Dialogflow, create a Service Account in Google Console and share the credentials. Refer to the docs for details"
     }
   }
 }

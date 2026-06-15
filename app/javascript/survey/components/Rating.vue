@@ -1,3 +1,41 @@
+<script>
+import { CSAT_RATINGS } from 'shared/constants/messages';
+
+export default {
+  props: {
+    selectedRating: {
+      type: Number,
+      default: null,
+    },
+    isDisabled: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  emits: ['selectRating'],
+  data() {
+    return {
+      ratings: CSAT_RATINGS,
+    };
+  },
+
+  methods: {
+    buttonClass(rating) {
+      return [
+        { selected: rating.value === this.selectedRating },
+        { disabled: this.isDisabled },
+        { hover: this.isDisabled },
+        'emoji-button shadow-none text-3xl lg:text-4xl outline-none mr-8',
+      ];
+    },
+    onClick(rating) {
+      if (this.isDisabled) return;
+      this.$emit('selectRating', rating.value);
+    },
+  },
+};
+</script>
+
 <template>
   <div class="customer-satisfcation mb-2">
     <div class="ratings flex py-5 px-0">
@@ -12,38 +50,6 @@
     </div>
   </div>
 </template>
-
-<script>
-import { CSAT_RATINGS } from 'shared/constants/messages';
-
-export default {
-  props: {
-    selectedRating: {
-      type: Number,
-      default: null,
-    },
-  },
-  data() {
-    return {
-      ratings: CSAT_RATINGS,
-    };
-  },
-
-  methods: {
-    buttonClass(rating) {
-      return [
-        { selected: rating.value === this.selectedRating },
-        { disabled: !!this.selectedRating },
-        { hover: !!this.selectedRating },
-        'emoji-button shadow-none text-3xl lg:text-4xl outline-none mr-8',
-      ];
-    },
-    onClick(rating) {
-      this.$emit('selectRating', rating.value);
-    },
-  },
-};
-</script>
 
 <style lang="scss" scoped>
 .emoji-button {

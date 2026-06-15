@@ -1,50 +1,64 @@
-<template>
-  <div class="tab-container">
-    <woot-tabs :index="activeTab" :border="false" @change="onTabChange">
-      <woot-tabs-item
-        v-for="item in tabs"
-        :key="item.key"
-        :name="item.name"
-        :count="item.count"
-      />
-    </woot-tabs>
-  </div>
-</template>
+<script setup>
+import { computed, watch, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
 
-<script>
-export default {
-  props: {
-    tabs: {
-      type: Array,
-      default: () => [],
-    },
-    selectedTab: {
-      type: Number,
-      default: 0,
-    },
+const props = defineProps({
+  tabs: {
+    type: Array,
+    default: () => [],
   },
-  data() {
-    return {
-      activeTab: 0,
-    };
+  selectedTab: {
+    type: Number,
+    default: 0,
   },
-  watch: {
-    selectedTab(value, oldValue) {
-      if (value !== oldValue) {
-        this.activeTab = this.selectedTab;
-      }
-    },
-  },
-  methods: {
-    onTabChange(index) {
-      this.activeTab = index;
-      this.$emit('tab-change', this.tabs[index].key);
-    },
-  },
+});
+
+const emit = defineEmits(['tabChange']);
+
+const { t } = useI18n();
+
+const activeTab = ref(props.selectedTab);
+
+watch(
+  () => props.selectedTab,
+  (value, oldValue) => {
+    if (value !== oldValue) {
+      activeTab.value = props.selectedTab;
+    }
+  }
+);
+
+const tabBarTabs = computed(() => {
+  return props.tabs.map(tab => ({
+    label: tab.name,
+    count: tab.showBadge ? tab.count : null,
+  }));
+});
+
+const onTabChange = selectedTab => {
+  const index = props.tabs.findIndex(tab => tab.name === selectedTab.label);
+  activeTab.value = index;
+  emit('tabChange', props.tabs[index].key);
 };
 </script>
-<style lang="scss" scoped>
-.tab-container {
-  @apply mt-1 border-b border-solid border-slate-100 dark:border-slate-800/50;
-}
-</style>
+
+<template>
+  <div class="flex items-center justify-between mt-7 mb-4">
+    <TabBar
+      :tabs="tabBarTabs"
+      :initial-active-tab="activeTab"
+      @tab-changed="onTabChange"
+    />
+
+    <Button
+      :label="t('SEARCH.SORT_BY.RELEVANCE')"
+      sm
+      link
+      slate
+      class="hover:!no-underline pointer-events-none lg:inline-flex hidden"
+      icon="i-lucide-arrow-up-down"
+    />
+  </div>
+</template>

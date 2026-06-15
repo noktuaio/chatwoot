@@ -1,60 +1,9 @@
-<template>
-  <div
-    class="shadow-xl hover:shadow-lg bg-white dark:bg-slate-900 mt-2 max-h-96 scroll-py-2 p-5 overflow-y-auto text-sm text-slate-700 dark:text-slate-100 border border-solid border-slate-50 dark:border-slate-800 rounded-lg"
-  >
-    <div
-      v-if="isLoading"
-      class="font-medium text-sm text-slate-400 dark:text-slate-700"
-    >
-      {{ loadingPlaceholder }}
-    </div>
-    <ul
-      v-if="shouldShowResults"
-      class="bg-white dark:bg-slate-900 gap-4 flex flex-col text-sm text-slate-700 dark:text-slate-100"
-      role="listbox"
-    >
-      <li
-        v-for="(article, index) in items"
-        :id="article.id"
-        :key="article.id"
-        class="group flex border border-solid hover:bg-slate-25 dark:hover:bg-slate-800 border-slate-100 dark:border-slate-800 rounded-lg cursor-pointer select-none items-center p-4"
-        :class="isSearchItemActive(index)"
-        role="option"
-        tabindex="-1"
-        @mouse-enter="onHover(index)"
-        @mouse-leave="onHover(-1)"
-      >
-        <a
-          class="flex flex-col gap-1 overflow-y-hidden"
-          :href="generateArticleUrl(article)"
-        >
-          <span
-            v-dompurify-html="prepareContent(article.title)"
-            class="flex-auto truncate text-base font-semibold leading-6 w-full overflow-hidden text-ellipsis whitespace-nowrap"
-          />
-          <div
-            v-dompurify-html="prepareContent(article.content)"
-            class="line-clamp-2 text-ellipsis whitespace-nowrap overflow-hidden text-slate-600 dark:text-slate-300 text-sm"
-          />
-        </a>
-      </li>
-    </ul>
-
-    <div
-      v-if="showEmptyResults"
-      class="font-medium text-sm text-slate-400 dark:text-slate-700"
-    >
-      {{ emptyPlaceholder }}
-    </div>
-  </div>
-</template>
-
 <script>
-import mentionSelectionKeyboardMixin from 'dashboard/components/widgets/mentions/mentionSelectionKeyboardMixin.js';
-import messageFormatterMixin from 'shared/mixins/messageFormatterMixin';
+import { ref, computed, nextTick } from 'vue';
+import { useKeyboardNavigableList } from 'dashboard/composables/useKeyboardNavigableList';
+import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 
 export default {
-  mixins: [mentionSelectionKeyboardMixin, messageFormatterMixin],
   props: {
     items: {
       type: Array,
@@ -68,15 +17,7 @@ export default {
       type: String,
       default: '',
     },
-    searchPlaceholder: {
-      type: String,
-      default: '',
-    },
     loadingPlaceholder: {
-      type: String,
-      default: '',
-    },
-    resultsTitle: {
       type: String,
       default: '',
     },
@@ -85,9 +26,32 @@ export default {
       default: '',
     },
   },
-  data() {
+  setup(props) {
+    const selectedIndex = ref(-1);
+    const portalSearchSuggestionsRef = ref(null);
+    const { highlightContent, getPlainText } = useMessageFormatter();
+    const adjustScroll = () => {
+      nextTick(() => {
+        portalSearchSuggestionsRef.value.scrollTop = 102 * selectedIndex.value;
+      });
+    };
+
+    const isSearchItemActive = index => {
+      return index === selectedIndex.value ? 'bg-n-portal-soft' : '';
+    };
+
+    useKeyboardNavigableList({
+      items: computed(() => props.items),
+      adjustScroll,
+      selectedIndex,
+    });
+
     return {
-      selectedIndex: -1,
+      selectedIndex,
+      portalSearchSuggestionsRef,
+      isSearchItemActive,
+      highlightContent,
+      getPlainText,
     };
   },
 
@@ -101,25 +65,62 @@ export default {
   },
 
   methods: {
-    isSearchItemActive(index) {
-      return index === this.selectedIndex
-        ? 'bg-slate-25 dark:bg-slate-800'
-        : 'bg-white dark:bg-slate-900';
-    },
-    generateArticleUrl(article) {
-      return `/hc/${article.portal.slug}/articles/${article.slug}`;
-    },
-    handleKeyboardEvent(e) {
-      this.processKeyDownEvent(e);
-      this.$el.scrollTop = 102 * this.selectedIndex;
-    },
     prepareContent(content) {
       return this.highlightContent(
         content,
         this.searchTerm,
-        'bg-slate-100 dark:bg-slate-700 font-semibold text-slate-600 dark:text-slate-200'
+        'bg-n-portal-soft text-n-portal font-semibold rounded-sm px-1'
       );
     },
   },
 };
 </script>
+
+<template>
+  <div
+    ref="portalSearchSuggestionsRef"
+    class="mt-2 overflow-y-auto bg-white dark:bg-n-slate-2 border border-solid border-n-weak rounded-xl shadow-2xl max-h-96 p-2"
+  >
+    <div v-if="isLoading" class="px-3 py-6 text-sm text-n-slate-11 text-center">
+      {{ loadingPlaceholder }}
+    </div>
+    <ul v-if="shouldShowResults" class="flex flex-col gap-0.5" role="listbox">
+      <li
+        v-for="(article, index) in items"
+        :id="article.id"
+        :key="article.id"
+        class="rounded-md cursor-pointer select-none group transition-colors hover:bg-n-alpha-2"
+        :class="isSearchItemActive(index)"
+        role="option"
+        tabindex="-1"
+      >
+        <a
+          class="flex items-start gap-3 px-3 py-2.5 overflow-hidden"
+          :href="article.link"
+        >
+          <span
+            class="i-lucide-file-text size-4 mt-0.5 flex-shrink-0 text-n-slate-10 group-hover:text-n-slate-11"
+            aria-hidden="true"
+          />
+          <span class="min-w-0 flex-1 flex flex-col gap-1">
+            <span
+              v-dompurify-html="prepareContent(getPlainText(article.title))"
+              class="block text-base font-520 text-n-slate-12 truncate"
+            />
+            <span
+              v-dompurify-html="prepareContent(article.content)"
+              class="block text-sm text-n-slate-11 line-clamp-1"
+            />
+          </span>
+        </a>
+      </li>
+    </ul>
+
+    <div
+      v-if="showEmptyResults"
+      class="px-3 py-6 text-sm text-n-slate-11 text-center"
+    >
+      {{ emptyPlaceholder }}
+    </div>
+  </div>
+</template>

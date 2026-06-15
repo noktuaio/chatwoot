@@ -1,12 +1,22 @@
+# TODO: Move this into models jbuilder
+# Currently the file there is used only for search endpoint.
+# Everywhere else we use conversation builder in partials folder
+
 json.meta do
   json.sender do
     json.partial! 'api/v1/models/contact', formats: [:json], resource: conversation.contact
   end
   json.channel conversation.inbox.try(:channel_type)
-  if conversation.assignee&.account
+  if conversation.assigned_entity.is_a?(AgentBot)
     json.assignee do
-      json.partial! 'api/v1/models/agent', formats: [:json], resource: conversation.assignee
+      json.partial! 'api/v1/models/agent_bot_slim', formats: [:json], resource: conversation.assigned_entity
     end
+    json.assignee_type 'AgentBot'
+  elsif conversation.assigned_entity&.account
+    json.assignee do
+      json.partial! 'api/v1/models/agent', formats: [:json], resource: conversation.assigned_entity
+    end
+    json.assignee_type 'User'
   end
   if conversation.team.present?
     json.team do
@@ -40,6 +50,7 @@ json.muted conversation.muted?
 json.snoozed_until conversation.snoozed_until
 json.status conversation.status
 json.created_at conversation.created_at.to_i
+json.updated_at conversation.updated_at.to_f
 json.timestamp conversation.last_activity_at.to_i
 json.first_reply_created_at conversation.first_reply_created_at.to_i
 json.unread_count conversation.unread_incoming_messages.count
@@ -48,3 +59,4 @@ json.last_activity_at conversation.last_activity_at.to_i
 json.priority conversation.priority
 json.waiting_since conversation.waiting_since.to_i.to_i
 json.sla_policy_id conversation.sla_policy_id
+json.partial! 'enterprise/api/v1/conversations/partials/conversation', conversation: conversation if ChatwootApp.enterprise?

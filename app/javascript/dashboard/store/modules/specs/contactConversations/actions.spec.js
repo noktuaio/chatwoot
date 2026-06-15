@@ -8,9 +8,9 @@ import {
 import * as types from '../../../mutation-types';
 import conversationList from './fixtures';
 
-const commit = jest.fn();
+const commit = vi.fn();
 global.axios = axios;
-jest.mock('axios');
+vi.mock('axios');
 
 describe('#actions', () => {
   describe('#get', () => {
@@ -281,6 +281,24 @@ describe('createConversationPayload', () => {
     );
     expect(payload.get('assignee_id')).toBe(options.params.assigneeId);
     expect(payload.getAll('message[attachments][]')).toEqual([]);
+  });
+
+  it('omits mail_subject when mailSubject is undefined', () => {
+    const options = {
+      params: {
+        inboxId: '1',
+        message: {
+          content: 'Test message content',
+        },
+        sourceId: '12',
+        assigneeId: '123',
+      },
+      contactId: '23',
+    };
+
+    const payload = createConversationPayload(options);
+
+    expect(payload.has('additional_attributes[mail_subject]')).toBe(false);
   });
 });
 

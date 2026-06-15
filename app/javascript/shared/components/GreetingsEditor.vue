@@ -1,73 +1,44 @@
+<script setup>
+import { computed } from 'vue';
+import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
+import ResizableTextArea from 'shared/components/ResizableTextArea.vue';
+
+const props = defineProps({
+  modelValue: { type: String, default: '' },
+  richtext: { type: Boolean, default: false },
+  label: { type: String, default: '' },
+  placeholder: { type: String, default: '' },
+});
+
+const emit = defineEmits(['update:modelValue']);
+
+const greetingsMessage = computed({
+  get: () => props.modelValue,
+  set: value => emit('update:modelValue', value),
+});
+</script>
+
 <template>
-  <section class="w-3/4">
-    <div
-      v-if="richtext"
-      class="py-0 px-4 rounded-md border border-solid border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 mt-0 mx-0 mb-4"
-    >
-      <woot-message-editor
+  <section>
+    <div v-if="richtext">
+      <WootMessageEditor
         v-model="greetingsMessage"
-        :is-format-mode="true"
-        :enable-variables="true"
-        class="input bg-white dark:bg-slate-900"
+        is-format-mode
+        enable-variables
         :placeholder="placeholder"
         :min-height="4"
-        @input="handleInput"
       />
     </div>
-    <resizable-text-area
+    <ResizableTextArea
       v-else
       v-model="greetingsMessage"
       :rows="4"
+      :min-height="4"
       type="text"
-      class="greetings--textarea"
+      class="bg-transparent p-0 !outline-0 !outline-none !mb-0 mt-1 text-sm"
       :label="label"
       :placeholder="placeholder"
       @input="handleInput"
     />
   </section>
 </template>
-
-<script>
-import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
-import ResizableTextArea from 'shared/components/ResizableTextArea.vue';
-
-export default {
-  components: {
-    WootMessageEditor,
-    ResizableTextArea,
-  },
-  props: {
-    value: {
-      type: String,
-      default: '',
-    },
-    richtext: {
-      type: Boolean,
-      default: false,
-    },
-    label: {
-      type: String,
-      default: '',
-    },
-    placeholder: {
-      type: String,
-      default: '',
-    },
-  },
-  data() {
-    return {
-      greetingsMessage: this.value,
-    };
-  },
-  watch: {
-    value(newValue) {
-      this.greetingsMessage = newValue;
-    },
-  },
-  methods: {
-    handleInput() {
-      this.$emit('input', this.greetingsMessage);
-    },
-  },
-};
-</script>

@@ -25,7 +25,7 @@ class UserDashboard < Administrate::BaseDashboard
     current_sign_in_ip: Field::String,
     last_sign_in_ip: Field::String,
     confirmation_token: Field::String,
-    confirmed_at: Field::DateTime,
+    confirmed_at: ConfirmedAtField,
     confirmation_sent_at: Field::DateTime,
     unconfirmed_email: Field::String,
     name: Field::String.with_options(searchable: true),
@@ -59,11 +59,11 @@ class UserDashboard < Administrate::BaseDashboard
   SHOW_PAGE_ATTRIBUTES = %i[
     id
     avatar_url
-    unconfirmed_email
     name
     type
     display_name
     email
+    unconfirmed_email
     created_at
     updated_at
     confirmed_at
@@ -94,7 +94,12 @@ class UserDashboard < Administrate::BaseDashboard
   #   COLLECTION_FILTERS = {
   #     open: ->(resources) { resources.where(open: true) }
   #   }.freeze
-  COLLECTION_FILTERS = {}.freeze
+  COLLECTION_FILTERS = {
+    super_admin: ->(resources) { resources.where(type: 'SuperAdmin') },
+    confirmed: ->(resources) { resources.where.not(confirmed_at: nil) },
+    unconfirmed: ->(resources) { resources.where(confirmed_at: nil) },
+    recent: ->(resources) { resources.where('created_at > ?', 30.days.ago) }
+  }.freeze
 
   # Overwrite this method to customize how users are displayed
   # across all pages of the admin dashboard.

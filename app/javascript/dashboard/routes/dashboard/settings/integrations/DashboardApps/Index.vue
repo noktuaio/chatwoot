@@ -1,99 +1,23 @@
-<template>
-  <div class="flex-1 overflow-auto p-4">
-    <woot-button
-      color-scheme="success"
-      class-names="button--fixed-top"
-      icon="add-circle"
-      @click="openCreatePopup"
-    >
-      {{ $t('INTEGRATION_SETTINGS.DASHBOARD_APPS.HEADER_BTN_TXT') }}
-    </woot-button>
-    <div class="flex flex-row gap-4">
-      <div class="w-full lg:w-3/5">
-        <p
-          v-if="!uiFlags.isFetching && !records.length"
-          class="flex h-full items-center flex-col justify-center"
-        >
-          {{ $t('INTEGRATION_SETTINGS.DASHBOARD_APPS.LIST.404') }}
-        </p>
-        <woot-loading-state
-          v-if="uiFlags.isFetching"
-          :message="$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.LIST.LOADING')"
-        />
-        <table v-if="!uiFlags.isFetching && records.length" class="woot-table">
-          <thead>
-            <th
-              v-for="thHeader in $t(
-                'INTEGRATION_SETTINGS.DASHBOARD_APPS.LIST.TABLE_HEADER'
-              )"
-              :key="thHeader"
-            >
-              {{ thHeader }}
-            </th>
-          </thead>
-          <tbody>
-            <dashboard-apps-row
-              v-for="(dashboardAppItem, index) in records"
-              :key="dashboardAppItem.id"
-              :index="index"
-              :app="dashboardAppItem"
-              @edit="editApp"
-              @delete="openDeletePopup"
-            />
-          </tbody>
-        </table>
-      </div>
-
-      <div class="w-1/3 hidden lg:block">
-        <span
-          v-dompurify-html="
-            useInstallationName(
-              $t('INTEGRATION_SETTINGS.DASHBOARD_APPS.SIDEBAR_TXT'),
-              globalConfig.installationName
-            )
-          "
-        />
-      </div>
-    </div>
-
-    <dashboard-app-modal
-      v-if="showDashboardAppPopup"
-      :show="showDashboardAppPopup"
-      :mode="mode"
-      :selected-app-data="selectedApp"
-      @close="toggleDashboardAppPopup"
-    />
-
-    <woot-delete-modal
-      :show.sync="showDeleteConfirmationPopup"
-      :on-close="closeDeletePopup"
-      :on-confirm="confirmDeletion"
-      :title="$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.DELETE.TITLE')"
-      :message="
-        $t('INTEGRATION_SETTINGS.DASHBOARD_APPS.DELETE.MESSAGE', {
-          appName: selectedApp.title,
-        })
-      "
-      :confirm-text="
-        $t('INTEGRATION_SETTINGS.DASHBOARD_APPS.DELETE.CONFIRM_YES')
-      "
-      :reject-text="$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.DELETE.CONFIRM_NO')"
-    />
-  </div>
-</template>
 <script>
 import { mapGetters } from 'vuex';
+import { useAlert } from 'dashboard/composables';
+import { picoSearch } from '@scmmishra/pico-search';
+import { BaseTable } from 'dashboard/components-next/table';
 import DashboardAppModal from './DashboardAppModal.vue';
 import DashboardAppsRow from './DashboardAppsRow.vue';
-import alertMixin from 'shared/mixins/alertMixin';
-import globalConfigMixin from 'shared/mixins/globalConfigMixin';
+import BaseSettingsHeader from '../../components/BaseSettingsHeader.vue';
+import SettingsLayout from '../../SettingsLayout.vue';
+import NextButton from 'dashboard/components-next/button/Button.vue';
 
 export default {
   components: {
+    BaseSettingsHeader,
+    SettingsLayout,
+    BaseTable,
     DashboardAppModal,
     DashboardAppsRow,
+    NextButton,
   },
-  mixins: [alertMixin, globalConfigMixin],
   data() {
     return {
       loading: {},
@@ -101,14 +25,30 @@ export default {
       showDeleteConfirmationPopup: false,
       selectedApp: {},
       mode: 'CREATE',
+      searchQuery: '',
     };
   },
   computed: {
     ...mapGetters({
-      globalConfig: 'globalConfig/get',
       records: 'dashboardApps/getRecords',
       uiFlags: 'dashboardApps/getUIFlags',
     }),
+    filteredRecords() {
+      const query = this.searchQuery.trim();
+      if (!query) return this.records;
+      return picoSearch(this.records, query, ['title']);
+    },
+    tableHeaders() {
+      return [
+        this.$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.LIST.TABLE_HEADER.NAME'),
+        this.$t(
+          'INTEGRATION_SETTINGS.DASHBOARD_APPS.LIST.TABLE_HEADER.ENDPOINT'
+        ),
+        this.$t(
+          'INTEGRATION_SETTINGS.DASHBOARD_APPS.LIST.TABLE_HEADER.ACTIONS'
+        ),
+      ];
+    },
   },
   mounted() {
     this.$store.dispatch('dashboardApps/get');
@@ -144,11 +84,11 @@ export default {
     async deleteApp(id) {
       try {
         await this.$store.dispatch('dashboardApps/delete', id);
-        this.showAlert(
+        useAlert(
           this.$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.DELETE.API_SUCCESS')
         );
       } catch (error) {
-        this.showAlert(
+        useAlert(
           this.$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.DELETE.API_ERROR')
         );
       }
@@ -156,3 +96,86 @@ export default {
   },
 };
 </script>
+
+<template>
+  <SettingsLayout
+    :is-loading="uiFlags.isFetching"
+    :loading-message="$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.LIST.LOADING')"
+    :no-records-found="!records.length"
+    :no-records-message="$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.LIST.404')"
+  >
+    <template #header>
+      <BaseSettingsHeader
+        v-model:search-query="searchQuery"
+        :title="$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.TITLE')"
+        :description="$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.DESCRIPTION')"
+        :link-text="$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.LEARN_MORE')"
+        :search-placeholder="
+          $t('INTEGRATION_SETTINGS.DASHBOARD_APPS.SEARCH_PLACEHOLDER')
+        "
+        feature-name="dashboard_apps"
+        :back-button-label="$t('INTEGRATION_SETTINGS.HEADER')"
+      >
+        <template v-if="records?.length" #count>
+          <span class="text-body-main text-n-slate-11">
+            {{
+              $t('INTEGRATION_SETTINGS.DASHBOARD_APPS.COUNT', {
+                n: records.length,
+              })
+            }}
+          </span>
+        </template>
+        <template #actions>
+          <NextButton
+            :label="$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.HEADER_BTN_TXT')"
+            size="sm"
+            @click="openCreatePopup"
+          />
+        </template>
+      </BaseSettingsHeader>
+    </template>
+    <template #body>
+      <span
+        v-if="!filteredRecords.length && searchQuery"
+        class="flex-1 flex items-center justify-center py-20 text-center text-body-main !text-base text-n-slate-11"
+      >
+        {{ $t('INTEGRATION_SETTINGS.DASHBOARD_APPS.NO_RESULTS') }}
+      </span>
+      <BaseTable v-else :headers="tableHeaders" :items="filteredRecords">
+        <template #row="{ items }">
+          <DashboardAppsRow
+            v-for="(dashboardAppItem, index) in items"
+            :key="dashboardAppItem.id"
+            :index="index"
+            :app="dashboardAppItem"
+            @edit="editApp"
+            @delete="openDeletePopup"
+          />
+        </template>
+      </BaseTable>
+    </template>
+    <DashboardAppModal
+      v-if="showDashboardAppPopup"
+      :show="showDashboardAppPopup"
+      :mode="mode"
+      :selected-app-data="selectedApp"
+      @close="toggleDashboardAppPopup"
+    />
+
+    <woot-delete-modal
+      v-model:show="showDeleteConfirmationPopup"
+      :on-close="closeDeletePopup"
+      :on-confirm="confirmDeletion"
+      :title="$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.DELETE.TITLE')"
+      :message="
+        $t('INTEGRATION_SETTINGS.DASHBOARD_APPS.DELETE.MESSAGE', {
+          appName: selectedApp.title,
+        })
+      "
+      :confirm-text="
+        $t('INTEGRATION_SETTINGS.DASHBOARD_APPS.DELETE.CONFIRM_YES')
+      "
+      :reject-text="$t('INTEGRATION_SETTINGS.DASHBOARD_APPS.DELETE.CONFIRM_NO')"
+    />
+  </SettingsLayout>
+</template>

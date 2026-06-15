@@ -1,74 +1,177 @@
+<script setup>
+import { useAlert } from 'dashboard/composables';
+import { useAdmin } from 'dashboard/composables/useAdmin';
+import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
+import SettingsLayout from '../SettingsLayout.vue';
+import { computed, ref } from 'vue';
+import { picoSearch } from '@scmmishra/pico-search';
+import { useMapGetter } from 'dashboard/composables/store.js';
+import { useStoreGetters, useStore } from 'dashboard/composables/store';
+import { useI18n } from 'vue-i18n';
+
+import Icon from 'dashboard/components-next/icon/Icon.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
+
+const store = useStore();
+const { t } = useI18n();
+const getters = useStoreGetters();
+const { isAdmin } = useAdmin();
+
+const loading = ref({});
+const searchQuery = ref('');
+
+const teamsList = useMapGetter('teams/getTeams');
+
+const filteredTeamsList = computed(() => {
+  const query = searchQuery.value.trim();
+  if (!query) return teamsList.value;
+  return picoSearch(teamsList.value, query, ['name', 'description']);
+});
+
+const uiFlags = computed(() => getters['teams/getUIFlags'].value);
+
+const deleteTeam = async ({ id }) => {
+  try {
+    loading.value[id] = true;
+    await store.dispatch('teams/delete', id);
+    useAlert(t('TEAMS_SETTINGS.DELETE.API.SUCCESS_MESSAGE'));
+  } catch (error) {
+    useAlert(t('TEAMS_SETTINGS.DELETE.API.ERROR_MESSAGE'));
+  } finally {
+    loading.value[id] = false;
+  }
+};
+
+const showDeletePopup = ref(false);
+const selectedTeam = ref({});
+
+const openDelete = team => {
+  showDeletePopup.value = true;
+  selectedTeam.value = team;
+};
+
+const closeDelete = () => {
+  showDeletePopup.value = false;
+  selectedTeam.value = {};
+};
+
+const confirmDeletion = () => {
+  deleteTeam(selectedTeam.value);
+  closeDelete();
+};
+
+const deleteConfirmText = computed(
+  () => `${t('TEAMS_SETTINGS.DELETE.CONFIRM.YES')} ${selectedTeam.value.name}`
+);
+
+const deleteRejectText = computed(() => t('TEAMS_SETTINGS.DELETE.CONFIRM.NO'));
+
+const confirmDeleteTitle = computed(() =>
+  t('TEAMS_SETTINGS.DELETE.CONFIRM.TITLE', {
+    teamName: selectedTeam.value.name,
+  })
+);
+
+const confirmPlaceHolderText = computed(() =>
+  t('TEAMS_SETTINGS.DELETE.CONFIRM.PLACE_HOLDER', {
+    teamName: selectedTeam.value.name,
+  })
+);
+</script>
+
 <template>
-  <div class="flex-1 overflow-auto">
-    <div class="flex flex-row gap-4 p-8">
-      <div class="w-full md:w-3/5">
-        <p
-          v-if="!teamsList.length"
-          class="flex h-full items-center flex-col justify-center"
-        >
-          {{ $t('TEAMS_SETTINGS.LIST.404') }}
-          <router-link
-            v-if="isAdmin"
-            :to="addAccountScoping('settings/teams/new')"
-          >
-            {{ $t('TEAMS_SETTINGS.NEW_TEAM') }}
+  <SettingsLayout
+    :is-loading="uiFlags.isFetching"
+    :loading-message="$t('TEAMS_SETTINGS.LOADING')"
+    :no-records-found="!teamsList.length"
+    :no-records-message="$t('TEAMS_SETTINGS.LIST.404')"
+  >
+    <template #header>
+      <BaseSettingsHeader
+        v-model:search-query="searchQuery"
+        :title="$t('TEAMS_SETTINGS.HEADER')"
+        :description="$t('TEAMS_SETTINGS.DESCRIPTION')"
+        :link-text="$t('TEAMS_SETTINGS.LEARN_MORE')"
+        :search-placeholder="$t('TEAMS_SETTINGS.SEARCH_PLACEHOLDER')"
+        feature-name="team_management"
+      >
+        <template v-if="teamsList?.length" #count>
+          <span class="text-body-main text-n-slate-11">
+            {{ $t('TEAMS_SETTINGS.COUNT', { n: teamsList.length }) }}
+          </span>
+        </template>
+        <template #actions>
+          <router-link v-if="isAdmin" :to="{ name: 'settings_teams_new' }">
+            <Button :label="$t('TEAMS_SETTINGS.NEW_TEAM')" size="sm" />
           </router-link>
-        </p>
+        </template>
+      </BaseSettingsHeader>
+    </template>
+    <template #body>
+      <span
+        v-if="!filteredTeamsList.length && searchQuery"
+        class="flex-1 flex items-center justify-center py-20 text-center text-body-main !text-base text-n-slate-11"
+      >
+        {{ $t('TEAMS_SETTINGS.NO_RESULTS') }}
+      </span>
 
-        <table v-if="teamsList.length" class="woot-table">
-          <tbody>
-            <tr v-for="item in teamsList" :key="item.id">
-              <td>
-                <span class="agent-name">{{ item.name }}</span>
-                <p>{{ item.description }}</p>
-              </td>
+      <div v-else class="divide-y divide-n-weak border-t border-n-weak">
+        <div
+          v-for="team in filteredTeamsList"
+          :key="team.id"
+          class="flex justify-between flex-row items-start gap-4 py-4"
+        >
+          <div class="flex items-start gap-4">
+            <div
+              class="flex items-center flex-shrink-0 size-10 justify-center rounded-xl outline outline-1 outline-n-weak -outline-offset-1"
+            >
+              <Icon
+                icon="i-lucide-users-round"
+                class="size-4 text-n-slate-11"
+              />
+            </div>
+            <div class="flex flex-col items-start gap-1">
+              <span class="block text-heading-3 text-n-slate-12 capitalize">
+                {{ team.name }}
+              </span>
+              <p class="mb-0 text-n-slate-11 text-body-main">
+                {{ team.description }}
+              </p>
+            </div>
+          </div>
+          <div class="flex justify-end gap-3">
+            <router-link
+              :to="{
+                name: 'settings_teams_edit',
+                params: { teamId: team.id },
+              }"
+            >
+              <Button
+                v-if="isAdmin"
+                v-tooltip.top="$t('TEAMS_SETTINGS.LIST.EDIT_TEAM')"
+                icon="i-woot-settings"
+                slate
+                sm
+              />
+            </router-link>
 
-              <td>
-                <div class="button-wrapper">
-                  <router-link
-                    :to="addAccountScoping(`settings/teams/${item.id}/edit`)"
-                  >
-                    <woot-button
-                      v-if="isAdmin"
-                      v-tooltip.top="$t('TEAMS_SETTINGS.LIST.EDIT_TEAM')"
-                      variant="smooth"
-                      size="tiny"
-                      color-scheme="secondary"
-                      class-names="grey-btn"
-                      icon="settings"
-                    />
-                  </router-link>
-                  <woot-button
-                    v-if="isAdmin"
-                    v-tooltip.top="$t('TEAMS_SETTINGS.DELETE.BUTTON_TEXT')"
-                    variant="smooth"
-                    color-scheme="alert"
-                    size="tiny"
-                    icon="dismiss-circle"
-                    class-names="grey-btn"
-                    :is-loading="loading[item.id]"
-                    @click="openDelete(item)"
-                  />
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+            <Button
+              v-if="isAdmin"
+              v-tooltip.top="$t('TEAMS_SETTINGS.DELETE.BUTTON_TEXT')"
+              icon="i-woot-bin"
+              slate
+              sm
+              class="hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
+              :is-loading="loading[team.id]"
+              @click="openDelete(team)"
+            />
+          </div>
+        </div>
       </div>
-
-      <div class="hidden md:block w-1/3">
-        <span
-          v-dompurify-html="
-            $t('TEAMS_SETTINGS.SIDEBAR_TXT', {
-              installationName: globalConfig.installationName,
-            })
-          "
-        />
-      </div>
-    </div>
+    </template>
     <woot-confirm-delete-modal
       v-if="showDeletePopup"
-      :show.sync="showDeletePopup"
+      v-model:show="showDeletePopup"
       :title="confirmDeleteTitle"
       :message="$t('TEAMS_SETTINGS.DELETE.CONFIRM.MESSAGE')"
       :confirm-text="deleteConfirmText"
@@ -78,78 +181,5 @@
       @on-confirm="confirmDeletion"
       @on-close="closeDelete"
     />
-  </div>
+  </SettingsLayout>
 </template>
-<script>
-import { mapGetters } from 'vuex';
-import adminMixin from '../../../../mixins/isAdmin';
-import accountMixin from '../../../../mixins/account';
-import alertMixin from 'shared/mixins/alertMixin';
-
-export default {
-  components: {},
-  mixins: [adminMixin, accountMixin, alertMixin],
-  data() {
-    return {
-      loading: {},
-      showSettings: false,
-      showDeletePopup: false,
-      selectedTeam: {},
-    };
-  },
-  computed: {
-    ...mapGetters({
-      teamsList: 'teams/getTeams',
-      globalConfig: 'globalConfig/get',
-    }),
-    deleteConfirmText() {
-      return `${this.$t('TEAMS_SETTINGS.DELETE.CONFIRM.YES')} ${
-        this.selectedTeam.name
-      }`;
-    },
-    deleteRejectText() {
-      return this.$t('TEAMS_SETTINGS.DELETE.CONFIRM.NO');
-    },
-    confirmDeleteTitle() {
-      return this.$t('TEAMS_SETTINGS.DELETE.CONFIRM.TITLE', {
-        teamName: this.selectedTeam.name,
-      });
-    },
-    confirmPlaceHolderText() {
-      return `${this.$t('TEAMS_SETTINGS.DELETE.CONFIRM.PLACE_HOLDER', {
-        teamName: this.selectedTeam.name,
-      })}`;
-    },
-  },
-  methods: {
-    async deleteTeam({ id }) {
-      try {
-        await this.$store.dispatch('teams/delete', id);
-        this.showAlert(this.$t('TEAMS_SETTINGS.DELETE.API.SUCCESS_MESSAGE'));
-      } catch (error) {
-        this.showAlert(this.$t('TEAMS_SETTINGS.DELETE.API.ERROR_MESSAGE'));
-      }
-    },
-
-    confirmDeletion() {
-      this.deleteTeam(this.selectedTeam);
-      this.closeDelete();
-    },
-    openDelete(team) {
-      this.showDeletePopup = true;
-      this.selectedTeam = team;
-    },
-    closeDelete() {
-      this.showDeletePopup = false;
-      this.selectedTeam = {};
-    },
-  },
-};
-</script>
-<style lang="scss" scoped>
-.button-wrapper {
-  min-width: unset;
-  justify-content: flex-end;
-  padding-right: var(--space-large);
-}
-</style>

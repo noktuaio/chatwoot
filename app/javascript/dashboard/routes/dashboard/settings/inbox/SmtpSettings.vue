@@ -1,112 +1,28 @@
-<template>
-  <div class="mx-8">
-    <settings-section
-      :title="$t('INBOX_MGMT.SMTP.TITLE')"
-      :sub-title="$t('INBOX_MGMT.SMTP.SUBTITLE')"
-    >
-      <form @submit.prevent="updateInbox">
-        <label for="toggle-enable-smtp">
-          <input
-            v-model="isSMTPEnabled"
-            type="checkbox"
-            name="toggle-enable-smtp"
-          />
-          {{ $t('INBOX_MGMT.SMTP.TOGGLE_AVAILABILITY') }}
-        </label>
-        <p>{{ $t('INBOX_MGMT.SMTP.TOGGLE_HELP') }}</p>
-        <div v-if="isSMTPEnabled" class="mb-6">
-          <woot-input
-            v-model.trim="address"
-            :class="{ error: $v.address.$error }"
-            class="max-w-[75%] w-full"
-            :label="$t('INBOX_MGMT.SMTP.ADDRESS.LABEL')"
-            :placeholder="$t('INBOX_MGMT.SMTP.ADDRESS.PLACE_HOLDER')"
-            @blur="$v.address.$touch"
-          />
-          <woot-input
-            v-model="port"
-            type="number"
-            :class="{ error: $v.port.$error }"
-            class="max-w-[75%] w-full"
-            :label="$t('INBOX_MGMT.SMTP.PORT.LABEL')"
-            :placeholder="$t('INBOX_MGMT.SMTP.PORT.PLACE_HOLDER')"
-            @blur="$v.port.$touch"
-          />
-          <woot-input
-            v-model="login"
-            :class="{ error: $v.login.$error }"
-            class="max-w-[75%] w-full"
-            :label="$t('INBOX_MGMT.SMTP.LOGIN.LABEL')"
-            :placeholder="$t('INBOX_MGMT.SMTP.LOGIN.PLACE_HOLDER')"
-            @blur="$v.login.$touch"
-          />
-          <woot-input
-            v-model="password"
-            :class="{ error: $v.password.$error }"
-            class="max-w-[75%] w-full"
-            :label="$t('INBOX_MGMT.SMTP.PASSWORD.LABEL')"
-            :placeholder="$t('INBOX_MGMT.SMTP.PASSWORD.PLACE_HOLDER')"
-            type="password"
-            @blur="$v.password.$touch"
-          />
-          <woot-input
-            v-model.trim="domain"
-            :class="{ error: $v.domain.$error }"
-            class="max-w-[75%] w-full"
-            :label="$t('INBOX_MGMT.SMTP.DOMAIN.LABEL')"
-            :placeholder="$t('INBOX_MGMT.SMTP.DOMAIN.PLACE_HOLDER')"
-            @blur="$v.domain.$touch"
-          />
-          <input-radio-group
-            :label="$t('INBOX_MGMT.SMTP.ENCRYPTION')"
-            :items="encryptionProtocols"
-            :action="handleEncryptionChange"
-          />
-          <single-select-dropdown
-            class="max-w-[75%] w-full"
-            :label="$t('INBOX_MGMT.SMTP.OPEN_SSL_VERIFY_MODE')"
-            :selected="openSSLVerifyMode"
-            :options="openSSLVerifyModes"
-            :action="handleSSLModeChange"
-          />
-          <single-select-dropdown
-            class="max-w-[75%] w-full"
-            :label="$t('INBOX_MGMT.SMTP.AUTH_MECHANISM')"
-            :selected="authMechanism"
-            :options="authMechanisms"
-            :action="handleAuthMechanismChange"
-          />
-        </div>
-        <woot-submit-button
-          :button-text="$t('INBOX_MGMT.SMTP.UPDATE')"
-          :loading="uiFlags.isUpdatingSMTP"
-          :disabled="($v.$invalid && isSMTPEnabled) || uiFlags.isUpdatingSMTP"
-        />
-      </form>
-    </settings-section>
-  </div>
-</template>
-
 <script>
 import { mapGetters } from 'vuex';
-import alertMixin from 'shared/mixins/alertMixin';
-import SettingsSection from 'dashboard/components/SettingsSection.vue';
-import { required, minLength } from 'vuelidate/lib/validators';
+import { useAlert } from 'dashboard/composables';
+import SettingsFieldSection from 'dashboard/components-next/Settings/SettingsFieldSection.vue';
+import { useVuelidate } from '@vuelidate/core';
+import { required, minLength } from '@vuelidate/validators';
 import InputRadioGroup from './components/InputRadioGroup.vue';
 import SingleSelectDropdown from './components/SingleSelectDropdown.vue';
+import NextButton from 'dashboard/components-next/button/Button.vue';
 
 export default {
   components: {
-    SettingsSection,
+    SettingsFieldSection,
     InputRadioGroup,
     SingleSelectDropdown,
+    NextButton,
   },
-  mixins: [alertMixin],
   props: {
     inbox: {
       type: Object,
       default: () => ({}),
     },
+  },
+  setup() {
+    return { v$: useVuelidate() };
   },
   data() {
     return {
@@ -229,11 +145,103 @@ export default {
           },
         };
         await this.$store.dispatch('inboxes/updateInboxSMTP', payload);
-        this.showAlert(this.$t('INBOX_MGMT.SMTP.EDIT.SUCCESS_MESSAGE'));
+        useAlert(this.$t('INBOX_MGMT.SMTP.EDIT.SUCCESS_MESSAGE'));
       } catch (error) {
-        this.showAlert(this.$t('INBOX_MGMT.SMTP.EDIT.ERROR_MESSAGE'));
+        useAlert(
+          error.message || this.$t('INBOX_MGMT.SMTP.EDIT.ERROR_MESSAGE')
+        );
       }
     },
   },
 };
 </script>
+
+<template>
+  <SettingsFieldSection
+    :label="$t('INBOX_MGMT.SMTP.TITLE')"
+    :help-text="$t('INBOX_MGMT.SMTP.SUBTITLE')"
+    class="[&>div]:!items-start [&>div>label]:mt-1 mb-4"
+  >
+    <form @submit.prevent="updateInbox">
+      <label for="toggle-enable-smtp">
+        <input
+          v-model="isSMTPEnabled"
+          type="checkbox"
+          name="toggle-enable-smtp"
+          class="ltr:mr-1 rtl:ml-1"
+        />
+        {{ $t('INBOX_MGMT.SMTP.TOGGLE_AVAILABILITY') }}
+      </label>
+      <p>{{ $t('INBOX_MGMT.SMTP.TOGGLE_HELP') }}</p>
+      <div v-if="isSMTPEnabled" class="mb-6">
+        <woot-input
+          v-model="address"
+          :class="{ error: v$.address.$error }"
+          class="w-full"
+          :label="$t('INBOX_MGMT.SMTP.ADDRESS.LABEL')"
+          :placeholder="$t('INBOX_MGMT.SMTP.ADDRESS.PLACE_HOLDER')"
+          @blur="v$.address.$touch"
+        />
+        <woot-input
+          v-model="port"
+          type="number"
+          :class="{ error: v$.port.$error }"
+          class="w-full"
+          :label="$t('INBOX_MGMT.SMTP.PORT.LABEL')"
+          :placeholder="$t('INBOX_MGMT.SMTP.PORT.PLACE_HOLDER')"
+          @blur="v$.port.$touch"
+        />
+        <woot-input
+          v-model="login"
+          :class="{ error: v$.login.$error }"
+          class="w-full"
+          :label="$t('INBOX_MGMT.SMTP.LOGIN.LABEL')"
+          :placeholder="$t('INBOX_MGMT.SMTP.LOGIN.PLACE_HOLDER')"
+          @blur="v$.login.$touch"
+        />
+        <woot-input
+          v-model="password"
+          :class="{ error: v$.password.$error }"
+          class="w-full"
+          :label="$t('INBOX_MGMT.SMTP.PASSWORD.LABEL')"
+          :placeholder="$t('INBOX_MGMT.SMTP.PASSWORD.PLACE_HOLDER')"
+          type="password"
+          @blur="v$.password.$touch"
+        />
+        <woot-input
+          v-model="domain"
+          :class="{ error: v$.domain.$error }"
+          class="w-full"
+          :label="$t('INBOX_MGMT.SMTP.DOMAIN.LABEL')"
+          :placeholder="$t('INBOX_MGMT.SMTP.DOMAIN.PLACE_HOLDER')"
+          @blur="v$.domain.$touch"
+        />
+        <InputRadioGroup
+          :label="$t('INBOX_MGMT.SMTP.ENCRYPTION')"
+          :items="encryptionProtocols"
+          :action="handleEncryptionChange"
+        />
+        <SingleSelectDropdown
+          class="w-full"
+          :label="$t('INBOX_MGMT.SMTP.OPEN_SSL_VERIFY_MODE')"
+          :selected="openSSLVerifyMode"
+          :options="openSSLVerifyModes"
+          :action="handleSSLModeChange"
+        />
+        <SingleSelectDropdown
+          class="w-full"
+          :label="$t('INBOX_MGMT.SMTP.AUTH_MECHANISM')"
+          :selected="authMechanism"
+          :options="authMechanisms"
+          :action="handleAuthMechanismChange"
+        />
+      </div>
+      <NextButton
+        type="submit"
+        :label="$t('INBOX_MGMT.SMTP.UPDATE')"
+        :is-loading="uiFlags.isUpdatingSMTP"
+        :disabled="(v$.$invalid && isSMTPEnabled) || uiFlags.isUpdatingSMTP"
+      />
+    </form>
+  </SettingsFieldSection>
+</template>

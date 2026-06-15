@@ -1,92 +1,97 @@
-<!-- eslint-disable vue/no-mutating-props -->
-<template>
-  <woot-modal :show.sync="show" :on-close="onClose">
-    <woot-modal-header
-      :header-title="$t('MERGE_CONTACTS.TITLE')"
-      :header-content="$t('MERGE_CONTACTS.DESCRIPTION')"
-    />
+<script setup>
+import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useStore } from 'vuex';
+import { useAlert, useTrack } from 'dashboard/composables';
+import { useMapGetter } from 'dashboard/composables/store';
 
-    <merge-contact
-      :primary-contact="primaryContact"
-      :is-searching="isSearching"
-      :is-merging="uiFlags.isMerging"
-      :search-results="searchResults"
-      @search="onContactSearch"
-      @cancel="onClose"
-      @submit="onMergeContacts"
-    />
-  </woot-modal>
-</template>
-
-<script>
-import alertMixin from 'shared/mixins/alertMixin';
+import Popover from 'dashboard/components-next/popover/Popover.vue';
 import MergeContact from 'dashboard/modules/contact/components/MergeContact.vue';
-
 import ContactAPI from 'dashboard/api/contacts';
-
-import { mapGetters } from 'vuex';
 import { CONTACTS_EVENTS } from '../../helper/AnalyticsHelper/events';
 
-export default {
-  components: { MergeContact },
-  mixins: [alertMixin],
-  props: {
-    primaryContact: {
-      type: Object,
-      required: true,
-    },
-    show: {
-      type: Boolean,
-      default: false,
-    },
+const props = defineProps({
+  primaryContact: {
+    type: Object,
+    required: true,
   },
-  data() {
-    return {
-      isSearching: false,
-      searchResults: [],
-    };
-  },
-  computed: {
-    ...mapGetters({
-      uiFlags: 'contacts/getUIFlags',
-    }),
-  },
+});
 
-  methods: {
-    onClose() {
-      this.$emit('close');
-    },
-    async onContactSearch(query) {
-      this.isSearching = true;
-      this.searchResults = [];
+const emit = defineEmits(['close']);
 
-      try {
-        const {
-          data: { payload },
-        } = await ContactAPI.search(query);
-        this.searchResults = payload.filter(
-          contact => contact.id !== this.primaryContact.id
-        );
-      } catch (error) {
-        this.showAlert(this.$t('MERGE_CONTACTS.SEARCH.ERROR_MESSAGE'));
-      } finally {
-        this.isSearching = false;
-      }
-    },
-    async onMergeContacts(parentContactId) {
-      this.$track(CONTACTS_EVENTS.MERGED_CONTACTS);
-      try {
-        await this.$store.dispatch('contacts/merge', {
-          childId: this.primaryContact.id,
-          parentId: parentContactId,
-        });
-        this.showAlert(this.$t('MERGE_CONTACTS.FORM.SUCCESS_MESSAGE'));
-        this.onClose();
-      } catch (error) {
-        this.showAlert(this.$t('MERGE_CONTACTS.FORM.ERROR_MESSAGE'));
-      }
-    },
-  },
+const { t } = useI18n();
+const store = useStore();
+const uiFlags = useMapGetter('contacts/getUIFlags');
+
+const isSearching = ref(false);
+const searchResults = ref([]);
+
+watch(
+  () => props.primaryContact.id,
+  () => {
+    isSearching.value = false;
+    searchResults.value = [];
+  }
+);
+
+const onContactSearch = async query => {
+  isSearching.value = true;
+  searchResults.value = [];
+
+  try {
+    const {
+      data: { payload },
+    } = await ContactAPI.search(query);
+    searchResults.value = payload.filter(
+      contact => contact.id !== props.primaryContact.id
+    );
+  } catch (error) {
+    useAlert(t('MERGE_CONTACTS.SEARCH.ERROR_MESSAGE'));
+  } finally {
+    isSearching.value = false;
+  }
+};
+
+const onMergeContacts = async (parentContactId, hide) => {
+  useTrack(CONTACTS_EVENTS.MERGED_CONTACTS);
+  try {
+    await store.dispatch('contacts/merge', {
+      childId: props.primaryContact.id,
+      parentId: parentContactId,
+    });
+    useAlert(t('MERGE_CONTACTS.FORM.SUCCESS_MESSAGE'));
+    hide();
+    emit('close');
+  } catch (error) {
+    useAlert(t('MERGE_CONTACTS.FORM.ERROR_MESSAGE'));
+  }
 };
 </script>
-<style lang="scss" scoped></style>
+
+<template>
+  <Popover @hide="$emit('close')">
+    <slot name="trigger" />
+    <template #content="{ hide }">
+      <div class="w-full md:w-96 p-6 flex flex-col gap-4">
+        <div class="flex flex-col gap-2">
+          <h3 class="text-base font-medium leading-6 text-n-slate-12">
+            {{ $t('MERGE_CONTACTS.TITLE') }}
+          </h3>
+          <p class="mb-0 text-sm text-n-slate-11">
+            {{ $t('MERGE_CONTACTS.DESCRIPTION') }}
+          </p>
+        </div>
+        <MergeContact
+          :key="primaryContact.id"
+          :primary-contact="primaryContact"
+          :is-searching="isSearching"
+          :is-merging="uiFlags.isMerging"
+          :search-results="searchResults"
+          @search="onContactSearch"
+          @cancel="hide"
+          @submit="id => onMergeContacts(id, hide)"
+        />
+      </div>
+    </template>
+  </Popover>
+</template>

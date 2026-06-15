@@ -3,7 +3,24 @@
     "HEADER": "Özel Nitelikler",
     "HEADER_BTN_TXT": "Nitelik Ekle",
     "LOADING": "Özel Nitelikler getiriliyor",
-    "SIDEBAR_TXT": "<p><b>Özel Nitelikler</b> <p>Bir özel nitelik, kişilerinizle veya konuşmalarınızla ilgili gerçekleri takip eder - abonelik planı gibi veya ilk öğeyi ne zaman sipariş ettikleri gibi. <br /><br />Bir Özel Nitelik oluşturmak için sadece <b>Özel Nitelik Ekle</b> düğmesine tıklayın. Var olan bir Özel Niteliği düzenlemek veya silmek için Düzenle veya Sil düğmesine tıklayabilirsiniz.</p>",
+    "DESCRIPTION": "Özel nitelikler, kişileriniz veya konuşmalarınız hakkında ek ayrıntıları takip etmenizi sağlar — örneğin abonelik planı veya ilk satın alma tarihi gibi. İhtiyacınız olan belirli bilgileri toplamak için metin, liste veya sayı gibi farklı türlerde özel nitelikler ekleyebilirsiniz.",
+    "LEARN_MORE": "Özel Nitelikler hakkında daha fazla bilgi edinin",
+    "COUNT": "{n} attribute | {n} attributes",
+    "SEARCH_PLACEHOLDER": "Öznitelik ara...",
+    "NO_RESULTS": "No attributes found matching your search",
+    "ATTRIBUTE_MODELS": {
+      "CONVERSATION": "Sohbet",
+      "CONTACT": "İletişim",
+      "COMPANY": "Şirket"
+    },
+    "ATTRIBUTE_TYPES": {
+      "TEXT": "Metin",
+      "NUMBER": "Sayı",
+      "LINK": "Bağlantı",
+      "DATE": "Tarih",
+      "LIST": "Liste",
+      "CHECKBOX": "Onay Kutusu"
+    },
     "ADD": {
       "TITLE": "Nitelik Ekle",
       "SUBMIT": "Oluştur",
@@ -50,6 +67,10 @@
         },
         "ENABLE_REGEX": {
           "LABEL": "Düzenli ifade doğrulamasını aç"
+        },
+        "BADGES": {
+          "PRE_CHAT": "Pre-chat",
+          "RESOLUTION": "Resolution"
         }
       },
       "API": {
@@ -64,7 +85,7 @@
         "ERROR_MESSAGE": "Özel nitelik silinemedi. Tekrar deneyin."
       },
       "CONFIRM": {
-        "TITLE": "Silmek istediğinizden emin misiniz - %{attributeName}",
+        "TITLE": "Silmek istediğinizden emin misiniz - {attributeName}",
         "PLACE_HOLDER": "{attributeName}'ı onaylamak için lütfen yazın",
         "MESSAGE": "Silme işlemi özel niteliği kaldıracaktır",
         "YES": "Sil ",
@@ -88,15 +109,16 @@
     "TABS": {
       "HEADER": "Özel Nitelikler",
       "CONVERSATION": "Sohbet",
-      "CONTACT": "İletişim"
+      "CONTACT": "İletişim",
+      "COMPANY": "Şirket"
     },
     "LIST": {
-      "TABLE_HEADER": [
-        "Ad",
-        "Açıklama",
-        "Tip",
-        "Anahtar"
-      ],
+      "TABLE_HEADER": {
+        "NAME": "İsim",
+        "DESCRIPTION": "Açıklama",
+        "TYPE": "Tip",
+        "KEY": "Anahtar"
+      },
       "BUTTONS": {
         "EDIT": "Düzenle",
         "DELETE": "Sil"
@@ -116,6 +138,10 @@
       "ENABLE_REGEX": {
         "LABEL": "Düzenli ifade doğrulamasını aç"
       }
+    },
+    "BADGES": {
+      "PRE_CHAT": "Pre-chat",
+      "RESOLUTION": "Resolution"
     }
   }
 }

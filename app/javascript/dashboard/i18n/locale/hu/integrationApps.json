@@ -1,8 +1,11 @@
 {
   "INTEGRATION_APPS": {
     "FETCHING": "Integrációk lekérése",
-    "NO_HOOK_CONFIGURED": "Ebben a fiókban nincs beállítva %{integrationId} integráció",
+    "NO_HOOK_CONFIGURED": "Ebben a fiókban nincs beállítva {integrationId} integráció",
     "HEADER": "Alkalmazások",
+    "COUNT": "{n} integration | {n} integrations",
+    "SEARCH_PLACEHOLDER": "Search...",
+    "NO_RESULTS": "No results found matching your search",
     "STATUS": {
       "ENABLED": "Engedélyezve",
       "DISABLED": "Letiltva"
@@ -31,6 +34,7 @@
     "LIST": {
       "FETCHING": "Integrációs hookok betöltése",
       "INBOX": "Fiók",
+      "ACTIONS": "Műveletek",
       "DELETE": {
         "BUTTON_TEXT": "Törlés"
       }
@@ -42,6 +46,7 @@
           "PLACEHOLDER": "Válassz fiókot"
         },
         "SUBMIT": "Létrehozás",
+        "VALIDATING_OPENAI": "Validating with OpenAI...",
         "CANCEL": "Mégse"
       },
       "API": {
@@ -56,7 +61,7 @@
       "BUTTON_TEXT": "Leválasztás"
     },
     "SIDEBAR_DESCRIPTION": {
-      "DIALOGFLOW": "A Dialogflow egy természetes nyelvi platform, amely megkönnyíti a társalgási felhasználói felület tervezését és integrálását mobilalkalmazásába, webalkalmazásába, eszközébe, botjába, interaktív hangválaszrendszerébe stb. <br /> <br /> A Dialogflow integráció a %{installationName} szolgáltatással lehetővé teszi egy Dialogflow bot konfigurálását a beérkező leveleihez, amely lehetővé teszi, hogy a bot kezdetben kezelje a lekérdezéseket, és szükség esetén átadja azokat egy ügynöknek. A Dialogflow felhasználható a potenciális ügyfelek minősítésére, az ügynökök munkaterhelésének csökkentésére gyakran ismételt kérdések megadásával stb. <br /> <br /> A Dialogflow hozzáadásához létre kell hoznod egy szolgáltatásfiókot a Google projektkonzoljában, és meg kell osztanod adataidat a hitelesítéshez. További információkért tekintsd meg a Dialogflow dokumentumokat."
+      "DIALOGFLOW": "Dialogflow is a natural language processing platform for building conversational interfaces. Integrating it with {installationName} lets bots handle queries first and transfer them to agents when needed. It helps qualify leads and reduce agent workload by answering FAQs. To add Dialogflow, create a Service Account in Google Console and share the credentials. Refer to the docs for details"
     }
   }
 }

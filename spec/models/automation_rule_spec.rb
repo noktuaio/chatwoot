@@ -1,6 +1,11 @@
 require 'rails_helper'
+require Rails.root.join 'spec/models/concerns/reauthorizable_shared.rb'
 
 RSpec.describe AutomationRule do
+  describe 'concerns' do
+    it_behaves_like 'reauthorizable'
+  end
+
   describe 'associations' do
     let(:account) { create(:account) }
     let(:params) do
@@ -33,6 +38,12 @@ RSpec.describe AutomationRule do
             action_params: [1]
           },
           {
+            action_name: :remove_assigned_agent
+          },
+          {
+            action_name: :remove_assigned_team
+          },
+          {
             action_name: :add_label,
             action_params: %w[support priority_customer]
           },
@@ -54,6 +65,76 @@ RSpec.describe AutomationRule do
       rule = FactoryBot.build(:automation_rule, params)
       expect(rule.valid?).to be false
       expect(rule.errors.messages[:conditions]).to eq(['Automation conditions should have query operator.'])
+    end
+
+    it 'allows labels as a valid condition attribute' do
+      params[:conditions] = [
+        {
+          attribute_key: 'labels',
+          filter_operator: 'equal_to',
+          values: ['bug'],
+          query_operator: nil
+        }
+      ]
+      rule = FactoryBot.build(:automation_rule, params)
+      expect(rule.valid?).to be true
+    end
+
+    it 'validates label condition operators' do
+      params[:conditions] = [
+        {
+          attribute_key: 'labels',
+          filter_operator: 'is_present',
+          values: [],
+          query_operator: nil
+        }
+      ]
+      rule = FactoryBot.build(:automation_rule, params)
+      expect(rule.valid?).to be true
+    end
+
+    it 'allows private_note as a valid condition attribute' do
+      params[:conditions] = [
+        {
+          attribute_key: 'private_note',
+          filter_operator: 'equal_to',
+          values: [true],
+          query_operator: nil
+        }
+      ]
+      rule = FactoryBot.build(:automation_rule, params)
+      expect(rule.valid?).to be true
+    end
+  end
+
+  describe 'reauthorizable' do
+    context 'when prompt_reauthorization!' do
+      it 'marks the rule inactive' do
+        rule = create(:automation_rule)
+        expect(rule.active).to be true
+        rule.prompt_reauthorization!
+        expect(rule.active).to be false
+      end
+    end
+
+    context 'when reauthorization_required?' do
+      it 'unsets the error count if conditions are updated' do
+        rule = create(:automation_rule)
+        rule.prompt_reauthorization!
+        expect(rule.reauthorization_required?).to be true
+
+        rule.update!(conditions: [{ attribute_key: 'browser_language', filter_operator: 'equal_to', values: ['en'], query_operator: 'AND' }])
+        expect(rule.reauthorization_required?).to be false
+      end
+
+      it 'will not unset the error count if conditions are not updated' do
+        rule = create(:automation_rule)
+        rule.prompt_reauthorization!
+        expect(rule.reauthorization_required?).to be true
+
+        rule.update!(name: 'Updated name')
+        expect(rule.reauthorization_required?).to be true
+      end
     end
   end
 end

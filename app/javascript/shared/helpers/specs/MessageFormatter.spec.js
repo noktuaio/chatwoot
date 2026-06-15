@@ -16,6 +16,13 @@ describe('#MessageFormatter', () => {
         '<p>Chatwoot is an opensource tool. <a href="https://www.chatwoot.com" class="link" rel="noreferrer noopener nofollow" target="_blank">https://www.chatwoot.com</a></p>'
       );
     });
+    it('should not convert template variables to links when linkify is disabled', () => {
+      const message = 'Hey {{customer.name}}, check https://chatwoot.com';
+      const formatter = new MessageFormatter(message, false, false, false);
+      expect(formatter.formattedMessage).toMatch(
+        '<p>Hey {{customer.name}}, check https://chatwoot.com</p>'
+      );
+    });
   });
 
   describe('parses heading to strong', () => {
@@ -25,6 +32,13 @@ describe('#MessageFormatter', () => {
         `<h3>opensource</h3>
 <h2>tool</h2>`
       );
+    });
+
+    it('should not render a setext heading when text is followed by "--"', () => {
+      const message = 'hy\n\n\\\n\\-\\-\n\nHello there';
+      const result = new MessageFormatter(message).formattedMessage;
+      expect(result).not.toMatch('<h2>');
+      expect(result).not.toMatch('<h1>');
     });
   });
 
@@ -109,6 +123,16 @@ describe('#MessageFormatter', () => {
       expect(new MessageFormatter(message).plainText).toMatch(
         'Chatwoot is an opensource tool. https://www.chatwoot.com'
       );
+    });
+  });
+
+  describe('help center table colwidth marker', () => {
+    it('strips the internal colwidths marker from rendered output', () => {
+      const message =
+        '<!--cw-colwidths:120,200-->\n| A | B |\n| --- | --- |\n| 1 | 2 |';
+      const formatter = new MessageFormatter(message);
+      expect(formatter.formattedMessage).not.toContain('cw-colwidths');
+      expect(formatter.plainText).not.toContain('cw-colwidths');
     });
   });
 

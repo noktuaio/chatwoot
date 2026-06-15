@@ -19,9 +19,9 @@ class ContactInboxWithContactBuilder
 
     ActiveRecord::Base.transaction(requires_new: true) do
       build_contact_with_contact_inbox
-      update_contact_avatar(@contact) unless @contact.avatar.attached?
-      @contact_inbox
     end
+    update_contact_avatar(@contact) unless @contact.avatar.attached?
+    @contact_inbox
   end
 
   private
@@ -50,7 +50,7 @@ class ContactInboxWithContactBuilder
 
   def create_contact
     account.contacts.create!(
-      name: contact_attributes[:name] || ::Haikunator.haikunate(1000),
+      name: contact_name,
       phone_number: contact_attributes[:phone_number],
       email: contact_attributes[:email],
       identifier: contact_attributes[:identifier],
@@ -59,11 +59,40 @@ class ContactInboxWithContactBuilder
     )
   end
 
+  def contact_name
+    name = contact_attributes[:name] || ::Haikunator.haikunate(1000)
+    name.truncate(ApplicationRecord::MAX_STRING_COLUMN_LENGTH, omission: '')
+  end
+
   def find_contact
     contact = find_contact_by_identifier(contact_attributes[:identifier])
     contact ||= find_contact_by_email(contact_attributes[:email])
     contact ||= find_contact_by_phone_number(contact_attributes[:phone_number])
+    contact ||= find_contact_by_instagram_source_id(source_id) if instagram_channel?
+
     contact
+  end
+
+  def instagram_channel?
+    inbox.channel_type == 'Channel::Instagram'
+  end
+
+  # There might be existing contact_inboxes created through Channel::FacebookPage
+  # with the same Instagram source_id. New Instagram interactions should create fresh contact_inboxes
+  # while still reusing contacts if found in Facebook channels so that we can create
+  # new conversations with the same contact.
+  def find_contact_by_instagram_source_id(instagram_id)
+    return if instagram_id.blank?
+
+    existing_contact_inbox = ContactInbox.joins(:inbox)
+                                         .where(source_id: instagram_id)
+                                         .where(
+                                           'inboxes.channel_type = ? AND inboxes.account_id = ?',
+                                           'Channel::FacebookPage',
+                                           account.id
+                                         ).first
+
+    existing_contact_inbox&.contact
   end
 
   def find_contact_by_identifier(identifier)

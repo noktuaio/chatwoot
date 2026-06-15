@@ -3,7 +3,24 @@
     "HEADER": "Egyedi atribútumok",
     "HEADER_BTN_TXT": "Adj meg egyedi tulajdonságot",
     "LOADING": "Vonzó egyedi tulajdonság",
-    "SIDEBAR_TXT": "<p><b>Egyéni tulajdonságok</b> <p>Egy egyéni tulajdonság nyomon követi a kapcsolataival/beszélgetéseivel kapcsolatos tényeket – például az előfizetési csomagot, vagy amikor megrendelték az első terméket stb. <br /><br />Egyéni tulajdonság létrehozásához kattintson az <b>Egyéni tulajdonság hozzáadása</b> lehetőségre. Meglévő egyéni tulajdonság szerkesztése vagy törlése is lehetséges, ha a Törlés gombra kattintasz.",
+    "DESCRIPTION": "A custom attribute tracks additional details about your contacts or conversations—such as the subscription plan or the date of their first purchase. You can add different types of custom attributes, such as text, lists, or numbers, to capture the specific information you need.",
+    "LEARN_MORE": "Learn more about custom attributes",
+    "COUNT": "{n} attribute | {n} attributes",
+    "SEARCH_PLACEHOLDER": "Tulajdonságok keresése...",
+    "NO_RESULTS": "No attributes found matching your search",
+    "ATTRIBUTE_MODELS": {
+      "CONVERSATION": "Beszélgetés",
+      "CONTACT": "Kontakt",
+      "COMPANY": "Cég"
+    },
+    "ATTRIBUTE_TYPES": {
+      "TEXT": "Szöveg",
+      "NUMBER": "Szám",
+      "LINK": "Link",
+      "DATE": "Date",
+      "LIST": "Lista",
+      "CHECKBOX": "Jelölőnégyzet"
+    },
     "ADD": {
       "TITLE": "Adj meg egyedi tulajdonságot",
       "SUBMIT": "Létrehozás",
@@ -50,6 +67,10 @@
         },
         "ENABLE_REGEX": {
           "LABEL": "Enable regex validation"
+        },
+        "BADGES": {
+          "PRE_CHAT": "Pre-chat",
+          "RESOLUTION": "Resolution"
         }
       },
       "API": {
@@ -64,8 +85,8 @@
         "ERROR_MESSAGE": "Egyéni Tulajdonság törlése sikertelen. Próbáld újra."
       },
       "CONFIRM": {
-        "TITLE": "Biztosan törölni akarod: %{attributeName}",
-        "PLACE_HOLDER": "Kérlek gépeld a megerősítéshez",
+        "TITLE": "Biztosan törölni akarod: {attributeName}",
+        "PLACE_HOLDER": "Kérlek írd be: {attributeName}",
         "MESSAGE": "A törlés eltávolítja az egyéni tulajdonságot",
         "YES": "Törlés ",
         "NO": "Mégse"
@@ -88,15 +109,16 @@
     "TABS": {
       "HEADER": "Egyedi atribútumok",
       "CONVERSATION": "Beszélgetés",
-      "CONTACT": "Kontakt"
+      "CONTACT": "Kontakt",
+      "COMPANY": "Cég"
     },
     "LIST": {
-      "TABLE_HEADER": [
-        "Név",
-        "Leírás",
-        "Típus",
-        "Kulcs"
-      ],
+      "TABLE_HEADER": {
+        "NAME": "Név",
+        "DESCRIPTION": "Leírás",
+        "TYPE": "Típus",
+        "KEY": "Kulcs"
+      },
       "BUTTONS": {
         "EDIT": "Szerkesztés",
         "DELETE": "Törlés"
@@ -116,6 +138,10 @@
       "ENABLE_REGEX": {
         "LABEL": "Enable regex validation"
       }
+    },
+    "BADGES": {
+      "PRE_CHAT": "Pre-chat",
+      "RESOLUTION": "Resolution"
     }
   }
 }

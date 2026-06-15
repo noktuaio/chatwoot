@@ -1,102 +1,69 @@
-<template>
-  <div class="input-container" :class="{ 'is-focused': isInputFocused }">
-    <div class="icon-container">
-      <fluent-icon icon="search" class="icon" aria-hidden="true" />
-    </div>
-    <input
-      ref="searchInput"
-      type="search"
-      class="dark:bg-slate-900"
-      :placeholder="$t('SEARCH.INPUT_PLACEHOLDER')"
-      :value="searchQuery"
-      @focus="onFocus"
-      @blur="onBlur"
-      @input="debounceSearch"
-    />
-    <woot-label
-      :title="$t('SEARCH.PLACEHOLDER_KEYBINDING')"
-      :show-close="false"
-      small
-      class="helper-label"
-    />
-  </div>
-</template>
+<script setup>
+import { ref, watch, useTemplateRef } from 'vue';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { INSTALLATION_TYPES } from 'dashboard/constants/installationTypes';
+import { ROLES } from 'dashboard/constants/permissions';
 
-<script>
-export default {
-  data() {
-    return {
-      searchQuery: '',
-      isInputFocused: false,
-    };
-  },
-  mounted() {
-    this.$refs.searchInput.focus();
-    document.addEventListener('keydown', this.handler);
-  },
-  beforeDestroy() {
-    document.removeEventListener('keydown', this.handler);
-  },
-  methods: {
-    handler(e) {
-      if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
-        e.preventDefault();
-        this.$refs.searchInput.focus();
-      } else if (
-        e.key === 'Escape' &&
-        document.activeElement.tagName === 'INPUT'
-      ) {
-        e.preventDefault();
-        this.$refs.searchInput.blur();
-      }
-    },
-    debounceSearch(e) {
-      this.searchQuery = e.target.value;
-      clearTimeout(this.debounce);
-      this.debounce = setTimeout(async () => {
-        if (this.searchQuery.length > 2 || this.searchQuery.match(/^[0-9]+$/)) {
-          this.$emit('search', this.searchQuery);
-        } else {
-          this.$emit('search', '');
-        }
-      }, 500);
-    },
-    onFocus() {
-      this.isInputFocused = true;
-    },
-    onBlur() {
-      this.isInputFocused = false;
-    },
-  },
+import SearchInput from './SearchInput.vue';
+import SearchFilters from './SearchFilters.vue';
+import Policy from 'dashboard/components/policy.vue';
+
+const props = defineProps({
+  initialQuery: { type: String, default: '' },
+});
+
+const emit = defineEmits(['search', 'filterChange']);
+
+const filters = defineModel('filters', { type: Object, default: () => ({}) });
+
+const searchInputRef = useTemplateRef('searchInputRef');
+const searchQuery = ref(props.initialQuery);
+
+const onSearch = query => {
+  if (query?.trim() && searchInputRef.value) {
+    searchInputRef.value.addToRecentSearches(query.trim());
+  }
+  emit('search', query);
 };
+
+const onSelectRecentSearch = query => {
+  searchQuery.value = query;
+  onSearch(query);
+};
+
+watch(
+  () => props.initialQuery,
+  newValue => {
+    if (searchQuery.value !== newValue) {
+      searchQuery.value = newValue;
+    }
+  },
+  { immediate: true }
+);
 </script>
 
-<style lang="scss" scoped>
-.input-container {
-  transition: border-bottom 0.2s ease-in-out;
-  @apply relative flex items-center py-2 px-4 h-14 gap-2 rounded-sm border border-solid border-slate-100 dark:border-slate-800;
-
-  input[type='search'] {
-    @apply w-full m-0 shadow-none border-transparent active:border-transparent active:shadow-none hover:border-transparent hover:shadow-none focus:border-transparent focus:shadow-none;
-  }
-
-  &.is-focused {
-    @apply border-woot-100 dark:border-woot-600;
-
-    .icon {
-      color: var(--w-400);
-      @apply text-woot-400 dark:text-woot-500;
-    }
-  }
-}
-.icon-container {
-  @apply flex items-center;
-  .icon {
-    @apply text-slate-400;
-  }
-}
-
-.helper-label {
-  @apply m-0 whitespace-nowrap;
-}
-</style>
+<template>
+  <div class="flex flex-col gap-2">
+    <SearchInput
+      ref="searchInputRef"
+      v-model="searchQuery"
+      @search="onSearch"
+      @select-recent-search="onSelectRecentSearch"
+    >
+      <Policy
+        :permissions="ROLES"
+        :installation-types="[
+          INSTALLATION_TYPES.ENTERPRISE,
+          INSTALLATION_TYPES.CLOUD,
+        ]"
+        :feature-flag="FEATURE_FLAGS.ADVANCED_SEARCH"
+        class="w-full"
+      >
+        <SearchFilters
+          v-model="filters"
+          @update-filters="$emit('filterChange', $event)"
+        />
+      </Policy>
+    </SearchInput>
+  </div>
+</template>

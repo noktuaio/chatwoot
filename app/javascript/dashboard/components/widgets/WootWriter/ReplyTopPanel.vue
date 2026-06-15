@@ -1,69 +1,45 @@
-<template>
-  <div class="bg-black-50 flex justify-between dark:bg-slate-800">
-    <div class="button-group">
-      <woot-button
-        variant="clear"
-        class="button--reply"
-        :class="replyButtonClass"
-        @click="handleReplyClick"
-      >
-        {{ $t('CONVERSATION.REPLYBOX.REPLY') }}
-      </woot-button>
-
-      <woot-button
-        class="button--note"
-        variant="clear"
-        color-scheme="warning"
-        :class="noteButtonClass"
-        @click="handleNoteClick"
-      >
-        {{ $t('CONVERSATION.REPLYBOX.PRIVATE_NOTE') }}
-      </woot-button>
-    </div>
-    <div class="flex items-center my-0 mx-4">
-      <div v-if="isMessageLengthReachingThreshold" class="text-xs">
-        <span :class="charLengthClass">
-          {{ characterLengthWarning }}
-        </span>
-      </div>
-    </div>
-    <woot-button
-      v-if="popoutReplyBox"
-      variant="clear"
-      icon="dismiss"
-      color-scheme="secondary"
-      class-names="popout-button"
-      @click="$emit('click')"
-    />
-    <woot-button
-      v-else
-      variant="clear"
-      icon="resize-large"
-      color-scheme="secondary"
-      class-names="popout-button"
-      @click="$emit('click')"
-    />
-  </div>
-</template>
-
 <script>
+import { ref } from 'vue';
+import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
+import { useCaptain } from 'dashboard/composables/useCaptain';
+import { useTrack } from 'dashboard/composables';
+import { vOnClickOutside } from '@vueuse/components';
 import { REPLY_EDITOR_MODES, CHAR_LENGTH_WARNING } from './constants';
-import {
-  hasPressedAltAndPKey,
-  hasPressedAltAndLKey,
-} from 'shared/helpers/KeyboardHelpers';
-import eventListenerMixins from 'shared/mixins/eventListenerMixins';
+import { CAPTAIN_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
+import NextButton from 'dashboard/components-next/button/Button.vue';
+import EditorModeToggle from './EditorModeToggle.vue';
+import CopilotMenuBar from './CopilotMenuBar.vue';
+
 export default {
   name: 'ReplyTopPanel',
-  mixins: [eventListenerMixins],
+  components: {
+    NextButton,
+    EditorModeToggle,
+    CopilotMenuBar,
+  },
+  directives: {
+    OnClickOutside: vOnClickOutside,
+  },
   props: {
     mode: {
       type: String,
       default: REPLY_EDITOR_MODES.REPLY,
     },
-    setReplyMode: {
-      type: Function,
-      default: () => {},
+    isReplyRestricted: {
+      type: Boolean,
+      default: false,
+    },
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+    isEditorDisabled: {
+      type: Boolean,
+      default: false,
+    },
+    conversationId: {
+      type: Number,
+      default: null,
     },
     isMessageLengthReachingThreshold: {
       type: Boolean,
@@ -73,10 +49,83 @@ export default {
       type: Number,
       default: () => 0,
     },
-    popoutReplyBox: {
+    editorContent: {
+      type: String,
+      default: undefined,
+    },
+    hasContent: {
       type: Boolean,
       default: false,
     },
+  },
+  emits: ['setReplyMode', 'toggleEditorSize', 'executeCopilotAction'],
+  setup(props, { emit }) {
+    const setReplyMode = mode => {
+      emit('setReplyMode', mode);
+    };
+    const handleReplyClick = () => {
+      if (props.isReplyRestricted) return;
+      setReplyMode(REPLY_EDITOR_MODES.REPLY);
+    };
+    const handleNoteClick = () => {
+      setReplyMode(REPLY_EDITOR_MODES.NOTE);
+    };
+    const handleModeToggle = () => {
+      const newMode =
+        props.mode === REPLY_EDITOR_MODES.REPLY
+          ? REPLY_EDITOR_MODES.NOTE
+          : REPLY_EDITOR_MODES.REPLY;
+      setReplyMode(newMode);
+    };
+
+    const { captainTasksEnabled } = useCaptain();
+    const showCopilotMenu = ref(false);
+    const copilotToggleRef = ref(null);
+
+    const handleCopilotAction = (actionKey, data) => {
+      emit('executeCopilotAction', actionKey, data || props.editorContent);
+      showCopilotMenu.value = false;
+    };
+
+    const toggleCopilotMenu = () => {
+      const isOpening = !showCopilotMenu.value;
+      if (isOpening) {
+        useTrack(CAPTAIN_EVENTS.EDITOR_AI_MENU_OPENED, {
+          conversationId: props.conversationId,
+          entryPoint: 'top_panel',
+        });
+      }
+      showCopilotMenu.value = isOpening;
+    };
+
+    const handleClickOutside = () => {
+      showCopilotMenu.value = false;
+    };
+
+    const keyboardEvents = {
+      'Alt+KeyP': {
+        action: () => handleNoteClick(),
+        allowOnFocusedInput: false,
+      },
+      'Alt+KeyL': {
+        action: () => handleReplyClick(),
+        allowOnFocusedInput: false,
+      },
+    };
+    useKeyboardEvents(keyboardEvents);
+
+    return {
+      handleModeToggle,
+      handleReplyClick,
+      handleNoteClick,
+      REPLY_EDITOR_MODES,
+      captainTasksEnabled,
+      handleCopilotAction,
+      showCopilotMenu,
+      copilotToggleRef,
+      toggleCopilotMenu,
+      handleClickOutside,
+    };
   },
   computed: {
     replyButtonClass() {
@@ -90,7 +139,7 @@ export default {
       };
     },
     charLengthClass() {
-      return this.charactersRemaining < 0 ? 'text-red-600' : 'text-slate-600';
+      return this.charactersRemaining < 0 ? 'text-n-ruby-9' : 'text-n-slate-11';
     },
     characterLengthWarning() {
       return this.charactersRemaining < 0
@@ -98,54 +147,60 @@ export default {
         : `${this.charactersRemaining} ${CHAR_LENGTH_WARNING.UNDER_50}`;
     },
   },
-  methods: {
-    handleKeyEvents(e) {
-      if (hasPressedAltAndPKey(e)) {
-        this.handleNoteClick();
-      }
-      if (hasPressedAltAndLKey(e)) {
-        this.handleReplyClick();
-      }
-    },
-    handleReplyClick() {
-      this.setReplyMode(REPLY_EDITOR_MODES.REPLY);
-    },
-    handleNoteClick() {
-      this.setReplyMode(REPLY_EDITOR_MODES.NOTE);
-    },
-  },
 };
 </script>
 
-<style lang="scss" scoped>
-.button-group {
-  @apply flex border-0 p-0 m-0;
-
-  .button {
-    @apply text-sm font-medium py-2.5 px-4 m-0 relative z-10;
-    &.is-active {
-      @apply bg-white dark:bg-slate-900;
-    }
-  }
-  .button--reply {
-    @apply border-r rounded-none border-b-0 border-l-0 border-t-0 border-slate-50 dark:border-slate-700;
-    &:hover,
-    &:focus {
-      @apply border-r border-slate-50 dark:border-slate-700;
-    }
-  }
-  .button--note {
-    @apply border-l-0 rounded-none;
-    &.is-active {
-      @apply border-r border-b-0 bg-yellow-100 dark:bg-yellow-800 border-t-0 border-slate-50 dark:border-slate-700;
-    }
-    &:hover,
-    &:active {
-      @apply text-yellow-700 dark:text-yellow-700;
-    }
-  }
-}
-.button--note {
-  @apply text-yellow-600 dark:text-yellow-600 bg-transparent dark:bg-transparent;
-}
-</style>
+<template>
+  <div
+    class="flex justify-between gap-2 h-[3.25rem] items-center ltr:pl-3 ltr:pr-2 rtl:pr-3 rtl:pl-2"
+  >
+    <EditorModeToggle
+      :mode="mode"
+      :disabled="disabled"
+      :is-reply-restricted="isReplyRestricted"
+      @toggle-mode="handleModeToggle"
+    />
+    <div class="flex items-center mx-4 my-0">
+      <div v-if="isMessageLengthReachingThreshold" class="text-xs">
+        <span :class="charLengthClass">
+          {{ characterLengthWarning }}
+        </span>
+      </div>
+    </div>
+    <div v-if="captainTasksEnabled" class="flex items-center gap-2">
+      <div class="relative">
+        <NextButton
+          ref="copilotToggleRef"
+          ghost
+          :disabled="disabled || isEditorDisabled"
+          :class="{
+            'text-n-violet-9 hover:enabled:!bg-n-violet-3': !showCopilotMenu,
+            'text-n-violet-9 bg-n-violet-3': showCopilotMenu,
+          }"
+          sm
+          icon="i-ph-sparkle-fill"
+          @click="toggleCopilotMenu"
+        />
+        <CopilotMenuBar
+          v-if="showCopilotMenu"
+          v-on-click-outside="[
+            handleClickOutside,
+            { ignore: [copilotToggleRef] },
+          ]"
+          :has-selection="false"
+          :has-content="hasContent"
+          :conversation-id="conversationId"
+          class="ltr:right-0 rtl:left-0 bottom-full mb-2"
+          @execute-copilot-action="handleCopilotAction"
+        />
+      </div>
+      <NextButton
+        ghost
+        class="text-n-slate-11"
+        sm
+        icon="i-lucide-maximize-2"
+        @click="$emit('toggleEditorSize')"
+      />
+    </div>
+  </div>
+</template>

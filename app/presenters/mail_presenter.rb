@@ -77,7 +77,7 @@ class MailPresenter < SimpleDelegator
     mail.attachments.map do |attachment|
       blob = ActiveStorage::Blob.create_and_upload!(
         io: StringIO.new(attachment.body.to_s),
-        filename: attachment.filename,
+        filename: attachment.filename.presence || "attachment_#{SecureRandom.hex(4)}",
         content_type: attachment.content_type
       )
       { original: attachment, blob: blob }
@@ -95,14 +95,17 @@ class MailPresenter < SimpleDelegator
       content_type: content_type,
       date: date,
       from: from,
+      headers: headers_data,
       html_content: html_content,
       in_reply_to: in_reply_to,
       message_id: message_id,
       multipart: multipart?,
       number_of_attachments: number_of_attachments,
+      references: references,
       subject: subject,
       text_content: text_content,
-      to: to
+      to: to,
+      auto_reply: auto_reply?
     }
   end
 
@@ -115,21 +118,37 @@ class MailPresenter < SimpleDelegator
     @mail.in_reply_to.is_a?(Array) ? @mail.in_reply_to.first : @mail.in_reply_to
   end
 
+  def references
+    return [] if @mail.references.blank?
+
+    Array.wrap(@mail.references)
+  end
+
   def from
     # changing to downcase to avoid case mismatch while finding contact
-    (@mail.reply_to.presence || @mail.from).map(&:downcase)
+    Array.wrap(@mail.reply_to.presence || @mail.from).map(&:downcase)
   end
 
   def sender_name
-    Mail::Address.new((@mail[:reply_to] || @mail[:from]).value).name
+    parse_mail_address((@mail[:reply_to] || @mail[:from]).value)&.name
   end
 
   def original_sender
-    from_email_address(@mail[:reply_to].try(:value)) || @mail['X-Original-Sender'].try(:value) || from_email_address(from.first)
+    [
+      @mail[:reply_to]&.value,
+      @mail['X-Original-Sender']&.value,
+      @mail[:from]&.value
+    ].filter_map { |email| parse_mail_address(email)&.address }.first
   end
 
-  def from_email_address(email)
-    Mail::Address.new(email).address
+  def headers_data
+    headers = {
+      'x-original-from' => @mail['X-Original-From']&.value,
+      'x-original-sender' => @mail['X-Original-Sender']&.value,
+      'x-forwarded-for' => @mail['X-Forwarded-For']&.value
+    }.compact
+
+    headers.presence
   end
 
   def email_forwarded_for
@@ -146,7 +165,37 @@ class MailPresenter < SimpleDelegator
     end
   end
 
+  def auto_reply?
+    auto_submitted? || x_auto_reply?
+  end
+
+  def bounced?
+    @mail.bounced? || @mail['X-Failed-Recipients'].try(:value).present?
+  end
+
+  def notification_email_from_chatwoot?
+    # notification emails are send via mailer sender email address. so it should match
+    configured_sender = Mail::Address.new(ENV.fetch('MAILER_SENDER_EMAIL', 'Chatwoot <accounts@chatwoot.com>')).address
+    original_sender.to_s.casecmp?(configured_sender)
+  end
+
   private
+
+  def parse_mail_address(email)
+    return if email.blank?
+
+    Mail::Address.new(email)
+  rescue Mail::Field::ParseError, Mail::Field::IncompleteParseError
+    nil
+  end
+
+  def auto_submitted?
+    @mail['Auto-Submitted'].present? && @mail['Auto-Submitted'].value != 'no'
+  end
+
+  def x_auto_reply?
+    @mail['X-Autoreply'].present? && @mail['X-Autoreply'].value == 'yes'
+  end
 
   # forcing the encoding of the content to UTF-8 so as to be compatible with database and serializers
   def encode_to_unicode(str)
