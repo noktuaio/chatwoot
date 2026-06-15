@@ -169,7 +169,7 @@ en:
       invalid_option: Invalid topup option
       plan_not_eligible: Top-ups are only available for paid plans. Please upgrade your plan first.
       stripe_customer_not_configured: Stripe customer not configured
-      no_payment_method: No payment methods found. Please add a payment method before making a purchase.
+      no_payment_method: No payment method available for your billing currency. Please add a card before making a purchase.
     billing:
       currency_required: Currency is required
       currency_switch_unavailable: Currency switching is not available for this account
