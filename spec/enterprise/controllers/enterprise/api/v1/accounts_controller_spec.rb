@@ -286,6 +286,7 @@ RSpec.describe 'Enterprise Billing APIs', type: :request do
           limits: { 'captain_responses' => 1000 }
         )
         allow(Stripe::Customer).to receive(:retrieve).with(stripe_customer_id).and_return(stripe_customer)
+        allow(Stripe::PaymentMethod).to receive(:list).and_return(Struct.new(:data).new([Struct.new(:id, :type).new('pm_test123', 'card')]))
         allow(Stripe::Invoice).to receive(:create).and_return(stripe_invoice)
         allow(Stripe::InvoiceItem).to receive(:create)
         allow(Stripe::Invoice).to receive(:finalize_invoice)

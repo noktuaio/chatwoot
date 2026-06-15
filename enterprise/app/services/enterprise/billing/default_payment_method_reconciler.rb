@@ -1,8 +1,5 @@
-# Ensures the customer's default Stripe payment method can actually bill the given currency. PIX/boleto
-# are BRL-only, so when an account moves to a currency they can't pay we drop them as the default and
-# pick a compatible method (a card) if one is attached. Incompatible methods stay attached for later.
-# Keyed off invoice_settings.default_payment_method (what Stripe Billing charges), inspecting it before
-# falling back to a legacy default_source card so an incompatible invoice default can't be masked.
+# Makes the customer's default payment method one that can bill the given currency (PIX/boleto are
+# BRL-only). Drops an incompatible default, picks a compatible card, else falls back to default_source.
 class Enterprise::Billing::DefaultPaymentMethodReconciler
   pattr_initialize [:account!, :currency!]
 
@@ -15,8 +12,7 @@ class Enterprise::Billing::DefaultPaymentMethodReconciler
     compatible = payment_methods.find { |method| compatible?(method) }
     return make_default(compatible.id) if compatible
 
-    # No compatible attached PaymentMethod. Drop an incompatible invoice default so Stripe won't charge
-    # it, then fall back to a legacy default_source card (currency-agnostic) the invoice can still use.
+    # Drop the incompatible invoice default, then fall back to a legacy default_source card if present.
     unset_default if current_default.present?
     customer.default_source.presence
   end

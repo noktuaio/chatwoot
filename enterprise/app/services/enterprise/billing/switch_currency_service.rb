@@ -1,12 +1,4 @@
-# Orchestrates a billing currency switch:
-#   acquire per-account lock -> eligibility (no mutation) -> resolve target price -> Stripe swap
-#   (self-reverting) -> persist local state (last). Each concern lives in its own collaborator so this
-# stays a thin coordinator. The pending marker is set under a row lock first, so a second concurrent
-# switch is rejected before it can create a duplicate Stripe subscription. Any failure before the Stripe
-# swap aborts cleanly with the marker cleared. The swap is the second-to-last step and local persist is
-# last, so the only split-state window is a DB error on that final write (rare — moments after a healthy
-# locked write); the marker's stale window then frees switching and a later subscription.updated webhook
-# reconciles the attributes from Stripe.
+# Orchestrates a billing currency switch: lock -> eligibility -> resolve price -> Stripe swap -> persist.
 class Enterprise::Billing::SwitchCurrencyService
   include BillingHelper
 
@@ -15,12 +7,10 @@ class Enterprise::Billing::SwitchCurrencyService
   # Tags a cancelled sub so the deleted-webhook skips re-subscribing the default plan.
   SWITCH_METADATA_KEY = 'chatwoot_currency_switch'.freeze
 
-  # Records the in-flight switch so a second concurrent request is rejected and a crash mid-switch is
-  # visible; cleared on success or by the subscription webhook once it reconciles the state from Stripe.
+  # Marks an in-flight switch to reject concurrent requests; cleared on completion or by the webhook.
   PENDING_CURRENCY_KEY = 'billing_currency_switch_pending'.freeze
 
-  # A pending marker older than this is treated as abandoned (e.g. a crashed prior attempt), so a stuck
-  # marker can't block switches forever. Switches complete in seconds, so this is comfortably generous.
+  # A pending marker older than this is treated as abandoned so a crashed switch can't block forever.
   STALE_SWITCH_SECONDS = 10.minutes.to_i
 
   pattr_initialize [:account!, :currency!]
@@ -41,13 +31,11 @@ class Enterprise::Billing::SwitchCurrencyService
     rescue Enterprise::Billing::CurrencySwitchEligibility::Error,
            Enterprise::Billing::PlanPriceResolver::Error,
            Enterprise::Billing::StripeCurrencySwitchExecutor::Error => e
-      # The Stripe swap self-reverted, so drop the pending marker and surface a single error type.
+      # Swap self-reverted; drop the marker and surface a single error type.
       clear_pending
       raise Error, e.message
     rescue Stripe::StripeError
-      # A raw Stripe failure in the preflight (payment-method/location sync) happens before any
-      # subscription change, so drop the marker too — otherwise a transient blip locks out switching
-      # until the stale timeout. A post-success persist failure isn't a Stripe error and is left for the webhook.
+      # Preflight Stripe failure (before any subscription change); clear the marker so a blip can't lock switching.
       clear_pending
       raise
     end
@@ -55,8 +43,7 @@ class Enterprise::Billing::SwitchCurrencyService
 
   private
 
-  # Reject a second switch for this account while one is in flight. The check-and-set runs under a row
-  # lock so two concurrent requests can't both pass it and create duplicate Stripe subscriptions.
+  # Check-and-set the marker under a row lock so concurrent switches can't both create a subscription.
   def acquire_switch_lock!
     account.with_lock do
       raise Error, I18n.t('errors.billing.switch_in_progress') if switch_in_progress?
@@ -90,11 +77,10 @@ class Enterprise::Billing::SwitchCurrencyService
   def change_for(subscription, new_price_id, default_plan:)
     {
       new_price_id: new_price_id,
-      # Original price is needed to re-create the subscription if the new-currency create fails.
+      # Needed to re-create the subscription if the new-currency create fails.
       original_price_id: subscription['plan']['id'],
       quantity: subscription['quantity'],
-      # Paid plans preserve paid-through (new sub trials until then); the free default plan switches
-      # immediately to an active sub, so a default-plan account can switch again any time.
+      # Paid plans trial until paid-through; the free default plan switches immediately.
       paid_through: default_plan ? nil : subscription_period_end(subscription),
       default_plan: default_plan
     }

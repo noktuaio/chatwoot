@@ -1,8 +1,5 @@
-# Performs the Stripe-side currency switch: sync the customer location, cancel the old-currency
-# subscription, then create the new-currency one. Stripe can't change a subscription's currency in
-# place, can't prorate across currencies, and forbids two currencies on a single customer — so the old
-# subscription must be cancelled *before* the new one can be created. If the create fails afterwards we
-# re-create the original (its currency is free again) so the customer isn't left without a subscription.
+# Stripe-side currency switch. Stripe forbids two currencies on one customer, so the old subscription
+# is cancelled before the new one is created; on a create failure the original is re-created.
 class Enterprise::Billing::StripeCurrencySwitchExecutor
   class Error < StandardError; end
 
@@ -18,7 +15,7 @@ class Enterprise::Billing::StripeCurrencySwitchExecutor
     begin
       replace_subscription(subscription, change)
     rescue StandardError
-      # The subscription swap reverted to the old currency — undo the customer location change too.
+      # Swap reverted to the old currency — undo the location change too.
       sync_customer_location(previous_currency)
       raise
     end
@@ -30,15 +27,13 @@ class Enterprise::Billing::StripeCurrencySwitchExecutor
     cancel_subscription(subscription)
     create_or_revert(change)
   rescue Stripe::StripeError => e
-    # Reaches here only if cancel itself failed (old sub still active) or the revert create failed.
     raise Error, e.message
   end
 
   def create_or_revert(change)
     create_currency_subscription(change[:new_price_id], change, idempotency_key)
   rescue Stripe::StripeError
-    # Old sub is already cancelled; re-create the original so the customer keeps a subscription, then
-    # surface the original failure.
+    # Old sub already cancelled; re-create the original to keep the customer subscribed, then re-raise.
     create_currency_subscription(change[:original_price_id], change, revert_idempotency_key)
     raise
   end
@@ -54,13 +49,12 @@ class Enterprise::Billing::StripeCurrencySwitchExecutor
 
   def create_currency_subscription(price_id, change, idempotency_key)
     params = { customer: stripe_customer_id, items: [{ price: price_id, quantity: change[:quantity] }] }
-    # trial_end preserves the already-paid time so switching mid-cycle doesn't double-charge.
+    # trial_end preserves already-paid time so switching mid-cycle doesn't double-charge.
     params[:trial_end] = change[:paid_through] if change[:paid_through].present? && change[:paid_through] > Time.current.to_i
     Stripe::Subscription.create(params, { idempotency_key: idempotency_key })
   end
 
-  # Distinct keys per switch attempt: a retry must never replay a cancelled subscription, and the
-  # revert create must never be conflated with the forward create.
+  # Fresh per attempt so a retry never replays a cancelled sub, and revert never collides with the create.
   def attempt_token
     @attempt_token ||= SecureRandom.uuid
   end
@@ -73,15 +67,12 @@ class Enterprise::Billing::StripeCurrencySwitchExecutor
     "switch-revert-#{account.id}-#{attempt_token}"
   end
 
-  # Drop a default that can't bill the new currency (e.g. PIX on a USD switch) and pick a compatible one
-  # if attached; leaving none is fine — the user is prompted to add a method before the next charge.
   def reconcile_default_payment_method
     Enterprise::Billing::DefaultPaymentMethodReconciler.new(account: account, currency: target_currency).reconcile
   end
 
-  # Currencies that need a country override (e.g. BRL/PIX) push it to Stripe; for currencies without
-  # one (usd) we clear any prior override so the customer matches how a usd customer is first created
-  # — otherwise switching away from BRL would leave a stale BR/pt-BR address on the customer.
+  # Push the country override for currencies that need one (BRL/PIX); clear it otherwise so switching
+  # to usd doesn't leave a stale BR address.
   def sync_customer_location(currency_code)
     country = Enterprise::Billing::Currencies.country_for(currency_code)
     locale = Enterprise::Billing::Currencies.preferred_locale_for(currency_code)

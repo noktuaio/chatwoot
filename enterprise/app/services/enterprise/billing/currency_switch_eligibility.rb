@@ -26,8 +26,7 @@ class Enterprise::Billing::CurrencySwitchEligibility
     raise Error, I18n.t('errors.billing.stripe_customer_not_configured') if stripe_customer_id.blank?
   end
 
-  # Exactly one live subscription in a switchable state. Anything else (pending or extra) is rejected
-  # up front so we never mutate Stripe for an edge case.
+  # Exactly one live subscription in a switchable state; anything else is rejected before mutating Stripe.
   def eligible_subscription!
     subscription = live_subscriptions.first
     eligible = live_subscriptions.one? && SWITCHABLE_STATUSES.include?(subscription&.status)

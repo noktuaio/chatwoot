@@ -19,8 +19,7 @@ module Enterprise::Billing::Currencies
     'brl' => 'pt-BR'
   }.freeze
 
-  # Stripe payment method types locked to a single currency; any type not listed (e.g. card) bills
-  # in any currency. Used to drop a method that can't pay the customer's currency (PIX/boleto are BRL-only).
+  # Payment method types locked to one currency; types not listed (e.g. card) bill in any currency.
   CURRENCY_LOCKED_PAYMENT_METHOD_TYPES = {
     'pix' => 'brl',
     'boleto' => 'brl'
@@ -45,8 +44,7 @@ module Enterprise::Billing::Currencies
     LOCALE_DEFAULTS.fetch(locale.to_s, DEFAULT)
   end
 
-  # Master switch for multi-currency billing (currency switch UI + non-default onboarding currency).
-  # Read raw from InstallationConfig so a super-admin toggle takes effect without cache staleness.
+  # Master switch for multi-currency billing; read raw so a super-admin toggle isn't cache-stale.
   def multi_currency_supported?
     ActiveModel::Type::Boolean.new.cast(InstallationConfig.find_by(name: 'MULTIPLE_CURRENCY_SUPPORTED')&.value)
   end
