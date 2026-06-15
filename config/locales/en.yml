@@ -175,6 +175,7 @@ en:
       currency_switch_unavailable: Currency switching is not available for this account
       unsupported_currency: This currency is not supported
       same_currency: This account is already billed in the selected currency
+      switch_in_progress: A currency switch is already in progress. Please try again in a moment.
       stripe_customer_not_configured: Stripe customer not configured
       switch_requires_active_subscription: Currency can only be changed when you have a single active subscription. Please resolve any pending billing first.
       unknown_plan: Could not determine the current plan

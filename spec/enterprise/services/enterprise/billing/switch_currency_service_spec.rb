@@ -117,6 +117,25 @@ describe Enterprise::Billing::SwitchCurrencyService do
       expect { service.perform }.to raise_error(described_class::Error, I18n.t('errors.billing.switch_requires_active_subscription'))
     end
 
+    it 'rejects a switch while another is already in progress and leaves the marker intact' do
+      account.update!(custom_attributes: account.custom_attributes.merge(
+        'billing_currency_switch_pending' => { 'currency' => 'brl', 'started_at' => Time.current.to_i }
+      ))
+
+      expect { service.perform }.to raise_error(described_class::Error, I18n.t('errors.billing.switch_in_progress'))
+      expect(Stripe::Subscription).not_to have_received(:create)
+      expect(account.reload.custom_attributes['billing_currency_switch_pending']).to be_present
+    end
+
+    it 'proceeds when the in-progress marker is stale' do
+      account.update!(custom_attributes: account.custom_attributes.merge(
+        'billing_currency_switch_pending' => { 'currency' => 'brl', 'started_at' => 1.hour.ago.to_i }
+      ))
+
+      expect { service.perform }.not_to raise_error
+      expect(account.reload.custom_attributes['billing_currency']).to eq('brl')
+    end
+
     it 'raises when the target currency is not configured for the plan' do
       InstallationConfig.find_by(name: 'CHATWOOT_CLOUD_PLANS').update!(value: [
                                                                          { 'name' => 'Business', 'product_id' => ['prod_business'],

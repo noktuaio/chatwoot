@@ -1,9 +1,10 @@
 # Orchestrates a billing currency switch:
-#   eligibility (no mutation) -> resolve target price -> mark pending -> Stripe swap (self-reverting)
-#   -> persist local state (last). Each concern lives in its own collaborator so this stays a thin
-# coordinator. Any failure aborts before persisting, so Chatwoot is never left ahead of Stripe; the
-# rare window where Stripe succeeds but the local persist fails is reconciled by the subscription
-# webhook, which also clears the pending marker.
+#   acquire per-account lock -> eligibility (no mutation) -> resolve target price -> Stripe swap
+#   (self-reverting) -> persist local state (last). Each concern lives in its own collaborator so this
+# stays a thin coordinator. The pending marker is set under a row lock first, so a second concurrent
+# switch is rejected before it can create a duplicate Stripe subscription. Any failure aborts before
+# persisting, so Chatwoot is never left ahead of Stripe; the rare window where Stripe succeeds but the
+# local persist fails is reconciled by the subscription webhook, which also clears the pending marker.
 class Enterprise::Billing::SwitchCurrencyService
   include BillingHelper
 
@@ -12,32 +13,59 @@ class Enterprise::Billing::SwitchCurrencyService
   # Tags a cancelled sub so the deleted-webhook skips re-subscribing the default plan.
   SWITCH_METADATA_KEY = 'chatwoot_currency_switch'.freeze
 
-  # Records the in-flight target currency so a crash mid-switch is visible; cleared on success or by
-  # the subscription webhook once it reconciles the final state from Stripe.
+  # Records the in-flight switch so a second concurrent request is rejected and a crash mid-switch is
+  # visible; cleared on success or by the subscription webhook once it reconciles the state from Stripe.
   PENDING_CURRENCY_KEY = 'billing_currency_switch_pending'.freeze
+
+  # A pending marker older than this is treated as abandoned (e.g. a crashed prior attempt), so a stuck
+  # marker can't block switches forever. Switches complete in seconds, so this is comfortably generous.
+  STALE_SWITCH_SECONDS = 10.minutes.to_i
 
   pattr_initialize [:account!, :currency!]
 
   def perform
-    subscription = eligibility.subscription!
-    resolver = Enterprise::Billing::PlanPriceResolver.new(subscription: subscription, target_currency: target_currency)
-    plan = resolver.plan
-    change = change_for(subscription, resolver.target_price_id, default_plan: Enterprise::Billing::PlanConfiguration.default_plan?(plan))
+    acquire_switch_lock!
 
-    mark_pending
-    new_subscription = executor.execute(subscription: subscription, change: change)
+    begin
+      subscription = eligibility.subscription!
+      resolver = Enterprise::Billing::PlanPriceResolver.new(subscription: subscription, target_currency: target_currency)
+      plan = resolver.plan
+      change = change_for(subscription, resolver.target_price_id, default_plan: Enterprise::Billing::PlanConfiguration.default_plan?(plan))
 
-    persist_currency(build_custom_attributes(new_subscription, plan))
-    Enterprise::Billing::ReconcilePlanFeaturesService.new(account: account).perform
-  rescue Enterprise::Billing::CurrencySwitchEligibility::Error,
-         Enterprise::Billing::PlanPriceResolver::Error,
-         Enterprise::Billing::StripeCurrencySwitchExecutor::Error => e
-    # The Stripe swap self-reverted, so drop the pending marker and surface a single error type.
-    clear_pending
-    raise Error, e.message
+      new_subscription = executor.execute(subscription: subscription, change: change)
+
+      persist_currency(build_custom_attributes(new_subscription, plan))
+      Enterprise::Billing::ReconcilePlanFeaturesService.new(account: account).perform
+    rescue Enterprise::Billing::CurrencySwitchEligibility::Error,
+           Enterprise::Billing::PlanPriceResolver::Error,
+           Enterprise::Billing::StripeCurrencySwitchExecutor::Error => e
+      # The Stripe swap self-reverted, so drop the pending marker and surface a single error type.
+      clear_pending
+      raise Error, e.message
+    end
   end
 
   private
+
+  # Reject a second switch for this account while one is in flight. The check-and-set runs under a row
+  # lock so two concurrent requests can't both pass it and create duplicate Stripe subscriptions.
+  def acquire_switch_lock!
+    account.with_lock do
+      raise Error, I18n.t('errors.billing.switch_in_progress') if switch_in_progress?
+
+      account.update!(custom_attributes: account.custom_attributes.merge(
+        PENDING_CURRENCY_KEY => { 'currency' => target_currency, 'started_at' => Time.current.to_i }
+      ))
+    end
+  end
+
+  def switch_in_progress?
+    marker = account.custom_attributes[PENDING_CURRENCY_KEY]
+    return false if marker.blank?
+
+    started_at = marker.is_a?(Hash) ? marker['started_at'].to_i : 0
+    Time.current.to_i - started_at < STALE_SWITCH_SECONDS
+  end
 
   def eligibility
     @eligibility ||= Enterprise::Billing::CurrencySwitchEligibility.new(account: account, currency: currency)
@@ -74,10 +102,6 @@ class Enterprise::Billing::SwitchCurrencyService
       'subscription_status' => subscription['status'],
       'subscription_ends_on' => subscription_ends_on(subscription)
     )
-  end
-
-  def mark_pending
-    account.update!(custom_attributes: account.custom_attributes.merge(PENDING_CURRENCY_KEY => target_currency))
   end
 
   def clear_pending
