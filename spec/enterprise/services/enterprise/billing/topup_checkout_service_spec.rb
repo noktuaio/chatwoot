@@ -54,6 +54,15 @@ describe Enterprise::Billing::TopupCheckoutService do
       expect(account.reload.limits['captain_responses']).to eq(1500)
     end
 
+    it 'charges via a legacy default source when there is no invoice default or payment method' do
+      allow(Stripe::Customer).to receive(:retrieve).and_return(
+        Struct.new(:invoice_settings, :default_source).new(Struct.new(:default_payment_method).new(nil), 'card_legacy')
+      )
+      allow(Stripe::PaymentMethod).to receive(:list).and_return(Struct.new(:data).new([]))
+
+      expect(service.create_checkout_session(credits: 1000)[:credits]).to eq(1000)
+    end
+
     it 'raises error for invalid credits' do
       expect { service.create_checkout_session(credits: 500) }.to raise_error do |error|
         expect(error.class.name).to eq('Enterprise::Billing::TopupCheckoutService::Error')
