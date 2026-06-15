@@ -42,6 +42,12 @@ class Enterprise::Billing::SwitchCurrencyService
       # The Stripe swap self-reverted, so drop the pending marker and surface a single error type.
       clear_pending
       raise Error, e.message
+    rescue Stripe::StripeError
+      # A raw Stripe failure in the preflight (payment-method/location sync) happens before any
+      # subscription change, so drop the marker too — otherwise a transient blip locks out switching
+      # until the stale timeout. A post-success persist failure isn't a Stripe error and is left for the webhook.
+      clear_pending
+      raise
     end
   end
 

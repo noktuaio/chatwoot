@@ -127,6 +127,13 @@ describe Enterprise::Billing::SwitchCurrencyService do
       expect(account.reload.custom_attributes['billing_currency_switch_pending']).to be_present
     end
 
+    it 'clears the pending marker when a stripe preflight call fails' do
+      allow(Stripe::Customer).to receive(:retrieve).and_raise(Stripe::StripeError.new('customer temporarily unavailable'))
+
+      expect { service.perform }.to raise_error(Stripe::StripeError)
+      expect(account.reload.custom_attributes).not_to have_key('billing_currency_switch_pending')
+    end
+
     it 'proceeds when the in-progress marker is stale' do
       account.update!(custom_attributes: account.custom_attributes.merge(
         'billing_currency_switch_pending' => { 'currency' => 'brl', 'started_at' => 1.hour.ago.to_i }
