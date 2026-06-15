@@ -2,9 +2,11 @@
 #   acquire per-account lock -> eligibility (no mutation) -> resolve target price -> Stripe swap
 #   (self-reverting) -> persist local state (last). Each concern lives in its own collaborator so this
 # stays a thin coordinator. The pending marker is set under a row lock first, so a second concurrent
-# switch is rejected before it can create a duplicate Stripe subscription. Any failure aborts before
-# persisting, so Chatwoot is never left ahead of Stripe; the rare window where Stripe succeeds but the
-# local persist fails is reconciled by the subscription webhook, which also clears the pending marker.
+# switch is rejected before it can create a duplicate Stripe subscription. Any failure before the Stripe
+# swap aborts cleanly with the marker cleared. The swap is the second-to-last step and local persist is
+# last, so the only split-state window is a DB error on that final write (rare — moments after a healthy
+# locked write); the marker's stale window then frees switching and a later subscription.updated webhook
+# reconciles the attributes from Stripe.
 class Enterprise::Billing::SwitchCurrencyService
   include BillingHelper
 
