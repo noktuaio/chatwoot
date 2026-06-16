@@ -35,8 +35,6 @@ class ActiveStorage::Migrator
   def self.migrate_blobs(_from_service, to_service, to_service_name, update_service_name: true)
     # Configure the blob service for the source service
     ActiveStorage::Blob.find_each do |blob|
-      next unless blob.image?
-
       Rails.logger.debug { '.' }
 
       blob.open do |io|

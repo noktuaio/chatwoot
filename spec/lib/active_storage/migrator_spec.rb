@@ -39,7 +39,7 @@ RSpec.describe ActiveStorage::Migrator do
   describe '.migrate_blobs' do
     let(:from_service_stub) { instance_double(ActiveStorage::Service) }
     let(:to_service_stub) { instance_double(ActiveStorage::Service) }
-    let(:blob) { instance_double(ActiveStorage::Blob, image?: true, key: 'blob-key', checksum: 'checksum') }
+    let(:blob) { instance_double(ActiveStorage::Blob, key: 'blob-key', checksum: 'checksum') }
     let(:io) { StringIO.new('blob-content') }
 
     before do
@@ -47,7 +47,7 @@ RSpec.describe ActiveStorage::Migrator do
       allow(blob).to receive(:open).and_yield(io)
     end
 
-    it 'updates the blob service after uploading to the target service' do
+    it 'migrates blobs regardless of content type' do
       expect(to_service_stub).to receive(:upload).with('blob-key', io, checksum: 'checksum').ordered
       expect(blob).to receive(:update!).with(service_name: 'amazon').ordered
 
