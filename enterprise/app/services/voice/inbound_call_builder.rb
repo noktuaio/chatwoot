@@ -99,11 +99,7 @@ class Voice::InboundCallBuilder
 
   # Mirror incoming-message routing: reuse the open conversation (or the last one when locked), else create new.
   def resolve_conversation!(contact, contact_inbox)
-    reusable = if inbox.lock_to_single_conversation
-                 contact_inbox.conversations.last
-               else
-                 contact_inbox.conversations.where.not(status: :resolved).last
-               end
+    reusable = reusable_conversation(contact_inbox.conversations) || reusable_conversation(contact.conversations.where(inbox_id: inbox.id))
     return reusable if reusable
 
     account.conversations.create!(
@@ -112,6 +108,15 @@ class Voice::InboundCallBuilder
       contact_id: contact.id,
       status: :open
     )
+  end
+
+  # The BSUID alias row is often empty while the open thread lives on the same
+  # contact's phone-number alias; fall back to the contact's conversation so a
+  # username caller's call reuses the existing thread instead of forking one.
+  def reusable_conversation(scope)
+    return scope.last if inbox.lock_to_single_conversation
+
+    scope.where.not(status: :resolved).last
   end
 
   def create_call!(contact, conversation)
