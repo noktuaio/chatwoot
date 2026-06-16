@@ -30,6 +30,7 @@ class Integrations::Hook < ApplicationRecord
   validate :validate_settings_json_schema
   validate :ensure_feature_enabled
   validate :validate_openai_api_key, if: :validate_openai_api_key?
+  validate :validate_cloudflare_realtimekit_credentials, if: :validate_cloudflare_realtimekit_credentials?
   validates :app_id, uniqueness: { scope: [:account_id], unless: -> { app.present? && app.params[:allow_multiple_hooks].present? } }
 
   # TODO: This seems to be only used for slack at the moment
@@ -59,6 +60,10 @@ class Integrations::Hook < ApplicationRecord
 
   def openai?
     app_id == 'openai'
+  end
+
+  def dyte?
+    app_id == 'dyte'
   end
 
   def notion?
@@ -106,8 +111,16 @@ class Integrations::Hook < ApplicationRecord
     openai? && enabled? && (new_record? || openai_api_key_changed? || will_save_change_to_status?)
   end
 
+  def validate_cloudflare_realtimekit_credentials?
+    dyte? && enabled? && (new_record? || cloudflare_realtimekit_credentials_changed? || will_save_change_to_status?)
+  end
+
   def openai_api_key_changed?
     settings_api_key(settings) != settings_api_key(settings_in_database)
+  end
+
+  def cloudflare_realtimekit_credentials_changed?
+    settings_cloudflare_realtimekit_credentials(settings) != settings_cloudflare_realtimekit_credentials(settings_in_database)
   end
 
   def validate_openai_api_key
@@ -116,8 +129,22 @@ class Integrations::Hook < ApplicationRecord
     errors.add(:base, I18n.t('errors.openai.invalid_api_key'))
   end
 
+  def validate_cloudflare_realtimekit_credentials
+    return if Integrations::Cloudflare::RealtimeKitCredentialsValidator.valid?(*settings_cloudflare_realtimekit_credentials(settings))
+
+    errors.add(:base, I18n.t('errors.cloudflare.realtimekit.invalid_credentials'))
+  end
+
   def settings_api_key(value)
     value&.dig('api_key') || value&.dig(:api_key)
+  end
+
+  def settings_cloudflare_realtimekit_credentials(value)
+    [
+      value&.dig('account_id') || value&.dig(:account_id),
+      value&.dig('app_id') || value&.dig(:app_id),
+      value&.dig('api_token') || value&.dig(:api_token)
+    ]
   end
 
   def trigger_setup_if_crm

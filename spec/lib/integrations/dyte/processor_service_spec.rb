@@ -9,6 +9,7 @@ describe Integrations::Dyte::ProcessorService do
   let(:agent) { create(:user, account: account, role: :agent) }
 
   before do
+    allow(Integrations::Cloudflare::RealtimeKitCredentialsValidator).to receive(:valid?).and_return(true)
     create(:integrations_hook, :dyte, account: account)
   end
 

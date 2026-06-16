@@ -177,4 +177,58 @@ RSpec.describe Integrations::Hook do
       expect(hook).to be_valid
     end
   end
+
+  describe 'cloudflare realtimekit credential validation' do
+    let(:account) { create(:account) }
+    let(:settings) { { 'account_id' => 'account_id', 'app_id' => 'app_id', 'api_token' => 'api_token' } }
+
+    it 'prevents saving a RealtimeKit hook with invalid credentials' do
+      allow(Integrations::Cloudflare::RealtimeKitCredentialsValidator).to receive(:valid?).and_return(false)
+
+      hook = build(:integrations_hook, :dyte, account: account, settings: settings)
+
+      expect(hook).not_to be_valid
+      expect(hook.errors[:base]).to include(I18n.t('errors.cloudflare.realtimekit.invalid_credentials'))
+    end
+
+    it 'allows saving a RealtimeKit hook with valid credentials' do
+      allow(Integrations::Cloudflare::RealtimeKitCredentialsValidator).to receive(:valid?).and_return(true)
+
+      hook = build(:integrations_hook, :dyte, account: account, settings: settings)
+
+      expect(hook).to be_valid
+    end
+
+    it 'skips validation when an enabled RealtimeKit hook is saved without changing credentials' do
+      allow(Integrations::Cloudflare::RealtimeKitCredentialsValidator).to receive(:valid?).and_return(true)
+      hook = create(:integrations_hook, :dyte, account: account, settings: settings)
+
+      allow(Integrations::Cloudflare::RealtimeKitCredentialsValidator).to receive(:valid?).and_return(false)
+      hook.settings['account_id'] = 'account_id'
+
+      expect(hook.save).to be true
+    end
+
+    it 'validates when a disabled RealtimeKit hook is re-enabled' do
+      allow(Integrations::Cloudflare::RealtimeKitCredentialsValidator).to receive(:valid?).and_return(true)
+      hook = create(:integrations_hook, :dyte, account: account, settings: settings)
+      hook.update!(status: :disabled)
+
+      allow(Integrations::Cloudflare::RealtimeKitCredentialsValidator).to receive(:valid?)
+        .with('account_id', 'app_id', 'api_token').and_return(false)
+
+      expect(hook.update(status: :enabled)).to be false
+      expect(hook.errors[:base]).to include(I18n.t('errors.cloudflare.realtimekit.invalid_credentials'))
+    end
+
+    it 'skips validation for disabled RealtimeKit hooks' do
+      allow(Integrations::Cloudflare::RealtimeKitCredentialsValidator).to receive(:valid?).and_return(true)
+      hook = create(:integrations_hook, :dyte, account: account, settings: settings)
+
+      allow(Integrations::Cloudflare::RealtimeKitCredentialsValidator).to receive(:valid?).and_return(false)
+      hook.disable
+
+      expect(hook.reload).to be_disabled
+    end
+  end
 end
