@@ -34,7 +34,7 @@ RSpec.describe Rake::Task do
 
       context 'when required arguments are present' do
         it 'updates blob service names by default' do
-          expect(ActiveStorage::Migrator).to receive(:migrate).with(:local, :amazon, update_service_name: true)
+          expect(ActiveStorage::Migrator).to receive(:migrate).with(:local, :amazon, should_update_service_name: true)
 
           with_modified_env FROM: 'local', TO: 'amazon', UPDATE_BLOB_SERVICE_NAME: nil do
             task.invoke
@@ -42,7 +42,7 @@ RSpec.describe Rake::Task do
         end
 
         it 'skips updating blob service names when disabled' do
-          expect(ActiveStorage::Migrator).to receive(:migrate).with(:local, :amazon, update_service_name: false)
+          expect(ActiveStorage::Migrator).to receive(:migrate).with(:local, :amazon, should_update_service_name: false)
 
           with_modified_env FROM: 'local', TO: 'amazon', UPDATE_BLOB_SERVICE_NAME: 'false' do
             task.invoke
