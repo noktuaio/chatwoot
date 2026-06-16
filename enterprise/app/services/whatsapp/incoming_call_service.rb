@@ -1,4 +1,6 @@
 class Whatsapp::IncomingCallService
+  include RegexHelper
+
   pattr_initialize [:inbox!, :params!]
 
   def perform
@@ -84,19 +86,30 @@ class Whatsapp::IncomingCallService
     extra_meta['contact_name'] = name if name.present?
 
     call = Voice::InboundCallBuilder.perform!(
-      inbox: inbox, from_number: "+#{payload[:from]}", call_sid: payload[:id],
+      inbox: inbox, from_number: caller_identifier(payload), call_sid: payload[:id],
       provider: :whatsapp, extra_meta: extra_meta
     )
     update_conversation(call)
     broadcast_incoming(call, sdp_offer)
   end
 
-  # Match strictly on wa_id (== calls[].from): in a batched payload missing this
-  # call's contact entry, borrowing another caller's name would corrupt this
-  # contact, so fall back to the phone number (nil here) instead of contacts.first.
+  # Username callers send a BSUID in `from` instead of digits; pass it through
+  # unprefixed so the builder keys the ContactInbox by it, else use +phone.
+  def caller_identifier(payload)
+    from = payload[:from].to_s
+    bsuid?(from) ? from : "+#{from}"
+  end
+
+  def bsuid?(identifier)
+    identifier.match?(WHATSAPP_BSUID_REGEX)
+  end
+
+  # Match strictly on this caller's identifier (wa_id for phone, user_id for BSUID);
+  # borrowing another caller's name from a batched payload would corrupt the contact.
   def caller_profile_name(payload)
     contacts = Array(params[:contacts]).map(&:with_indifferent_access)
-    match = contacts.find { |c| c[:wa_id].to_s == payload[:from].to_s }
+    from = payload[:from].to_s
+    match = contacts.find { |c| c[:wa_id].to_s == from || c[:user_id].to_s == from }
     match&.dig(:profile, :name).presence
   end
 

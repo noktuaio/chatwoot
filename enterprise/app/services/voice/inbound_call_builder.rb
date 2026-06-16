@@ -1,4 +1,6 @@
 class Voice::InboundCallBuilder
+  include RegexHelper
+
   attr_reader :inbox, :from_number, :call_sid, :provider, :extra_meta
 
   def self.perform!(inbox:, from_number:, call_sid:, provider: :twilio, extra_meta: {})
@@ -59,11 +61,18 @@ class Voice::InboundCallBuilder
   end
 
   def ensure_contact!
+    return ensure_bsuid_contact! if whatsapp_bsuid?
+
     contact = account.contacts.find_or_create_by!(phone_number: from_number) do |record|
       record.name = contact_name.presence || from_number
     end
     contact.update!(name: contact_name) if contact_name.present? && contact.name == from_number
     contact
+  end
+
+  # A username caller has no phone number; key the contact by name only.
+  def ensure_bsuid_contact!
+    account.contacts.create!(name: contact_name.presence || from_number)
   end
 
   # WhatsApp inbound calls carry the caller's profile name in extra_meta; Twilio
@@ -77,9 +86,15 @@ class Voice::InboundCallBuilder
   # finds the existing ContactInbox instead of forking a new contact/conversation.
   def source_id_for_provider
     return from_number unless provider == :whatsapp
+    # BSUID is the canonical source_id messaging stores; reuse it to land on the same thread.
+    return from_number if whatsapp_bsuid?
 
     digits = from_number.to_s.delete_prefix('+')
     Whatsapp::PhoneNumberNormalizationService.new(inbox).normalize_and_find_contact_by_provider(digits, :cloud)
+  end
+
+  def whatsapp_bsuid?
+    provider == :whatsapp && from_number.to_s.match?(WHATSAPP_BSUID_REGEX)
   end
 
   # Mirror incoming-message routing: reuse the open conversation (or the last one when locked), else create new.
