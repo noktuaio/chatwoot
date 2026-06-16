@@ -48,6 +48,16 @@ RSpec.describe Rake::Task do
             task.invoke
           end
         end
+
+        it 'can be invoked again after the task is re-enabled' do
+          expect(ActiveStorage::Migrator).to receive(:migrate).twice.with(:local, :amazon, should_update_service_name: true)
+
+          with_modified_env FROM: 'local', TO: 'amazon', UPDATE_BLOB_SERVICE_NAME: nil do
+            task.invoke
+            task.reenable
+            task.invoke
+          end
+        end
       end
     end
   end
