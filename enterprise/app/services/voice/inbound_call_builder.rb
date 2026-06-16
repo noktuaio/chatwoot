@@ -97,9 +97,17 @@ class Voice::InboundCallBuilder
     provider == :whatsapp && from_number.to_s.match?(WHATSAPP_BSUID_REGEX)
   end
 
-  # Mirror incoming-message routing: reuse the open conversation (or the last one when locked), else create new.
+  # Mirror Whatsapp::IncomingMessageBaseService#set_conversation: reuse this alias row's open
+  # conversation (or the last one when locked), else create. A BSUID call thus lands on the same
+  # row a BSUID message would. We deliberately don't reuse across the contact's other alias rows:
+  # the message path resolves the phone alias before the BSUID one, so re-homing a conversation
+  # would just fork the thread on the next message — true cross-alias unification must change both paths.
   def resolve_conversation!(contact, contact_inbox)
-    reusable = reusable_conversation(contact_inbox.conversations) || reusable_cross_alias_conversation(contact, contact_inbox)
+    reusable = if inbox.lock_to_single_conversation
+                 contact_inbox.conversations.last
+               else
+                 contact_inbox.conversations.where.not(status: :resolved).last
+               end
     return reusable if reusable
 
     account.conversations.create!(
@@ -108,23 +116,6 @@ class Voice::InboundCallBuilder
       contact_id: contact.id,
       status: :open
     )
-  end
-
-  # A username (BSUID) caller's alias row is empty while the open thread sits on their
-  # phone alias. Reuse it for BSUID callers only, re-pointing it to the BSUID row so
-  # replies target the current identifier, not a stale phone/merged-contact source_id.
-  def reusable_cross_alias_conversation(contact, contact_inbox)
-    return unless whatsapp_bsuid?
-
-    conversation = reusable_conversation(contact.conversations.where(inbox_id: inbox.id))
-    conversation&.update!(contact_inbox: contact_inbox)
-    conversation
-  end
-
-  def reusable_conversation(scope)
-    return scope.last if inbox.lock_to_single_conversation
-
-    scope.where.not(status: :resolved).last
   end
 
   def create_call!(contact, conversation)
