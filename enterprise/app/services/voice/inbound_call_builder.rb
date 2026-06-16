@@ -99,7 +99,7 @@ class Voice::InboundCallBuilder
 
   # Mirror incoming-message routing: reuse the open conversation (or the last one when locked), else create new.
   def resolve_conversation!(contact, contact_inbox)
-    reusable = reusable_conversation(contact_inbox.conversations) || reusable_conversation(contact.conversations.where(inbox_id: inbox.id))
+    reusable = reusable_conversation(contact_inbox.conversations) || reusable_cross_alias_conversation(contact, contact_inbox)
     return reusable if reusable
 
     account.conversations.create!(
@@ -110,9 +110,17 @@ class Voice::InboundCallBuilder
     )
   end
 
-  # The BSUID alias row is often empty while the open thread lives on the same
-  # contact's phone-number alias; fall back to the contact's conversation so a
-  # username caller's call reuses the existing thread instead of forking one.
+  # A username (BSUID) caller's alias row is empty while the open thread sits on their
+  # phone alias. Reuse it for BSUID callers only, re-pointing it to the BSUID row so
+  # replies target the current identifier, not a stale phone/merged-contact source_id.
+  def reusable_cross_alias_conversation(contact, contact_inbox)
+    return unless whatsapp_bsuid?
+
+    conversation = reusable_conversation(contact.conversations.where(inbox_id: inbox.id))
+    conversation&.update!(contact_inbox: contact_inbox)
+    conversation
+  end
+
   def reusable_conversation(scope)
     return scope.last if inbox.lock_to_single_conversation
 
