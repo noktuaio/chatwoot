@@ -49,6 +49,6 @@ class Integrations::Dyte::ProcessorService
 
   def dyte_client
     credentials = dyte_hook.settings
-    @dyte_client ||= Dyte.new(credentials['organization_id'], credentials['api_key'])
+    @dyte_client ||= Dyte.new(credentials['account_id'], credentials['app_id'], credentials['api_token'])
   end
 end

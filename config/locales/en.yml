@@ -352,7 +352,7 @@ en:
     dyte:
       name: 'Dyte'
       short_description: 'Start video/voice calls with customers directly from Chatwoot.'
-      description: 'Dyte is a product that integrates audio and video functionalities into your application. With this integration, your agents can start video/voice calls with your customers directly from Chatwoot.'
+      description: 'Cloudflare RealtimeKit lets your agents start video/voice calls with your customers directly from Chatwoot.'
       meeting_name: '%{agent_name} has started a meeting'
     slack:
       name: 'Slack'

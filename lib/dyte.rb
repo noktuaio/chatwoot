@@ -1,13 +1,14 @@
 class Dyte
-  BASE_URL = 'https://api.dyte.io/v2'.freeze
+  BASE_URL = 'https://api.cloudflare.com/client/v4'.freeze
   API_KEY_HEADER = 'Authorization'.freeze
   PRESET_NAME = 'group_call_host'.freeze
 
-  def initialize(organization_id, api_key)
-    @api_key = Base64.strict_encode64("#{organization_id}:#{api_key}")
-    @organization_id = organization_id
+  def initialize(account_id = nil, app_id = nil, api_token = nil)
+    @account_id = account_id
+    @app_id = app_id
+    @api_token = api_token
 
-    raise ArgumentError, 'Missing Credentials' if @api_key.blank? || @organization_id.blank?
+    raise ArgumentError, 'Missing Credentials' if @account_id.blank? || @app_id.blank? || @api_token.blank?
   end
 
   def create_a_meeting(title)
@@ -43,8 +44,8 @@ class Dyte
 
   def post(path, payload)
     HTTParty.post(
-      "#{BASE_URL}/#{path}", {
-        headers: { API_KEY_HEADER => "Basic #{@api_key}", 'Content-Type' => 'application/json' },
+      "#{BASE_URL}/accounts/#{@account_id}/realtime/kit/#{@app_id}/#{path}", {
+        headers: { API_KEY_HEADER => "Bearer #{@api_token}", 'Content-Type' => 'application/json' },
         body: payload.to_json
       }
     )
