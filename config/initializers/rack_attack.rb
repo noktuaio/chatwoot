@@ -208,7 +208,7 @@ class Rack::Attack
            limit: ENV.fetch('RATE_LIMIT_CONVERSATION_DELETE', '60').to_i, period: 1.minute) do |req|
     next unless req.delete?
 
-    match_data = %r{\A/api/v1/accounts/(?<account_id>\d+)/conversations/(?<id>\d+)\z}.match(req.path_without_extensions)
+    match_data = %r{\A/api/v1/accounts/(?<account_id>\d+)/conversations/(?<id>\d+)/?\z}.match(req.path_without_extensions)
     match_data[:account_id] if match_data.present?
   end
 
