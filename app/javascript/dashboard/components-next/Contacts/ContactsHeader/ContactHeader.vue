@@ -17,6 +17,7 @@ defineProps({
   hasActiveFilters: { type: Boolean, default: false },
   isLabelView: { type: Boolean, default: false },
   isActiveView: { type: Boolean, default: false },
+  campaignImportEnabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -26,6 +27,8 @@ const emit = defineEmits([
   'add',
   'import',
   'export',
+  'campaignImport',
+  'campaignImportHistory',
   'createSegment',
   'deleteSegment',
 ]);
@@ -107,9 +110,12 @@ const emit = defineEmits([
               @update:sort="emit('update:sort', $event)"
             />
             <ContactMoreActions
+              :campaign-import-enabled="campaignImportEnabled"
               @add="emit('add')"
               @import="emit('import')"
               @export="emit('export')"
+              @campaign-import="emit('campaignImport')"
+              @campaign-import-history="emit('campaignImportHistory')"
             />
           </div>
           <div class="w-px h-4 bg-n-strong" />

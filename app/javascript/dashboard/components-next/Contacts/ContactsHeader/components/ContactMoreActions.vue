@@ -6,7 +6,17 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import { usePolicy } from 'dashboard/composables/usePolicy';
 
-const emit = defineEmits(['add', 'import', 'export']);
+const props = defineProps({
+  campaignImportEnabled: { type: Boolean, default: false },
+});
+
+const emit = defineEmits([
+  'add',
+  'import',
+  'export',
+  'campaignImport',
+  'campaignImportHistory',
+]);
 
 const { t } = useI18n();
 const { checkPermissions } = usePolicy();
@@ -42,6 +52,23 @@ const contactMenuItems = computed(() => [
         },
       ]
     : []),
+  ...(props.campaignImportEnabled &&
+  checkPermissions(['administrator', 'contact_manage'])
+    ? [
+        {
+          label: t('CAMPAIGN_IMPORT.ACTIONS.IMPORT_BASE'),
+          action: 'campaignImport',
+          value: 'campaignImport',
+          icon: 'i-lucide-tags',
+        },
+        {
+          label: t('CAMPAIGN_IMPORT.ACTIONS.HISTORY'),
+          action: 'campaignImportHistory',
+          value: 'campaignImportHistory',
+          icon: 'i-lucide-history',
+        },
+      ]
+    : []),
 ]);
 const showActionsDropdown = ref(false);
 
@@ -52,6 +79,10 @@ const handleContactAction = ({ action }) => {
     emit('import');
   } else if (action === 'export') {
     emit('export');
+  } else if (action === 'campaignImport') {
+    emit('campaignImport');
+  } else if (action === 'campaignImportHistory') {
+    emit('campaignImportHistory');
   }
 };
 </script>

@@ -369,6 +369,14 @@ en:
       name: 'Google Translate'
       short_description: 'Automatically translate customer messages for agents.'
       description: "Integrate Google Translate to help agents easily translate customer messages. This integration automatically detects the language and converts it to the agent's or admin's preferred language."
+    crm_n8n:
+      name: 'n8n (CRM Connections)'
+      short_description: 'Automate your CRM with n8n via signed webhooks and a scoped API token.'
+      description: 'Connect your CRM Kanban to n8n and other automation tools. Subscribe to card lifecycle events as signed (HMAC) outbound webhooks, and let external systems create, move, and close cards through a revocable, scoped API token.'
+    crm_kanban_ai:
+      name: 'CRM Kanban AI'
+      short_description: 'AI stage suggestions and auto-move for CRM Kanban pipelines.'
+      description: 'Configure OpenAI credentials for CRM Kanban. GPT-5.4 classifies conversations and suggests or auto-moves cards between pipeline stages based on editable stage criteria.'
     openai:
       name: 'OpenAI'
       short_description: 'AI-powered reply suggestions, summarization, and message enhancement.'
@@ -390,6 +398,23 @@ en:
       name: 'LeadSquared'
       short_description: 'Sync your contacts and conversations with LeadSquared CRM.'
       description: 'Sync your contacts and conversations with LeadSquared CRM. This integration automatically creates leads in LeadSquared when new contacts are added, and logs conversation activity to provide your sales team with complete context.'
+  autonomia:
+    image_required: 'An image file is required.'
+    image_invalid_type: 'Unsupported image type. Use PNG, JPEG, GIF, or WebP.'
+    image_too_large: 'Image is too large. The maximum size is 5 MB.'
+    build_thread:
+      message_blank: 'A message is required to talk to the agent builder.'
+    source:
+      invalid_kind: 'Invalid material kind. Use "knowledge" or "media".'
+    agents:
+      operate:
+        handoff_default: "Thanks for reaching out! I'm connecting you with a member of our team who will continue from here."
+        connect_errors:
+          generic: 'Unable to connect this inbox to the agent.'
+          agent_not_active: 'Enable and activate the agent before connecting an inbox.'
+          inbox_has_webhook_bot: 'This inbox is already connected to another bot. Disconnect it first.'
+          inbox_already_connected: 'This inbox is already connected to an agent.'
+          not_connected: 'This inbox is not connected to the agent.'
   captain:
     copilot_message_required: Message is required
     copilot_error: 'Please connect an assistant to this inbox to use Copilot'

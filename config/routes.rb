@@ -129,6 +129,147 @@ Rails.application.routes.draw do
             end
           end
           resources :campaigns, only: [:index, :create, :show, :update, :destroy]
+          resources :whatsapp_api_campaigns, only: [:index, :create, :show] do
+            member do
+              post :pause
+              post :resume
+              post :cancel
+            end
+          end
+          resources :campaign_imports, only: [:index, :create, :show, :destroy] do
+            member do
+              post :confirm
+              post :undo_labels
+              get :download
+            end
+          end
+          namespace :crm do
+            resources :pipelines, only: [:index, :create, :show, :update, :destroy] do
+              resources :stages, only: [:index, :create]
+              resources :inboxes, controller: 'pipeline_inboxes', only: [:index, :create, :destroy], param: :inbox_id
+              resource :ai_settings, only: [:show, :update], controller: 'ai_settings'
+            end
+            resources :stages, only: [:update, :destroy] do
+              post :reorder, on: :collection
+              resources :stage_automations, only: [:index, :create]
+            end
+            resources :stage_automations, only: [:show, :update, :destroy] do
+              resources :steps, controller: 'stage_automation_steps', only: [:create, :update, :destroy]
+            end
+            post 'cards/bulk', to: 'cards/bulk#create'
+            get 'cards/summaries', to: 'cards/summaries#index'
+            resources :cards, only: [:index, :create, :show, :update, :destroy] do
+              post :from_conversation, on: :collection
+              member do
+                post :move
+                post :close
+                post :link_conversation
+                post :unlink_conversation
+                post :link_contact
+                post :unlink_contact
+                get :current_ai_suggestion
+                post :evaluate_ai
+                post :summarize
+                post :reset_auto_followup
+              end
+            end
+            resources :ai_suggestions, only: [] do
+              member do
+                post :accept
+                post :dismiss
+              end
+            end
+            resources :follow_ups, only: [:index, :create, :show, :update, :destroy] do
+              collection do
+                get :messaging_window
+                get :reminders
+              end
+              member do
+                post :complete
+                post :cancel
+                post :dismiss_reminder
+                post :reschedule
+              end
+            end
+            resources :service_schedules, only: [:index, :create, :update, :destroy]
+            get 'conversations/card_stages', to: 'cards#card_stages'
+            get 'conversations/:conversation_id/card', to: 'cards#by_conversation'
+            get :kanban, to: 'kanban#index'
+            scope :reports, controller: :reports do
+              get :pipelines, action: :pipelines, as: :crm_report_pipelines
+              get :summary, action: :summary, as: :crm_report_summary
+              get :funnel, action: :funnel, as: :crm_report_funnel
+              get :ai_vs_human, action: :ai_vs_human, as: :crm_report_ai_vs_human
+              get :throughput, action: :throughput, as: :crm_report_throughput
+              get :follow_ups, action: :follow_ups, as: :crm_report_follow_ups
+              get :workload, action: :workload, as: :crm_report_workload
+            end
+            get 'calendar/events', to: 'calendar#events'
+            get :inbox_settings, to: 'inbox_settings#index'
+            patch 'inbox_settings/:inbox_id', to: 'inbox_settings#update'
+            resources :integration_tokens, only: [:index, :create, :destroy] do
+              member do
+                post :rotate
+              end
+            end
+            resources :saved_views, only: [:index, :create, :update, :destroy]
+          end
+          namespace :autonomia do
+            resources :agents, only: [:index, :show, :create, :update, :destroy] do
+              member do
+                post :test,    to: 'agents/playground#test'
+                post :suggest, to: 'agents/playground#suggest'
+                get  :analytics, to: 'agents/analytics#index'   # Fase F
+              end
+              resources :sources, only: [:index, :create, :destroy], controller: 'agents/sources' do
+                member { post :resync }
+              end
+              resources :channels, only: [:index, :create, :destroy],
+                                   controller: 'agents/channels', param: :inbox_id
+            end
+            resources :build_threads, only: [:create, :show], controller: 'agents/build_threads' do
+              member { post :messages }
+            end
+            # MULTIMODAL (Construtor/Ajustar): upload de imagem do builder (image-only, retorna signed_id;
+            # não cria conhecimento). O turno referencia o signed_id; o Builder a lê inline no job.
+            post 'builder_images', to: 'agents/builder_images#create'
+          end
+          namespace :email_campaigns do
+            resources :sender_identities, only: [:index, :create, :show, :destroy] do
+              member do
+                post :verify
+                post :dns_check
+              end
+            end
+            resources :campaigns, only: [:index, :create, :show, :update, :destroy] do
+              member do
+                post :send_now
+                post :schedule
+                post :pause
+                post :resume
+                post :cancel
+                post :duplicate
+                post :resolve_video, to: 'videos#resolve'
+              end
+              resources :recipients, only: [:index, :create]
+            end
+            get  'campaigns/:id/placeholders', to: 'template_tools#placeholders'
+            get  'campaigns/:id/validate',     to: 'template_tools#validate'
+            post 'campaigns/:id/test_send',    to: 'test_sends#create'
+            post 'campaigns/:id/assets',       to: 'assets#create'
+            post 'ai/generate',                to: 'ai#generate'
+            post 'ai/rewrite',                 to: 'ai#rewrite'
+            get  'ai/campaigns/:id/status',    to: 'ai#status'
+            resources :templates, only: [:index, :show, :create, :destroy]
+            resources :reports, only: [:index, :show] do
+              member do
+                get :clicks
+                get :timeline
+                get :recipients
+                get :export
+              end
+            end
+          end
           resources :dashboard_apps, only: [:index, :show, :create, :update, :destroy]
           namespace :channels do
             resource :twilio_channel, only: [:create]
@@ -261,6 +402,9 @@ Rails.application.routes.draw do
             get :health, on: :member
             post :register_webhook, on: :member
             post :reset_secret, on: :member
+            post :enable_whatsapp_api_campaigns, on: :member
+            delete :disable_whatsapp_api_campaigns, on: :member
+            resources :whatsapp_api_message_templates, only: [:index, :create, :update, :destroy]
             if ChatwootApp.enterprise?
               resource :conference, only: %i[create destroy], controller: 'conference' do
                 get :token, on: :member
@@ -279,6 +423,12 @@ Rails.application.routes.draw do
             collection do
               delete :destroy
               patch :update
+            end
+          end
+          resources :waha_inboxes, only: [:create], param: :inbox_id do
+            member do
+              get :connection
+              post :reconnect
             end
           end
           resources :labels, only: [:index, :show, :create, :update, :destroy]
@@ -325,6 +475,10 @@ Rails.application.routes.draw do
           namespace :google do
             resource :authorization, only: [:create]
           end
+
+          # Cadastro POR CONTA das credenciais do app OAuth de e-mail (Azure/Google).
+          resources :email_oauth_apps, only: [:show, :update, :destroy], param: :provider
+
 
           namespace :instagram do
             resource :authorization, only: [:create]
@@ -626,6 +780,15 @@ Rails.application.routes.draw do
   post 'webhooks/instagram', to: 'webhooks/instagram#events'
   post 'webhooks/tiktok', to: 'webhooks/tiktok#events'
   post 'webhooks/shopify', to: 'webhooks/shopify#events'
+
+  # ----------------------------------------------------------------------
+  # Email Campaign (Onda 3) PUBLIC endpoints — signed-token / SNS-signature protected; feature-gated
+  # inside the controllers (EmailCampaigns::Config.enabled?). NOT behind the authenticated api scope.
+  get 'email_campaigns/t/o/:token', to: 'email_campaigns/tracking#open', defaults: { format: 'gif' }, as: :email_campaign_track_open
+  get 'email_campaigns/t/c/:token', to: 'email_campaigns/tracking#click', as: :email_campaign_track_click
+  post 'email_campaigns/sns', to: 'email_campaigns/sns#create', as: :email_campaign_sns
+  get 'email_campaigns/u/:token', to: 'email_campaigns/unsubscribe#show', as: :email_campaign_unsubscribe
+  post 'email_campaigns/u/:token', to: 'email_campaigns/unsubscribe#create'
 
   namespace :twitter do
     resource :callback, only: [:show]

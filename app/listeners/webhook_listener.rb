@@ -91,7 +91,64 @@ class WebhookListener < BaseListener
     handle_typing_status(__method__.to_s, event)
   end
 
+  # CRM card lifecycle handlers. The method name is the canonical dotted event
+  # with dots->underscores (crm.card.won -> crm_card_won), matching
+  # Webhook::CRM_WEBHOOK_EVENTS and payload[:event]. Each fans out to subscribing
+  # account webhooks via the PII-default-deny builder + retrying delivery job.
+  def crm_card_created(event)
+    deliver_crm_webhooks(event)
+  end
+
+  def crm_card_moved(event)
+    deliver_crm_webhooks(event)
+  end
+
+  def crm_card_won(event)
+    deliver_crm_webhooks(event)
+  end
+
+  def crm_card_lost(event)
+    deliver_crm_webhooks(event)
+  end
+
+  def crm_card_reopened(event)
+    deliver_crm_webhooks(event)
+  end
+
+  def crm_card_archived(event)
+    deliver_crm_webhooks(event)
+  end
+
   private
+
+  # Fan-out for CRM outbound webhooks. The Emitter dispatches IDS ONLY (plan B2);
+  # we reload the card by id here. The payload is built PER WEBHOOK because the
+  # include_contact_pii opt-in varies between webhooks. Delivery goes through
+  # CrmDeliveryJob (bounded retry, :low queue) rather than the core WebhookJob.
+  def deliver_crm_webhooks(event)
+    event_name = event.data[:event]
+    account = Account.find_by(id: event.data[:account_id])
+    return if account.blank?
+
+    card = Crm::Card.find_by(id: event.data[:card_id], account_id: account.id)
+    return if card.blank?
+
+    account.webhooks.account_type.each do |webhook|
+      next unless webhook.subscriptions.to_a.include?(event_name)
+
+      payload = Crm::Webhooks::PayloadBuilder.new(
+        card: card,
+        event: event_name,
+        event_id: event.data[:activity_id],
+        changed_attributes: event.data[:changed_attributes],
+        include_contact_pii: webhook.include_contact_pii
+      ).perform
+
+      Webhooks::CrmDeliveryJob.perform_later(webhook.url, payload,
+                                             secret: webhook.secret,
+                                             delivery_id: SecureRandom.uuid)
+    end
+  end
 
   def handle_typing_status(event_name, event)
     conversation = event.data[:conversation]

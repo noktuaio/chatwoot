@@ -10,7 +10,9 @@ module EnsureCurrentAccountHelper
     account = Account.find(params[:account_id])
     render_unauthorized('Account is suspended') and return unless account.active?
 
-    if current_user
+    if integration_token_account?
+      account_accessible_for_integration_token?(account)
+    elsif current_user
       account_accessible_for_user?(account)
     elsif @resource.is_a?(AgentBot)
       account_accessible_for_bot?(account)
@@ -29,5 +31,17 @@ module EnsureCurrentAccountHelper
     return if @resource.agent_bot_inboxes.find_by(account_id: account.id)
 
     render_unauthorized('Bot is not authorized to access this account')
+  end
+
+  # CRM integration token (plan §3.2, B-T3). defined?-guarded so CE never sees
+  # the EE-only constant. Current.account_user was already set in the auth helper.
+  def integration_token_account?
+    defined?(Crm::IntegrationToken) && current_integration_token.present?
+  end
+
+  def account_accessible_for_integration_token?(account)
+    return if current_integration_token.account_id == account.id
+
+    render_unauthorized('Token is not authorized to access this account')
   end
 end

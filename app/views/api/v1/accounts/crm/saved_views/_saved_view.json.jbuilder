@@ -1,0 +1,9 @@
+json.id saved_view.id
+json.name saved_view.name
+json.pipeline_id saved_view.pipeline_id
+json.user_id saved_view.user_id
+json.visibility saved_view.visibility
+json.config saved_view.config
+json.position saved_view.position
+json.created_at saved_view.created_at
+json.updated_at saved_view.updated_at

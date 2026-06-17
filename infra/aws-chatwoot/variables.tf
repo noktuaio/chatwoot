@@ -1,0 +1,155 @@
+variable "aws_profile" {
+  type    = string
+  default = "default"
+}
+
+variable "aws_region" {
+  type    = string
+  default = "us-east-1"
+}
+
+variable "project" {
+  type    = string
+  default = "chatwoot-autonomia"
+}
+
+variable "environment" {
+  type    = string
+  default = "prod"
+}
+
+variable "domain_name" {
+  type    = string
+  default = "agents.autonomia.site"
+}
+
+variable "certificate_arn" {
+  type    = string
+  default = "arn:aws:acm:us-east-1:140023375763:certificate/cee74474-da0c-4aba-b9f7-3759e4eddd7e"
+}
+
+variable "github_repo_url" {
+  type    = string
+  default = "https://github.com/noktuaio/chatwoot.git"
+}
+
+variable "github_branch" {
+  type    = string
+  default = "autonomia/custom-image-port"
+}
+
+variable "image_tag" {
+  type    = string
+  default = "autonomia-custom-image-port-ce"
+}
+
+variable "cw_edition" {
+  type    = string
+  default = "ce"
+}
+
+variable "enable_account_signup" {
+  type    = bool
+  default = true
+}
+
+variable "campaign_import_enabled" {
+  type    = bool
+  default = true
+}
+
+variable "whatsapp_api_campaigns_enabled" {
+  type    = bool
+  default = false
+}
+
+variable "crm_kanban_enabled" {
+  type    = bool
+  default = true
+}
+
+variable "crm_ai_enabled" {
+  type    = bool
+  default = true
+}
+
+variable "crm_ai_media_enabled" {
+  type    = bool
+  default = true
+}
+
+variable "autonomia_agents_enabled" {
+  type    = bool
+  default = true
+}
+
+variable "autonomia_agents_global" {
+  type    = bool
+  default = false
+}
+
+variable "email_campaign_enabled" {
+  type    = bool
+  default = false
+}
+
+variable "email_campaign_aws_region" {
+  type    = string
+  default = "us-east-1"
+}
+
+variable "email_campaign_aws_access_key_id" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "email_campaign_aws_secret_access_key" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "waha_api_url" {
+  type    = string
+  default = ""
+}
+
+variable "waha_public_url" {
+  type    = string
+  default = ""
+}
+
+variable "waha_api_key" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "waha_chatwoot_account_token" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "mailer_sender_email" {
+  type    = string
+  default = "no-reply@autonomia.site"
+}
+
+variable "smtp_address" {
+  type    = string
+  default = ""
+}
+
+variable "smtp_username" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "smtp_password" {
+  type      = string
+  default   = ""
+  sensitive = true
+}

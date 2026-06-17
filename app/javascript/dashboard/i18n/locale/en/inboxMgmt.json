@@ -366,6 +366,33 @@
           "ERROR_MESSAGE": "We were not able to create the voice channel"
         }
       },
+      "WHATSAPP_API": {
+        "TITLE": "Connect a WhatsApp number",
+        "DESC": "Connect a number and start chatting. It is quick — you scan a QR code at the end.",
+        "MODE": {
+          "LABEL": "Who will answer?",
+          "HUMAN": "Human team",
+          "AI": "AI agent",
+          "HINT": "Choose how this number will be handled. You can change it later."
+        },
+        "CHANNEL_NAME": {
+          "LABEL": "Inbox name",
+          "PLACEHOLDER": "E.g. Travel support",
+          "ERROR": "Please enter an inbox name"
+        },
+        "PHONE": {
+          "LABEL": "Phone",
+          "PLACEHOLDER": "5511987654321",
+          "SUBTITLE": "Required in the format 55DDDNUMBER (e.g. 5511987654321).",
+          "ERROR": "Enter a valid number in the format 55DDDNUMBER."
+        },
+        "SUBMIT_BUTTON": "Create WhatsApp inbox",
+        "ERROR": {
+          "INVALID_PHONE": "Invalid number. Use the format 55DDDNUMBER.",
+          "NOT_CONFIGURED": "WhatsApp connection is not set up yet. Please contact support.",
+          "GENERIC": "We could not create the inbox. Please try again."
+        }
+      },
       "API_CHANNEL": {
         "TITLE": "API Channel",
         "DESC": "Integrate with API channel and start supporting your customers.",
@@ -464,8 +491,12 @@
             "DESCRIPTION": "Connect your Facebook page"
           },
           "WHATSAPP": {
-            "TITLE": "WhatsApp",
-            "DESCRIPTION": "Support your customers on WhatsApp"
+            "TITLE": "Official WhatsApp",
+            "DESCRIPTION": "Support your customers on Official WhatsApp"
+          },
+          "WHATSAPP_API": {
+            "TITLE": "WhatsApp API",
+            "DESCRIPTION": "Connect a number and scan a QR code"
           },
           "WHATSAPP_CALL": {
             "TITLE": "WhatsApp Call",
@@ -632,9 +663,27 @@
         "AVATAR_ERROR_MESSAGE": "Could not delete the inbox avatar. Please try again later."
       }
     },
+    "WAHA_CONNECTION": {
+      "SUBTITLE": "Connection status, updated automatically",
+      "SCAN_TITLE": "Scan the QR code to connect",
+      "STEP_1": "Open WhatsApp on the phone of this number",
+      "STEP_2": "Go to Settings, then Linked devices",
+      "STEP_3": "Tap Link a device and scan the code",
+      "RECONNECT": "Generate new QR code",
+      "CONNECTED_HELP": "Connected. You can send and receive messages now.",
+      "STATUS": {
+        "CONNECTED": "Connected",
+        "AWAITING": "Waiting for QR scan",
+        "CONNECTING": "Connecting",
+        "FAILED": "Connection failed",
+        "DISCONNECTED": "Disconnected",
+        "CHECKING": "Checking"
+      }
+    },
     "TABS": {
       "SETTINGS": "Settings",
       "COLLABORATORS": "Collaborators",
+      "CONNECTION": "Connection",
       "CONFIGURATION": "Configuration",
       "CAMPAIGN": "Campaigns",
       "PRE_CHAT_FORM": "Pre Chat Form",
@@ -797,6 +846,15 @@
       "HMAC_LINK_TO_DOCS": "You can read more here.",
       "HMAC_MANDATORY_VERIFICATION": "Enforce User Identity Validation",
       "HMAC_MANDATORY_DESCRIPTION": "If enabled, requests that cannot be verified will be rejected.",
+      "WHATSAPP_API_CAMPAIGNS": {
+        "TITLE": "WhatsApp API campaigns",
+        "DESCRIPTION": "Allows this API inbox to be used in WhatsApp API campaigns delivered by WAHA.",
+        "HELP": "Enable only on API inboxes connected to WAHA. Campaigns use the contact phone number and do not depend on the inbox name.",
+        "ENABLED": "Enabled",
+        "DISABLED": "Disabled",
+        "ENABLE": "Enable",
+        "DISABLE": "Disable"
+      },
       "INBOX_IDENTIFIER": "Inbox Identifier",
       "INBOX_IDENTIFIER_SUB_TEXT": "Use the `inbox_identifier` token shown here to authentication your API clients.",
       "FORWARD_EMAIL_TITLE": "Forward to Email",
@@ -1186,6 +1244,25 @@
         "TITLE": "Other Providers",
         "DESCRIPTION": "Connect with Other Providers"
       }
+    },
+    "OAUTH_CREDENTIALS": {
+      "LOADING": "Checking connection settings…",
+      "INTRO_MICROSOFT": "To connect, register an application and paste its credentials below. Add the redirect URL below to the application before saving.",
+      "INTRO_GOOGLE": "To connect, create an OAuth client and paste its credentials below. Add the redirect URL below to the client's authorized redirect URIs before saving.",
+      "CALLBACK_LABEL": "Redirect URL (add this to your application)",
+      "COPY": "Copy",
+      "COPIED": "Redirect URL copied",
+      "CLIENT_ID_MICROSOFT": "Application (client) ID",
+      "CLIENT_ID_MICROSOFT_PH": "00000000-0000-0000-0000-000000000000",
+      "CLIENT_ID_GOOGLE": "Client ID",
+      "CLIENT_ID_GOOGLE_PH": "xxxx.apps.googleusercontent.com",
+      "CLIENT_SECRET_MICROSOFT": "Client secret",
+      "CLIENT_SECRET_GOOGLE": "Client secret",
+      "CLIENT_SECRET_PH": "Paste the secret value",
+      "SAVE_AND_CONTINUE": "Save and continue",
+      "SAVE_ERROR": "Could not save the credentials. Please check the values and try again.",
+      "USING_ACCOUNT_APP": "Using this account's own application.",
+      "EDIT_APP": "Edit credentials"
     },
     "CHANNELS": {
       "MESSENGER": "Messenger",

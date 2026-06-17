@@ -8,6 +8,9 @@ import { useAlert } from 'dashboard/composables';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Auth from '../../../../api/auth';
 import wootConstants from 'dashboard/constants/globals';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import CrmScheduleEditor from 'dashboard/routes/dashboard/crm/components/sla/CrmScheduleEditor.vue';
+import CrmServiceSchedulesAPI from 'dashboard/api/crmServiceSchedules';
 
 const props = defineProps({
   id: {
@@ -70,6 +73,48 @@ const pageTitle = computed(
 
 const uiFlags = useMapGetter('agents/getUIFlags');
 const getCustomRoles = useMapGetter('customRole/getCustomRoles');
+const accountId = useMapGetter('getCurrentAccountId');
+const isFeatureEnabledonAccount = useMapGetter(
+  'accounts/isFeatureEnabledonAccount'
+);
+
+// SLA service-hours calendar (CRM SLA v2): visible only when the CRM fork is
+// enabled AND the account has the enterprise `sla` feature.
+const showSlaSchedule = computed(
+  () =>
+    window.globalConfig?.CRM_KANBAN_ENABLED === 'true' &&
+    isFeatureEnabledonAccount.value(accountId.value, FEATURE_FLAGS.SLA)
+);
+
+const showScheduleEditor = ref(false);
+const agentSchedule = ref(null);
+const scheduleLoaded = ref(false);
+const isLoadingSchedule = ref(false);
+
+const openScheduleEditor = async () => {
+  if (!scheduleLoaded.value) {
+    isLoadingSchedule.value = true;
+    try {
+      const response = await CrmServiceSchedulesAPI.get();
+      agentSchedule.value =
+        (response.data.payload || []).find(
+          schedule =>
+            schedule.owner_type === 'User' && schedule.owner_id === props.id
+        ) ?? null;
+      scheduleLoaded.value = true;
+    } catch (error) {
+      agentSchedule.value = null;
+    } finally {
+      isLoadingSchedule.value = false;
+    }
+  }
+  showScheduleEditor.value = true;
+};
+
+const onScheduleSaved = saved => {
+  agentSchedule.value = saved;
+  showScheduleEditor.value = false;
+};
 
 const roles = computed(() => {
   const defaultRoles = [
@@ -204,6 +249,25 @@ const resetPassword = async () => {
         </label>
       </div>
 
+      <div v-if="showSlaSchedule" class="flex flex-col w-full gap-1 py-2">
+        <span class="text-sm font-medium text-n-slate-12">
+          {{ $t('CRM_SLA.AGENT.SECTION_TITLE') }}
+        </span>
+        <p class="mb-1 text-xs text-n-slate-11">
+          {{ $t('CRM_SLA.AGENT.SECTION_NOTE') }}
+        </p>
+        <Button
+          outline
+          slate
+          type="button"
+          icon="i-lucide-calendar-clock"
+          class="w-fit"
+          :label="$t('CRM_SLA.AGENT.EDIT_BUTTON')"
+          :is-loading="isLoadingSchedule"
+          @click.prevent="openScheduleEditor"
+        />
+      </div>
+
       <div class="flex flex-row justify-start w-full gap-2 px-0 py-2">
         <div class="w-[50%] ltr:text-left rtl:text-right">
           <Button
@@ -233,5 +297,15 @@ const resetPassword = async () => {
         </div>
       </div>
     </form>
+
+    <CrmScheduleEditor
+      v-if="showScheduleEditor"
+      owner-type="User"
+      :owner-id="id"
+      :owner-name="name"
+      :schedule="agentSchedule"
+      @saved="onScheduleSaved"
+      @close="showScheduleEditor = false"
+    />
   </div>
 </template>

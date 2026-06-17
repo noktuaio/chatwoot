@@ -2,10 +2,9 @@ module GoogleConcern
   extend ActiveSupport::Concern
 
   def google_client
-    app_id = GlobalConfigService.load('GOOGLE_OAUTH_CLIENT_ID', nil)
-    app_secret = GlobalConfigService.load('GOOGLE_OAUTH_CLIENT_SECRET', nil)
+    creds = ::EmailOauth::CredentialResolver.new(oauth_account, 'google').credentials
 
-    ::OAuth2::Client.new(app_id, app_secret, {
+    ::OAuth2::Client.new(creds[:client_id], creds[:client_secret], {
                            site: 'https://oauth2.googleapis.com',
                            authorize_url: 'https://accounts.google.com/o/oauth2/auth',
                            token_url: 'https://accounts.google.com/o/oauth2/token'

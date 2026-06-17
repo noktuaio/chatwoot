@@ -160,4 +160,49 @@ describe('ActionCableConnector - Copilot Tests', () => {
       expect(mockDispatch).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('crm kanban event handlers', () => {
+    it('registers CRM card realtime events', () => {
+      expect(Object.keys(actionCable.events)).toEqual(
+        expect.arrayContaining([
+          'crm.card.created',
+          'crm.card.updated',
+          'crm.card.moved',
+          'crm.card.archived',
+        ])
+      );
+    });
+
+    it('dispatches valid CRM card events to the CRM Kanban store', () => {
+      const card = {
+        id: 77,
+        account_id: 1,
+        pipeline_id: 3,
+        stage_id: 9,
+        title: 'Lead realtime',
+      };
+
+      actionCable.onReceived({ event: 'crm.card.moved', data: card });
+
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'crmKanban/handleRealtimeCardEvent',
+        {
+          event: 'crm.card.moved',
+          card,
+        }
+      );
+    });
+
+    it('ignores CRM card events from another account', () => {
+      actionCable.onReceived({
+        event: 'crm.card.updated',
+        data: { id: 77, account_id: 2 },
+      });
+
+      expect(mockDispatch).not.toHaveBeenCalledWith(
+        'crmKanban/handleRealtimeCardEvent',
+        expect.anything()
+      );
+    });
+  });
 });

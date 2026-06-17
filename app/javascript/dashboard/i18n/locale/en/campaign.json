@@ -139,10 +139,10 @@
       }
     },
     "WHATSAPP": {
-      "HEADER_TITLE": "WhatsApp campaigns",
+      "HEADER_TITLE": "WhatsApp Official campaigns",
       "NEW_CAMPAIGN": "Create campaign",
       "EMPTY_STATE": {
-        "TITLE": "No WhatsApp campaigns are available",
+        "TITLE": "No WhatsApp Official campaigns are available",
         "SUBTITLE": "Launch a WhatsApp campaign to reach your customers directly. Send offers or make announcements with ease. Click 'Create campaign' to get started."
       },
       "CARD": {
@@ -157,7 +157,7 @@
         }
       },
       "CREATE": {
-        "TITLE": "Create WhatsApp campaign",
+        "TITLE": "Create WhatsApp Official campaign",
         "CANCEL_BUTTON_TEXT": "Cancel",
         "CREATE_BUTTON_TEXT": "Create",
         "FORM": {
@@ -203,6 +203,114 @@
         }
       }
     },
+    "WHATSAPP_API": {
+      "HEADER_TITLE": "WhatsApp API campaigns",
+      "NEW_CAMPAIGN": "Create campaign",
+      "EMPTY_STATE": {
+        "TITLE": "No WhatsApp API campaigns yet",
+        "SUBTITLE": "Create campaigns for API inboxes marked as WhatsApp API. Delivery happens one message at a time and appears in the contact conversation."
+      },
+      "INFO": {
+        "INBOX_TITLE": "Marked API inbox",
+        "INBOX_BODY": "Only API inboxes enabled for WhatsApp API campaigns appear here.",
+        "CADENCE_TITLE": "Internal cadence",
+        "CADENCE_BODY": "The delay between sends comes from environment values and is not exposed in the UI.",
+        "MESSAGE_TITLE": "Conversation message",
+        "MESSAGE_BODY": "Each send creates a Chatwoot message for WAHA to deliver."
+      },
+      "STATUS": {
+        "SCHEDULED": "Scheduled",
+        "RUNNING": "Sending",
+        "PAUSED": "Paused",
+        "COMPLETED": "Completed",
+        "COMPLETED_WITH_FAILURES": "Completed with failures",
+        "CANCELLED": "Cancelled",
+        "FAILED": "Failed",
+        "UNKNOWN": "Unknown"
+      },
+      "TABLE": {
+        "CAMPAIGN": "Campaign",
+        "STATUS": "Status",
+        "AUDIENCE": "Sends",
+        "INBOX": "Inbox",
+        "SCHEDULED_AT": "Scheduled for",
+        "ACTIONS": "Actions",
+        "MEDIA_ONLY": "Media only",
+        "FAILURES": "{count} failures"
+      },
+      "ACTIONS": {
+        "PAUSE_SUCCESS": "Campaign paused",
+        "RESUME_SUCCESS": "Campaign resumed",
+        "CANCEL_SUCCESS": "Campaign cancelled",
+        "ERROR": "Could not update campaign"
+      },
+      "CREATE": {
+        "TITLE": "Create WhatsApp API campaign",
+        "DESCRIPTION": "Use text, media, or text with media. Supported variables are fixed to avoid manual mapping.",
+        "GUIDE": {
+          "INBOX_TITLE": "Choose inbox",
+          "INBOX_BODY": "The inbox must be API and marked as WhatsApp API.",
+          "MESSAGE_TITLE": "Compose message",
+          "MESSAGE_BODY": "Templates store text only; media is saved in the campaign snapshot.",
+          "SEND_TITLE": "Schedule and track",
+          "SEND_BODY": "Audience uses the same label selector as existing campaigns."
+        },
+        "FORM": {
+          "TITLE": {
+            "LABEL": "Title",
+            "PLACEHOLDER": "Example: June reactivation"
+          },
+          "INBOX": {
+            "LABEL": "WhatsApp API inbox",
+            "PLACEHOLDER": "Select an inbox",
+            "EMPTY": "No marked API inboxes"
+          },
+          "TEMPLATE": {
+            "LABEL": "Text template",
+            "PLACEHOLDER": "Select a template",
+            "NONE": "No template",
+            "FETCH_ERROR": "Could not load templates",
+            "SAVE_SUCCESS": "Template saved",
+            "SAVE_ERROR": "Could not save template"
+          },
+          "MESSAGE": {
+            "LABEL": "Message",
+            "PLACEHOLDER": "Hi {contactFirstName}, how are you?",
+            "HELP": "Use only {contactName} and {contactFirstName}."
+          },
+          "VARIABLES": {
+            "TITLE": "Supported variables",
+            "HELP": "There is no variable mapping box in this version. These two fields are replaced automatically per contact."
+          },
+          "TEMPLATE_NAME": {
+            "LABEL": "Save text as template",
+            "PLACEHOLDER": "Template name",
+            "SAVE": "Save"
+          },
+          "MEDIA": {
+            "LABEL": "Campaign media",
+            "PLACEHOLDER": "No file selected",
+            "CHOOSE": "Choose",
+            "HELP": "Media belongs to this campaign snapshot, not to the template."
+          },
+          "AUDIENCE": {
+            "LABEL": "Audience",
+            "PLACEHOLDER": "Select contact labels"
+          },
+          "SCHEDULED_AT": {
+            "LABEL": "Scheduled time"
+          },
+          "BUTTONS": {
+            "CREATE": "Create campaign",
+            "CANCEL": "Cancel"
+          }
+        },
+        "API": {
+          "SUCCESS_MESSAGE": "WhatsApp API campaign created",
+          "ERROR_MESSAGE": "Could not create campaign"
+        }
+      }
+    },
     "CONFIRM_DELETE": {
       "TITLE": "Are you sure to delete?",
       "DESCRIPTION": "The delete action is permanent and cannot be reversed.",
@@ -210,6 +318,434 @@
       "API": {
         "SUCCESS_MESSAGE": "Campaign deleted successfully",
         "ERROR_MESSAGE": "There was an error. Please try again."
+      }
+    },
+    "EMAIL_SENDER": {
+      "HEADER_TITLE": "Email sending domains",
+      "NEW_DOMAIN": "Add sending domain",
+      "DESCRIPTION": "Verify your sending domain once so email campaigns are delivered with your own brand and pass SPF, DKIM and DMARC checks.",
+      "EMPTY_STATE": {
+        "TITLE": "No sending domains yet",
+        "SUBTITLE": "Add your domain to generate the DNS records you need to paste at your registrar."
+      },
+      "TABLE": {
+        "DOMAIN": "Domain",
+        "STATUS": "Status",
+        "ACTIONS": "Actions"
+      },
+      "STATUS": {
+        "PENDING": "Pending",
+        "VERIFYING": "Verifying",
+        "VERIFIED": "Verified",
+        "FAILED": "Failed"
+      },
+      "ACTIONS": {
+        "VERIFY": "Verify",
+        "CHECK": "Check now",
+        "VERIFY_SUCCESS": "Re-checking verification with the provider.",
+        "DELETE": "Delete",
+        "DELETE_SUCCESS": "Sending domain removed.",
+        "DELETE_IN_USE": "This domain is used by a campaign. Delete those campaigns first.",
+        "ERROR": "Something went wrong. Please try again."
+      },
+      "DNS": {
+        "TITLE": "DNS records",
+        "SUBTITLE": "Add these records at your domain registrar. Verification can take a few minutes after they propagate.",
+        "WHAT_IS": "DNS is where your domain's settings live. These records prove to Gmail and Outlook that the email is really yours. Without them, your campaign goes to spam or gets rejected.",
+        "GUIDE_TITLE": "How to do it, step by step:",
+        "GUIDE_STEP_1": "Open the panel where your domain is hosted (Hostinger, GoDaddy, Cloudflare, etc.).",
+        "GUIDE_STEP_2": "Find the 'DNS Zone', 'DNS Zone Editor' or 'Manage DNS' section.",
+        "GUIDE_STEP_3": "For each row in the table below, create a new record and copy the Name and Value exactly as shown (use the copy button).",
+        "GUIDE_STEP_4": "Done! Now just wait. Verification usually takes a few minutes and can take up to 1 hour. You can leave this screen: the domain turns green on its own once it is confirmed.",
+        "REQUIRED_BADGE": "Required",
+        "RECOMMENDED_BADGE": "Recommended",
+        "SPF_TITLE": "SPF (recommended)",
+        "SPF_HELP": "This is a single TXT record. If you already send email from this domain, one probably already exists. In that case do not create another: edit the existing one and add include:amazonses.com.",
+        "SPF_EXAMPLE_BEFORE": "If it looks like this today:",
+        "SPF_EXAMPLE_BEFORE_VALUE": "v=spf1 include:_spf.mail.hostinger.com ~all",
+        "SPF_EXAMPLE_AFTER": "Leave it like this:",
+        "SPF_EXAMPLE_AFTER_VALUE": "v=spf1 include:_spf.mail.hostinger.com include:amazonses.com ~all",
+        "DMARC_HELP": "Many domains already have DMARC. Check whether a _dmarc record already exists on your domain. If it does, you can skip this row.",
+        "AUTO_CHECKING": "Checking on its own. It can take up to 1 hour. You can close this screen.",
+        "TYPE": "Type",
+        "NAME": "Name",
+        "VALUE": "Value",
+        "DKIM": "DKIM (CNAME)",
+        "SPF": "SPF (TXT)",
+        "DMARC": "DMARC (TXT)",
+        "COPY": "Copy",
+        "COPIED": "Copied to clipboard"
+      },
+      "CHECK": {
+        "TITLE": "Check result",
+        "ALL_OK": "All required records are correct. Now just wait for AWS to confirm (it can take up to 1 hour).",
+        "HAS_ERRORS": "Some records still need fixing. Fix the ones marked below and check again.",
+        "STATUS_OK": "Found and correct",
+        "STATUS_MISSING": "Not found. It may still be propagating (wait a few minutes) or this record was not saved.",
+        "STATUS_MISMATCH": "Found, but the value is different. Check the Value and fix it."
+      },
+      "FAILED": {
+        "TITLE": "We couldn't verify it yet",
+        "BODY": "This usually means a record was copied wrong, was saved in the wrong place (it must be where the domain is hosted), or was just added and hasn't propagated yet. Click Check now to see exactly which record needs fixing."
+      },
+      "INBOX_SECTION": {
+        "TITLE": "Email campaigns",
+        "HELP": "Verify this domain to send bulk campaigns from this inbox with good deliverability.",
+        "WARNING": "Bulk campaigns go out through a separate high-volume channel. Verify this domain first. Without it, the domain can't be used for campaigns, and sending without proper authentication goes to spam or gets blocked.",
+        "VERIFIED": "Domain verified. This inbox is ready to send campaigns.",
+        "NOT_CONFIGURED": "The domain {domain} is not set up for campaigns yet.",
+        "SETUP": "Set up domain for campaigns",
+        "WEBMAIL": "Bulk campaigns can't be sent from {domain} — public webmail (Gmail, Outlook, Hotmail, etc.) can't be authenticated because you don't control its DNS, so it would be rejected as spoofing. Use your own domain (ideally a subdomain like news.yourcompany.com) to run campaigns. This inbox still works normally for 1:1 replies."
+      },
+      "DIALOG": {
+        "TITLE": "Add sending domain",
+        "DOMAIN_LABEL": "Domain",
+        "DOMAIN_PLACEHOLDER": "e.g. mail.yourcompany.com",
+        "DOMAIN_ERROR": "Enter a valid domain",
+        "FROM_EMAIL_LABEL": "Default from address (optional)",
+        "FROM_EMAIL_PLACEHOLDER": "e.g. marketing{'@'}yourcompany.com",
+        "SUBMIT": "Add domain",
+        "CANCEL": "Cancel",
+        "SUCCESS": "Domain added. Paste the DNS records to finish verification.",
+        "ERROR": "Could not add the domain. Please try again."
+      }
+    },
+    "EMAIL_CAMPAIGN": {
+      "HEADER_TITLE": "Email campaigns",
+      "NEW": "New email campaign",
+      "DESCRIPTION": "Compose an email, pick a verified sending domain, upload your recipient list and send now or schedule it.",
+      "EMPTY_STATE": {
+        "TITLE": "No email campaigns yet",
+        "SUBTITLE": "Create your first campaign to compose and send an email to an imported list."
+      },
+      "STATUS": {
+        "DRAFT": "Draft",
+        "SCHEDULED": "Scheduled",
+        "SENDING": "Sending",
+        "SENT": "Sent",
+        "PAUSED": "Paused",
+        "CANCELED": "Canceled",
+        "FAILED": "Failed"
+      },
+      "COUNTS": {
+        "RECIPIENTS": "Recipients",
+        "SENT": "Sent",
+        "FAILED": "Failed",
+        "SUPPRESSED": "Suppressed"
+      },
+      "ACTIONS": {
+        "MANAGE_RECIPIENTS": "Recipients",
+        "DUPLICATE": "Duplicate",
+        "DUPLICATE_SUCCESS": "Campaign duplicated. Update the recipients and schedule.",
+        "EDIT": "Edit",
+        "DELETE": "Delete",
+        "SEND_NOW": "Send now",
+        "SCHEDULE": "Schedule",
+        "PAUSE": "Pause",
+        "RESUME": "Resume",
+        "CANCEL": "Cancel",
+        "SEND_SUCCESS": "Campaign queued for sending.",
+        "SCHEDULE_SUCCESS": "Campaign scheduled.",
+        "PAUSE_SUCCESS": "Campaign paused.",
+        "RESUME_SUCCESS": "Campaign resumed.",
+        "CANCEL_SUCCESS": "Campaign canceled.",
+        "DELETE_SUCCESS": "Campaign deleted.",
+        "ERROR": "Something went wrong. Please try again.",
+        "OPEN_BUILDER": "Editor"
+      },
+      "DIALOG": {
+        "CREATE_TITLE": "New email campaign",
+        "EDIT_TITLE": "Edit email campaign",
+        "NAME_LABEL": "Campaign name",
+        "NAME_PLACEHOLDER": "e.g. June newsletter",
+        "NAME_ERROR": "Enter a campaign name",
+        "SUBJECT_LABEL": "Subject",
+        "SUBJECT_PLACEHOLDER": "e.g. Hi {'{{ nome }}'}, news from us",
+        "SUBJECT_ERROR": "Enter a subject",
+        "SENDER_LABEL": "Sending domain",
+        "SENDER_PLACEHOLDER": "Select a verified domain",
+        "SENDER_ERROR": "Select a verified sending domain",
+        "NO_VERIFIED_DOMAIN": "No verified sending domain yet. Add and verify one under Email sending domains first.",
+        "DIRECT_OPTION": "direct send via this inbox",
+        "DIRECT_WARNING": "Heads up: this is your personal mailbox, not a bulk channel. Use it only for your own real, opted-in contacts and low volume — sending mass email from a free webmail account can get your account blocked or suspended. We cap it at 100/day and pace it like a human; for bigger lists, verify your own domain.",
+        "FROM_EMAIL_DIRECT_HINT": "Sent directly as this mailbox.",
+        "FROM_NAME_LABEL": "From name",
+        "FROM_NAME_PLACEHOLDER": "e.g. Acme Marketing",
+        "FROM_NAME_ERROR": "Sender name is required",
+        "REPLY_TO_LABEL": "Reply-to",
+        "REPLY_TO_PLACEHOLDER": "e.g. support{'@'}yourcompany.com",
+        "REPLY_TO_HINT": "Replies go to this address; connect it as an inbox to turn replies into conversations.",
+        "REPLY_TO_ERROR": "Reply-to is required",
+        "REPLY_TO_INVALID": "Enter a valid email address",
+        "CANCEL": "Cancel",
+        "SUCCESS": "Campaign saved.",
+        "ERROR": "Could not save the campaign. Please try again.",
+        "FROM_EMAIL_LABEL": "From email",
+        "FROM_EMAIL_PLACEHOLDER": "e.g. promo{'@'}yourcompany.com",
+        "FROM_EMAIL_ERROR": "Sender email is required",
+        "FROM_EMAIL_INVALID": "Enter a valid address at your verified domain",
+        "FROM_EMAIL_HINT": "Must be an address {'@'}{domain} (your verified domain).",
+        "FROM_EMAIL_HINT_NO_DOMAIN": "Must be an address at your verified sending domain.",
+        "PREHEADER_LABEL": "Preheader (optional)",
+        "PREHEADER_PLACEHOLDER": "Short preview text shown after the subject",
+        "PREHEADER_HINT": "Shown next to the subject in most inboxes.",
+        "BASE_LABEL": "Contact list (CSV or XLSX)",
+        "BASE_HINT": "Upload a CSV or XLSX with name + email columns. Detected columns become personalization placeholders.",
+        "BASE_PICK": "Choose file",
+        "BASE_SELECTED": "Selected: {name}",
+        "BASE_IMPORTING": "Importing list…",
+        "BASE_IMPORT_RESULT": "{count} contacts imported.",
+        "BASE_IMPORT_COLUMNS": "Detected columns: {columns}",
+        "BASE_IMPORT_ERROR": "Could not import the list. The campaign was saved as a draft.",
+        "CREATE_AND_OPEN": "Create and open in editor",
+        "SAVE_DRAFT": "Save draft"
+      },
+      "SCHEDULE_DIALOG": {
+        "TITLE": "Schedule campaign",
+        "DATETIME_LABEL": "Send at",
+        "DATETIME_ERROR": "Pick a date and time",
+        "SUBMIT": "Schedule",
+        "CANCEL": "Cancel"
+      },
+      "RECIPIENTS": {
+        "TITLE": "Recipients",
+        "SUBTITLE": "Upload a CSV or XLSX with name and email columns. Recipients are used only for this campaign and are not added to your contacts.",
+        "UPLOAD": "Upload list",
+        "UPLOAD_HINT": "CSV or XLSX with name + email columns.",
+        "TABLE": {
+          "EMAIL": "Email",
+          "NAME": "Name",
+          "STATUS": "Status",
+          "SENT_AT": "Sent at",
+          "ERROR": "Error"
+        },
+        "STATUS": {
+          "PENDING": "Pending",
+          "SENT": "Sent",
+          "FAILED": "Failed",
+          "SUPPRESSED": "Suppressed"
+        },
+        "IMPORT_RESULT": {
+          "TITLE": "Import finished",
+          "IMPORTED": "Imported",
+          "DUPLICATES": "Duplicates skipped",
+          "INVALID": "Invalid skipped",
+          "SUPPRESSED": "Suppressed",
+          "TOTAL": "Total rows"
+        },
+        "EMPTY": "No recipients yet. Upload a list to get started.",
+        "IMPORT_SUCCESS": "Recipient list imported.",
+        "IMPORT_ERROR": "Could not import the list. Check the file format and columns.",
+        "ADD_MORE": "Add more contacts",
+        "ADD_MORE_HINT": "The list was uploaded when the campaign was created. Upload another CSV/XLSX to append more contacts."
+      },
+      "PLACEHOLDERS": {
+        "TITLE": "Available placeholders",
+        "SUBTITLE": "Click a placeholder to copy it, then paste it into the subject, preheader or body.",
+        "EMPTY": "Import recipients to see the placeholders from your spreadsheet columns.",
+        "COPY_SUCCESS": "Placeholder copied to clipboard."
+      },
+      "VALIDATION": {
+        "TITLE": "Pre-send check",
+        "OK": "All placeholders used in this campaign have values. Good to go.",
+        "MISSING_LABEL": "Used in the template but not found in the recipients:",
+        "BLANK_LABEL": "Recipients without a value:",
+        "BLANK_ITEM": "{key}: {count} recipient(s) without a value"
+      },
+      "BUILDER": {
+        "TITLE": "Email builder",
+        "TEMPLATE": "Template",
+        "SAVE": "Save",
+        "SAVE_SUCCESS": "Campaign saved successfully",
+        "SAVE_ERROR": "Could not save the campaign, try again",
+        "SEND_TEST": "Send test",
+        "SEND_TEST_EMAIL_LABEL": "Recipient email",
+        "SEND_TEST_EMAIL_PLACEHOLDER": "name{'@'}domain.com",
+        "SEND_TEST_SUBMIT": "Send",
+        "SEND_TEST_SUCCESS": "Test email sent",
+        "SEND_TEST_ERROR": "Could not send the test email",
+        "SAVE_TEMPLATE": "Save as template",
+        "SAVE_TEMPLATE_NAME_LABEL": "Template name",
+        "SAVE_TEMPLATE_NAME_PLACEHOLDER": "e.g. Live invite",
+        "SAVE_TEMPLATE_SUBMIT": "Save template",
+        "SAVE_TEMPLATE_SUCCESS": "Template saved successfully.",
+        "SAVE_TEMPLATE_ERROR": "Could not save the template. Please try again.",
+        "AI_COMPOSE": "Create with AI",
+        "SUBJECT_LABEL": "Subject",
+        "SUBJECT_PLACEHOLDER": "Email subject (the AI fills this in)",
+        "PREVIEW_DESKTOP": "Desktop",
+        "PREVIEW_MOBILE": "Mobile",
+        "PLACEHOLDERS_TITLE": "Placeholders:",
+        "PLACEHOLDER_COPIED": "Placeholder copied to clipboard",
+        "CANCEL": "Cancel",
+        "BLOCKS": {
+          "EMPTY": "Blocks will appear here once the editor is ready."
+        },
+        "TEMPLATES": "Templates",
+        "PREVIEW": "Preview",
+        "PROPS": {
+          "TITLE": "Properties",
+          "EMPTY": "Select a block to edit its style.",
+          "SIZE": {
+            "TITLE": "Size",
+            "FONT_SIZE": "Font size",
+            "WIDTH": "Width",
+            "AUTO": "auto"
+          },
+          "COLOR": {
+            "TITLE": "Color",
+            "TEXT": "Text",
+            "BACKGROUND": "Background",
+            "BUTTON_BACKGROUND": "Button background"
+          },
+          "LINK": {
+            "TITLE": "Link",
+            "HREF": "Link URL",
+            "PLACEHOLDER": "https://example.com or {'{{ link }}'}"
+          },
+          "ALIGN": {
+            "TITLE": "Alignment",
+            "LABEL": "Align"
+          },
+          "SPACING": {
+            "TITLE": "Spacing",
+            "PADDING": "Padding",
+            "MARGIN": "Margin",
+            "RADIUS": "Corner radius"
+          },
+          "TEXT": {
+            "TITLE": "Text",
+            "FONT_FAMILY": "Font",
+            "STYLE": "Style",
+            "LINE_HEIGHT": "Line height"
+          },
+          "IMAGE": {
+            "TITLE": "Image",
+            "REPLACE": "Replace image",
+            "URL": "Image URL",
+            "ALT": "Alt text",
+            "LINK": "Link (href)",
+            "UPLOAD_ERROR": "Could not upload the image. Please try again.",
+            "UPLOAD_TOO_LARGE": "Image is too large. Use a file up to 10 MB.",
+            "UPLOAD_UNSUPPORTED": "Unsupported format. Use PNG, JPG, GIF or WebP.",
+            "FETCH_POSTER": "Fetch video thumbnail",
+            "POSTER_ERROR": "Could not fetch the video thumbnail. Check the link."
+          }
+        }
+      },
+      "AI": {
+        "GENERATING": {
+          "TITLE": "Our AI is crafting the best email for your campaign ✨",
+          "BODY": "We're polishing every detail — design, copy and your selling touches. Depending on how much polish it needs, this can take up to 5 minutes.",
+          "WORKING": "Generating your email...",
+          "LEAVE": "You can leave, I'll notify you",
+          "LEAVE_HINT": "Feel free to keep working: we'll let you know and the email will be ready in your campaign, under the Editor button.",
+          "READY_TITLE": "Your email is ready! 🎉",
+          "READY_BODY": "We polished the design and copy based on your brief. Open it in the editor to review and tweak anything you want.",
+          "OPEN_EDITOR": "Open in editor",
+          "FAILED_TITLE": "I couldn't finish the generation",
+          "FAILED_BODY": "Something went wrong while generating your email. Try again — or simplify the brief or remove heavy attachments.",
+          "CLOSE": "Close"
+        },
+        "TOAST": {
+          "READY": "✨ The email for campaign \"{name}\" is ready! Open it in the editor to review.",
+          "FAILED": "Couldn't generate the email for campaign \"{name}\". Please try again."
+        },
+        "BADGE": {
+          "PROCESSING": "AI generating",
+          "READY": "AI ready",
+          "FAILED": "AI failed"
+        },
+        "COMPOSER": {
+          "TITLE": "Create with AI",
+          "SUBTITLE": "Describe the email you need and the AI will draft the subject, preheader and layout.",
+          "BRIEF_LABEL": "Briefing",
+          "BRIEF_PLACEHOLDER": "E.g.: promotional email about the new auto insurance plan, friendly tone, discount call-to-action",
+          "ADAPT_LABEL": "Adapt the current template",
+          "ADAPT_HINT": "Keep this template's layout and structure; the AI only rewrites the copy and restyles to your brief. Uncheck to generate from scratch.",
+          "GENERATE": "Generate",
+          "CANCEL": "Cancel",
+          "ERROR": "Could not generate the email. Please try again.",
+          "NOT_CONFIGURED": "Set up the CRM AI key in Connections to use this feature.",
+          "BASE_TOO_LARGE": "This template is too large to adapt. Uncheck \"Adapt the current template\" to generate from scratch.",
+          "PLACEHOLDERS_LABEL": "Base placeholders",
+          "PLACEHOLDERS_HINT": "The AI can personalize the email with these columns from your recipient list.",
+          "ASSETS_LABEL": "Assets",
+          "ASSETS_HINT": "Add images, a logo, a PDF or a video so the AI can use them. Tell the AI how each asset should be used.",
+          "ADD_IMAGE": "Image / Logo",
+          "ADD_PDF": "PDF",
+          "ADD_VIDEO_FILE": "Upload video",
+          "VIDEO_LINK_LABEL": "Video by link",
+          "VIDEO_LINK_PLACEHOLDER": "Paste a YouTube or Vimeo URL",
+          "VIDEO_LINK_ADD": "Add",
+          "ASSET_DESCRIPTION_PLACEHOLDER": "What is this asset? E.g. customer testimonial video",
+          "KIND_IMAGE": "Image",
+          "KIND_PDF": "PDF",
+          "KIND_VIDEO": "Video",
+          "ROLE_LOGO": "Logo",
+          "ROLE_PRODUCT": "Product",
+          "ROLE_BANNER": "Banner",
+          "ROLE_TESTIMONIAL": "Testimonial",
+          "ROLE_OTHER": "Other"
+        },
+        "BLOCK_ACTIONS": {
+          "TRIGGER": "Improve with AI",
+          "REWRITE": "Rewrite",
+          "SHORTEN": "Shorten",
+          "PERSUASIVE": "More persuasive",
+          "NO_TEXT": "Select a block with text to improve.",
+          "ERROR": "Could not rewrite the text. Please try again.",
+          "NOT_CONFIGURED": "Set up the CRM AI key in Connections to use this feature."
+        }
+      },
+      "WELCOME": {
+        "TITLE": "How do you want to start?",
+        "SUBTITLE": "Pick a starting point. You can change everything later in the editor.",
+        "AI_TITLE": "Create with AI",
+        "AI_SUBTITLE": "Describe your campaign and let AI draft it using your contact list.",
+        "AI_BADGE": "Recommended",
+        "AI_CTA": "Start with AI",
+        "TEMPLATE_TITLE": "Choose a template",
+        "TEMPLATE_SUBTITLE": "Start from a ready-made design and tweak it.",
+        "TEMPLATE_CTA": "Browse templates",
+        "BLANK_TITLE": "Start from scratch",
+        "BLANK_SUBTITLE": "Build your email block by block on a blank canvas.",
+        "BLANK_CTA": "Start blank"
+      },
+      "BUILDER_ERRORS": {
+        "asset_unsupported_type": "Unsupported file type. Upload an image or a video.",
+        "asset_too_large": "File is too large.",
+        "asset_file_required": "Please choose a file to upload.",
+        "video_input_required": "Provide a video link or upload a video.",
+        "video_url_blank": "The video link is empty.",
+        "video_host_not_allowed": "Only YouTube and Vimeo links are supported.",
+        "video_id_not_found": "Could not read the video id from that link.",
+        "video_oembed_failed": "Could not fetch the video preview. Check the link and try again.",
+        "video_poster_unavailable": "No poster image is available for this video.",
+        "video_blob_not_found": "Uploaded video not found for this campaign."
+      },
+      "GALLERY": {
+        "TITLE": "Choose a template",
+        "ALL_CATEGORIES": "All",
+        "PREVIEW": "Preview",
+        "USE": "Use this template",
+        "CANCEL": "Cancel",
+        "EMPTY": "No templates available yet.",
+        "NO_PREVIEW": "No preview available for this template.",
+        "APPLIED": "Template applied to the campaign.",
+        "APPLY_ERROR": "Could not apply the template. Please try again.",
+        "LOAD_ERROR": "Could not load the templates. Please try again.",
+        "CATEGORIES": {
+          "abandoned-cart": "Abandoned cart",
+          "account-activation": "Account activation",
+          "feedback": "Feedback",
+          "newsletter": "Newsletter",
+          "product-launch": "Product launch",
+          "receipt-invoice": "Receipt & invoice",
+          "reengagement": "Re-engagement",
+          "shipping-update": "Shipping update",
+          "upsell": "Upsell"
+        }
       }
     }
   }

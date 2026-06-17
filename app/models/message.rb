@@ -160,7 +160,7 @@ class Message < ApplicationRecord
       assignee_id: conversation.assignee_id,
       unread_count: conversation.unread_incoming_messages.count,
       last_activity_at: conversation.last_activity_at.to_i,
-      contact_inbox: { source_id: conversation.contact_inbox.source_id }
+      contact_inbox: { source_id: conversation.contact_inbox&.source_id }
     }
   end
 
@@ -227,7 +227,8 @@ class Message < ApplicationRecord
     return false if conversation.messages.outgoing
                                 .where.not(sender_type: ['AgentBot', 'Captain::Assistant'])
                                 .where.not(private: true)
-                                .where("(additional_attributes->'campaign_id') is null").count > 1
+                                .where("(additional_attributes->'campaign_id') is null")
+                                .where("(additional_attributes->'whatsapp_api_campaign_id') is null").count > 1
 
     true
   end
@@ -367,6 +368,7 @@ class Message < ApplicationRecord
     outgoing? &&
       content_attributes['automation_rule_id'].blank? &&
       additional_attributes['campaign_id'].blank? &&
+      additional_attributes['whatsapp_api_campaign_id'].blank? &&
       (sender.is_a?(User) || content_attributes['external_echo'].present?)
   end
 

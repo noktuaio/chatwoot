@@ -6,6 +6,7 @@ import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsTo
 import SettingsAccordion from 'dashboard/components-next/Settings/SettingsAccordion.vue';
 import ImapSettings from '../ImapSettings.vue';
 import SmtpSettings from '../SmtpSettings.vue';
+import EmailCampaignDomainSettings from '../components/EmailCampaignDomainSettings.vue';
 import { useVuelidate } from '@vuelidate/core';
 import { required } from '@vuelidate/validators';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -20,6 +21,7 @@ export default {
     SettingsAccordion,
     ImapSettings,
     SmtpSettings,
+    EmailCampaignDomainSettings,
     NextButton,
     TextArea,
     WhatsappReauthorize,
@@ -41,6 +43,7 @@ export default {
       whatsAppInboxAPIKey: '',
       isRequestingReauthorization: false,
       isSyncingTemplates: false,
+      isUpdatingWhatsappApiCampaigns: false,
       allowedDomains: '',
       isUpdatingAllowedDomains: false,
       isSettingDefaults: false,
@@ -58,6 +61,22 @@ export default {
     },
     isForwardingEnabled() {
       return !!this.inbox.forwarding_enabled;
+    },
+    whatsappApiCampaignsEnabled() {
+      return window.globalConfig?.WHATSAPP_API_CAMPAIGNS_ENABLED === 'true';
+    },
+    isWhatsappApiCampaignInbox() {
+      return (
+        this.inbox.additional_attributes?.campaign_channel_type ===
+        'whatsapp_api'
+      );
+    },
+    emailCampaignEnabled() {
+      const config = this.$store.getters['globalConfig/get'];
+      return (
+        config?.emailCampaignEnabled === true &&
+        config?.crmKanbanEnabled === true
+      );
     },
   },
   watch: {
@@ -182,6 +201,20 @@ export default {
         useAlert(this.$t('INBOX_MGMT.EDIT.API.ERROR_MESSAGE'));
       } finally {
         this.isSyncingTemplates = false;
+      }
+    },
+    async toggleWhatsappApiCampaigns() {
+      this.isUpdatingWhatsappApiCampaigns = true;
+      try {
+        const action = this.isWhatsappApiCampaignInbox
+          ? 'inboxes/disableWhatsappApiCampaigns'
+          : 'inboxes/enableWhatsappApiCampaigns';
+        await this.$store.dispatch(action, this.inbox.id);
+        useAlert(this.$t('INBOX_MGMT.EDIT.API.SUCCESS_MESSAGE'));
+      } catch (error) {
+        useAlert(this.$t('INBOX_MGMT.EDIT.API.ERROR_MESSAGE'));
+      } finally {
+        this.isUpdatingWhatsappApiCampaigns = false;
       }
     },
   },
@@ -329,6 +362,52 @@ export default {
         </label>
       </div>
     </SettingsFieldSection>
+    <SettingsToggleSection
+      v-if="whatsappApiCampaignsEnabled"
+      hide-toggle
+      :header="$t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_API_CAMPAIGNS.TITLE')"
+      :description="
+        $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_API_CAMPAIGNS.DESCRIPTION')
+      "
+      class="mt-4"
+    >
+      <template #hiddenToggle>
+        <span
+          class="px-2 py-1 text-xs font-medium rounded-md"
+          :class="
+            isWhatsappApiCampaignInbox
+              ? 'bg-n-teal-3 text-n-teal-11'
+              : 'bg-n-alpha-2 text-n-slate-11'
+          "
+        >
+          {{
+            isWhatsappApiCampaignInbox
+              ? $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_API_CAMPAIGNS.ENABLED')
+              : $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_API_CAMPAIGNS.DISABLED')
+          }}
+        </span>
+      </template>
+      <template #editor>
+        <div
+          class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p class="mb-0 text-sm leading-5 text-n-slate-11">
+            {{ $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_API_CAMPAIGNS.HELP') }}
+          </p>
+          <NextButton
+            :label="
+              isWhatsappApiCampaignInbox
+                ? $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_API_CAMPAIGNS.DISABLE')
+                : $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_API_CAMPAIGNS.ENABLE')
+            "
+            :is-loading="isUpdatingWhatsappApiCampaigns"
+            :color="isWhatsappApiCampaignInbox ? 'slate' : 'blue'"
+            class="w-full min-w-[8rem] shrink-0 sm:w-auto [&>span]:whitespace-nowrap"
+            @click="toggleWhatsappApiCampaigns"
+          />
+        </div>
+      </template>
+    </SettingsToggleSection>
   </div>
   <div v-else-if="isAnEmailChannel">
     <div>
@@ -354,8 +433,12 @@ export default {
         </div>
       </SettingsFieldSection>
     </div>
-    <ImapSettings :inbox="inbox" />
-    <SmtpSettings v-if="inbox.imap_enabled" :inbox="inbox" />
+    <ImapSettings v-if="!inbox.provider" :inbox="inbox" />
+    <SmtpSettings v-if="!inbox.provider && inbox.imap_enabled" :inbox="inbox" />
+    <EmailCampaignDomainSettings
+      v-if="emailCampaignEnabled && inbox.email"
+      :inbox="inbox"
+    />
   </div>
   <div v-else-if="isAWhatsAppChannel && !isATwilioChannel">
     <div v-if="inbox.provider_config">

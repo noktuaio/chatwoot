@@ -793,6 +793,15 @@
       "HMAC_LINK_TO_DOCS": "Pode saber mais aqui.",
       "HMAC_MANDATORY_VERIFICATION": "Forçar validação de identidade do utilizador",
       "HMAC_MANDATORY_DESCRIPTION": "Se ativado, os pedidos que não podem ser verificados serão rejeitados.",
+      "WHATSAPP_API_CAMPAIGNS": {
+        "TITLE": "Campanhas WhatsApp API",
+        "DESCRIPTION": "Permite usar esta caixa API em campanhas WhatsApp API com entrega pelo WAHA.",
+        "HELP": "Ative apenas em caixas API conectadas ao WAHA. A campanha usa o telefone do contato e não depende do nome da caixa.",
+        "ENABLED": "Ativada",
+        "DISABLED": "Desativada",
+        "ENABLE": "Ativar",
+        "DISABLE": "Desativar"
+      },
       "INBOX_IDENTIFIER": "Identificador da caixa de entrada",
       "INBOX_IDENTIFIER_SUB_TEXT": "Use o token 'inbox_identifier' mostrado aqui para autenticar os seus clientes API.",
       "FORWARD_EMAIL_TITLE": "Encaminhar para e-mail",

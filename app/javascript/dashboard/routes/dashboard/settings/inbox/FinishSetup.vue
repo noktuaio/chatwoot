@@ -25,6 +25,8 @@ const currentInbox = computed(() =>
   store.getters['inboxes/getInbox'](route.params.inbox_id)
 );
 
+const isWahaInbox = computed(() => Boolean(currentInbox.value?.waha_provider));
+
 // Use useInbox composable with the inbox ID
 const {
   isAWhatsAppCloudChannel,
@@ -277,29 +279,44 @@ onMounted(() => {
         </div>
         <div class="flex gap-2 justify-center mt-4">
           <router-link
+            v-if="isWahaInbox"
             :to="{
               name: 'settings_inbox_show',
-              params: { inboxId: $route.params.inbox_id },
-            }"
-          >
-            <NextButton
-              outline
-              slate
-              :label="$t('INBOX_MGMT.FINISH.MORE_SETTINGS')"
-            />
-          </router-link>
-          <router-link
-            :to="{
-              name: 'inbox_dashboard',
-              params: { inboxId: $route.params.inbox_id },
+              params: { inboxId: $route.params.inbox_id, tab: 'connection' },
             }"
           >
             <NextButton
               solid
               teal
-              :label="$t('INBOX_MGMT.FINISH.BUTTON_TEXT')"
+              :label="$t('INBOX_MGMT.FINISH.MORE_SETTINGS')"
             />
           </router-link>
+          <template v-else>
+            <router-link
+              :to="{
+                name: 'settings_inbox_show',
+                params: { inboxId: $route.params.inbox_id },
+              }"
+            >
+              <NextButton
+                outline
+                slate
+                :label="$t('INBOX_MGMT.FINISH.MORE_SETTINGS')"
+              />
+            </router-link>
+            <router-link
+              :to="{
+                name: 'inbox_dashboard',
+                params: { inboxId: $route.params.inbox_id },
+              }"
+            >
+              <NextButton
+                solid
+                teal
+                :label="$t('INBOX_MGMT.FINISH.BUTTON_TEXT')"
+              />
+            </router-link>
+          </template>
         </div>
       </div>
     </EmptyState>

@@ -9,6 +9,10 @@ module Enterprise::Concerns::Account
     has_many :custom_roles, dependent: :destroy_async
     has_many :agent_capacity_policies, dependent: :destroy_async
 
+    # CRM integration tokens (per-account scoped API credentials, plan §3.2). EE-only
+    # alongside custom_roles since each token provisions a managed CustomRole.
+    has_many :crm_integration_tokens, dependent: :destroy_async, class_name: 'Crm::IntegrationToken'
+
     has_many :captain_assistants, dependent: :destroy_async, class_name: 'Captain::Assistant'
     has_many :captain_assistant_responses, dependent: :destroy_async, class_name: 'Captain::AssistantResponse'
     has_many :captain_documents, dependent: :destroy_async, class_name: 'Captain::Document'

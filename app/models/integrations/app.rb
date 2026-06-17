@@ -62,6 +62,12 @@ class Integrations::App
       shopify_enabled?(account)
     when 'leadsquared'
       account.feature_enabled?('crm_integration')
+    when 'crm_n8n'
+      # Dual-gate (plan B-N1): the apps.yml feature_flag drives card visibility,
+      # this server guard additionally requires the CRM Kanban itself to be on.
+      account.feature_enabled?('crm_integration') && ::Crm::Config.enabled?
+    when 'crm_kanban_ai'
+      ::Crm::Config.enabled? && ::Crm::Ai::Config.enabled?
     when 'notion'
       notion_enabled?(account)
     else
@@ -88,6 +94,10 @@ class Integrations::App
       account.webhooks.exists?
     when 'dashboard_apps'
       account.dashboard_apps.exists?
+    when 'crm_kanban_ai'
+      # AI runs on a system API key fallback (Crm::Ai::CredentialResolver) with no
+      # Integrations::Hook, so reflect actual credential availability instead of a hook.
+      ::Crm::Ai::CredentialResolver.new(account: account).configured?
     else
       account.hooks.exists?(app_id: id)
     end

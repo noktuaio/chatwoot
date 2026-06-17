@@ -1,6 +1,7 @@
 import { frontendURL } from '../../../helper/URLHelper';
 import ContactsIndex from './pages/ContactsIndex.vue';
 import ContactManageView from './pages/ContactManageView.vue';
+import CampaignImportHistory from './pages/CampaignImportHistory.vue';
 import { FEATURE_FLAGS } from '../../../featureFlags';
 
 const commonMeta = {
@@ -8,7 +9,25 @@ const commonMeta = {
   permissions: ['administrator', 'agent', 'contact_manage'],
 };
 
+const campaignImportMeta = {
+  featureFlag: FEATURE_FLAGS.CRM,
+  permissions: ['administrator'],
+};
+
 export const routes = [
+  {
+    path: frontendURL('accounts/:accountId/contacts/campaign-imports'),
+    name: 'contacts_campaign_imports',
+    component: CampaignImportHistory,
+    meta: campaignImportMeta,
+    beforeEnter: (_to, _from, next) => {
+      if (window.globalConfig?.CAMPAIGN_IMPORT_ENABLED === 'true') {
+        next();
+        return;
+      }
+      next({ name: 'contacts_dashboard_index' });
+    },
+  },
   {
     path: frontendURL('accounts/:accountId/contacts'),
     component: ContactsIndex,

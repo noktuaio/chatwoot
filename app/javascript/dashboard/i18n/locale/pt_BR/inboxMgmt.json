@@ -366,6 +366,33 @@
           "ERROR_MESSAGE": "Não conseguimos criar o canal de voz"
         }
       },
+      "WHATSAPP_API": {
+        "TITLE": "Conectar um número de WhatsApp",
+        "DESC": "Conecte um número e comece a atender. É rápido — você lê um QR Code no final.",
+        "MODE": {
+          "LABEL": "Quem vai atender?",
+          "HUMAN": "Atendimento humano",
+          "AI": "Agente de IA",
+          "HINT": "Escolha como esse número será atendido. Você pode mudar depois."
+        },
+        "CHANNEL_NAME": {
+          "LABEL": "Nome da caixa de entrada",
+          "PLACEHOLDER": "Ex.: Suporte Viagem",
+          "ERROR": "Informe um nome para a caixa de entrada"
+        },
+        "PHONE": {
+          "LABEL": "Telefone",
+          "PLACEHOLDER": "5511987654321",
+          "SUBTITLE": "Obrigatório no formato 55DDDNÚMERO (ex.: 5511987654321).",
+          "ERROR": "Informe um número válido no formato 55DDDNÚMERO."
+        },
+        "SUBMIT_BUTTON": "Criar caixa de WhatsApp",
+        "ERROR": {
+          "INVALID_PHONE": "Número inválido. Use o formato 55DDDNÚMERO.",
+          "NOT_CONFIGURED": "A conexão de WhatsApp ainda não está configurada. Fale com o suporte.",
+          "GENERIC": "Não foi possível criar a caixa. Tente novamente."
+        }
+      },
       "API_CHANNEL": {
         "TITLE": "Canal da API",
         "DESC": "Integre com canal API e comece a ajudar seus clientes.",
@@ -464,8 +491,12 @@
             "DESCRIPTION": "Conectar sua página do Facebook"
           },
           "WHATSAPP": {
-            "TITLE": "WhatsApp",
-            "DESCRIPTION": "Atenda seus clientes no WhatsApp"
+            "TITLE": "WhatsApp Oficial",
+            "DESCRIPTION": "Atenda os seus clientes no WhatsApp Oficial"
+          },
+          "WHATSAPP_API": {
+            "TITLE": "WhatsApp API",
+            "DESCRIPTION": "Conecte um número lendo um QR Code"
           },
           "WHATSAPP_CALL": {
             "TITLE": "Chamada do WhatsApp",
@@ -632,9 +663,27 @@
         "AVATAR_ERROR_MESSAGE": "Não foi possível excluir o perfil da caixa de entrada. Por favor, tente novamente mais tarde."
       }
     },
+    "WAHA_CONNECTION": {
+      "SUBTITLE": "Estado da conexão, atualizado automaticamente",
+      "SCAN_TITLE": "Leia o QR Code para conectar",
+      "STEP_1": "Abra o WhatsApp no celular desse número",
+      "STEP_2": "Vá em Configurações e depois Aparelhos conectados",
+      "STEP_3": "Toque em Conectar um aparelho e leia o código",
+      "RECONNECT": "Gerar novo QR Code",
+      "CONNECTED_HELP": "Conectado. Você já pode enviar e receber mensagens.",
+      "STATUS": {
+        "CONNECTED": "Conectado",
+        "AWAITING": "Aguardando leitura do QR",
+        "CONNECTING": "Conectando",
+        "FAILED": "Falha na conexão",
+        "DISCONNECTED": "Desconectado",
+        "CHECKING": "Verificando"
+      }
+    },
     "TABS": {
       "SETTINGS": "Configurações",
       "COLLABORATORS": "Agentes",
+      "CONNECTION": "Conexão",
       "CONFIGURATION": "Configuração",
       "CAMPAIGN": "Campanhas",
       "PRE_CHAT_FORM": "Formulário Chat Pré",
@@ -793,6 +842,15 @@
       "HMAC_LINK_TO_DOCS": "Você pode ler mais aqui.",
       "HMAC_MANDATORY_VERIFICATION": "Forçar validação de identidade do usuário",
       "HMAC_MANDATORY_DESCRIPTION": "Se ativado, as solicitações sem o 'identifier_hash' serão rejeitadas.",
+      "WHATSAPP_API_CAMPAIGNS": {
+        "TITLE": "Campanhas WhatsApp API",
+        "DESCRIPTION": "Permite usar esta caixa API em campanhas WhatsApp API com entrega pelo WAHA.",
+        "HELP": "Ative apenas em caixas API conectadas ao WAHA. A campanha usa o telefone do contato e não depende do nome da caixa.",
+        "ENABLED": "Ativada",
+        "DISABLED": "Desativada",
+        "ENABLE": "Ativar",
+        "DISABLE": "Desativar"
+      },
       "INBOX_IDENTIFIER": "Identificador da caixa de entrada",
       "INBOX_IDENTIFIER_SUB_TEXT": "Use o token 'inbox_identifier' mostrado aqui para autenticar os seus clientes API.",
       "FORWARD_EMAIL_TITLE": "Encaminhar para o E-mail",
@@ -1182,6 +1240,25 @@
         "TITLE": "Outros Provedores",
         "DESCRIPTION": "Conectar com outros provedores"
       }
+    },
+    "OAUTH_CREDENTIALS": {
+      "LOADING": "Verificando as configurações de conexão…",
+      "INTRO_MICROSOFT": "Para conectar, registre um aplicativo e cole as credenciais dele abaixo. Antes de salvar, adicione no aplicativo a URL de redirecionamento mostrada abaixo.",
+      "INTRO_GOOGLE": "Para conectar, crie um cliente OAuth e cole as credenciais dele abaixo. Antes de salvar, adicione a URL de redirecionamento abaixo nas URIs autorizadas do cliente.",
+      "CALLBACK_LABEL": "URL de redirecionamento (adicione esta no seu aplicativo)",
+      "COPY": "Copiar",
+      "COPIED": "URL de redirecionamento copiada",
+      "CLIENT_ID_MICROSOFT": "ID do aplicativo (cliente)",
+      "CLIENT_ID_MICROSOFT_PH": "00000000-0000-0000-0000-000000000000",
+      "CLIENT_ID_GOOGLE": "ID do cliente",
+      "CLIENT_ID_GOOGLE_PH": "xxxx.apps.googleusercontent.com",
+      "CLIENT_SECRET_MICROSOFT": "Segredo do cliente",
+      "CLIENT_SECRET_GOOGLE": "Segredo do cliente",
+      "CLIENT_SECRET_PH": "Cole o valor do segredo",
+      "SAVE_AND_CONTINUE": "Salvar e continuar",
+      "SAVE_ERROR": "Não foi possível salvar as credenciais. Confira os valores e tente novamente.",
+      "USING_ACCOUNT_APP": "Usando o aplicativo próprio desta conta.",
+      "EDIT_APP": "Editar credenciais"
     },
     "CHANNELS": {
       "MESSENGER": "Messenger",

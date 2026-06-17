@@ -11,6 +11,9 @@ import UnreadBadge from 'dashboard/components-next/Conversation/ConversationCard
 import SLACardLabel from './components/SLACardLabel.vue';
 import VoiceCallStatus from './VoiceCallStatus.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
+import CrmConversationStageChip from 'dashboard/components-next/Conversation/ConversationCard/CrmConversationStageChip.vue';
+import { useCrmPermissions } from 'dashboard/routes/dashboard/crm/composables/useCrmPermissions';
+import { useCrmConversationStage } from 'dashboard/routes/dashboard/crm/composables/useCrmConversationStages';
 
 const props = defineProps({
   chat: { type: Object, required: true },
@@ -59,8 +62,21 @@ const showMetaSection = computed(() => {
 
 const hasSlaPolicyId = computed(() => props.chat?.sla_policy_id);
 
+// Virtual CRM stage chip — rendered alongside labels (same path as labels),
+// gated by CRM-on + view permission, data via batched lookup keyed on chat id.
+const { canViewCrm } = useCrmPermissions();
+const crmChipEnabled = computed(
+  () => canViewCrm.value && window.globalConfig?.CRM_KANBAN_ENABLED === 'true'
+);
+const crmStage = useCrmConversationStage(
+  computed(() => (crmChipEnabled.value ? props.chat?.id : null))
+);
+const hasCrmStage = computed(() => !!crmStage.value?.stage_name);
+
 const showLabelsSection = computed(() => {
-  return props.chat.labels?.length > 0 || hasSlaPolicyId.value;
+  return (
+    props.chat.labels?.length > 0 || hasSlaPolicyId.value || hasCrmStage.value
+  );
 });
 
 const messagePreviewClass = computed(() => {
@@ -225,8 +241,17 @@ watch(
         :conversation-labels="chat.labels"
         class="mt-0.5 mx-2 mb-0"
       >
-        <template v-if="hasSlaPolicyId" #before>
-          <SLACardLabel :chat="chat" class="ltr:mr-1 rtl:ml-1" />
+        <template v-if="hasSlaPolicyId || hasCrmStage" #before>
+          <CrmConversationStageChip
+            v-if="hasCrmStage"
+            :conversation-id="chat.id"
+            class="ltr:mr-1 rtl:ml-1"
+          />
+          <SLACardLabel
+            v-if="hasSlaPolicyId"
+            :chat="chat"
+            class="ltr:mr-1 rtl:ml-1"
+          />
         </template>
       </CardLabels>
     </div>

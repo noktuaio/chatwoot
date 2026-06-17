@@ -4,11 +4,25 @@ import CampaignsPageRouteView from './pages/CampaignsPageRouteView.vue';
 import LiveChatCampaignsPage from './pages/LiveChatCampaignsPage.vue';
 import SMSCampaignsPage from './pages/SMSCampaignsPage.vue';
 import WhatsAppCampaignsPage from './pages/WhatsAppCampaignsPage.vue';
+import WhatsAppApiCampaignsPage from './pages/WhatsAppApiCampaignsPage.vue';
+import EmailSenderPage from './pages/EmailSenderPage.vue';
+import EmailCampaignsPage from './pages/EmailCampaignsPage.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 const meta = {
   featureFlag: FEATURE_FLAGS.CAMPAIGNS,
   permissions: ['administrator'],
+};
+
+const requireEmailCampaigns = (to, _from, next) => {
+  if (
+    window.globalConfig?.EMAIL_CAMPAIGN_ENABLED === 'true' &&
+    window.globalConfig?.CRM_KANBAN_ENABLED === 'true'
+  ) {
+    next();
+    return;
+  }
+  next({ name: 'campaigns_sms_index', params: to.params });
 };
 
 const campaignsRoutes = {
@@ -59,6 +73,49 @@ const campaignsRoutes = {
             featureFlag: FEATURE_FLAGS.WHATSAPP_CAMPAIGNS,
           },
           component: WhatsAppCampaignsPage,
+        },
+        {
+          path: 'whatsapp_api',
+          name: 'campaigns_whatsapp_api_index',
+          meta,
+          beforeEnter: (to, _from, next) => {
+            if (
+              window.globalConfig?.WHATSAPP_API_CAMPAIGNS_ENABLED === 'true'
+            ) {
+              next();
+              return;
+            }
+            next({ name: 'campaigns_whatsapp_index', params: to.params });
+          },
+          component: WhatsAppApiCampaignsPage,
+        },
+        {
+          path: 'email_sender',
+          name: 'campaigns_email_sender_index',
+          meta,
+          beforeEnter: requireEmailCampaigns,
+          component: EmailSenderPage,
+        },
+        {
+          path: 'email_campaigns',
+          name: 'campaigns_email_index',
+          meta,
+          beforeEnter: requireEmailCampaigns,
+          component: EmailCampaignsPage,
+        },
+        {
+          path: 'email_campaigns/:campaignId/builder',
+          name: 'campaigns_email_builder',
+          meta,
+          beforeEnter: requireEmailCampaigns,
+          component: () => import('./pages/EmailBuilderPage.vue'),
+        },
+        {
+          path: 'email_campaigns/:campaignId/templates',
+          name: 'campaigns_email_templates',
+          meta,
+          beforeEnter: requireEmailCampaigns,
+          component: () => import('./pages/EmailTemplatesPage.vue'),
         },
       ],
     },

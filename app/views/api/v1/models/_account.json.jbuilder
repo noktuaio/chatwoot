@@ -30,4 +30,5 @@ json.locale @account.locale
 json.name @account.name
 json.support_email @account.support_email
 json.status @account.status
+json.autonomia_agents_enabled Autonomia::Agents::Config.enabled?(@account)
 json.cache_keys @account.cache_keys

@@ -20,6 +20,14 @@ const FloatingCallWidget = defineAsyncComponent(
   () => import('dashboard/components-next/call/FloatingCallWidget.vue')
 );
 
+const CrmFollowUpReminderModal = defineAsyncComponent(
+  () => import('dashboard/components/crm/CrmFollowUpReminderModal.vue')
+);
+
+const EmailCampaignAiToast = defineAsyncComponent(
+  () => import('dashboard/components/EmailCampaignAiToast.vue')
+);
+
 import CopilotLauncher from 'dashboard/components-next/copilot/CopilotLauncher.vue';
 import CopilotContainer from 'dashboard/components/copilot/CopilotContainer.vue';
 
@@ -36,6 +44,8 @@ export default {
     CopilotLauncher,
     CopilotContainer,
     FloatingCallWidget,
+    CrmFollowUpReminderModal,
+    EmailCampaignAiToast,
     MobileSidebarLauncher,
   },
   setup() {
@@ -163,6 +173,8 @@ export default {
         />
         <CopilotContainer />
         <FloatingCallWidget v-if="hasActiveCall || hasIncomingCall" />
+        <CrmFollowUpReminderModal />
+        <EmailCampaignAiToast />
       </template>
       <AddAccountModal
         :show="showCreateAccountModal"

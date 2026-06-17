@@ -1,0 +1,570 @@
+<script setup>
+import { computed, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useLocale } from 'shared/composables/useLocale';
+import CrmKanbanAPI from 'dashboard/api/crmKanban';
+
+import Button from 'dashboard/components-next/button/Button.vue';
+import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import ReportMetricCard from 'dashboard/routes/dashboard/settings/reports/components/ReportMetricCard.vue';
+import BarChart from 'shared/components/charts/BarChart.vue';
+
+const { t } = useI18n();
+const { resolvedLocale } = useLocale();
+
+const PERIODS = [
+  { key: 'LAST_7', days: 7, groupBy: 'day' },
+  { key: 'LAST_30', days: 30, groupBy: 'day' },
+  { key: 'LAST_90', days: 90, groupBy: 'week' },
+  { key: 'LAST_365', days: 365, groupBy: 'month' },
+];
+
+const pipelines = ref([]);
+const selectedPipelineId = ref('');
+const selectedPeriodKey = ref('LAST_30');
+
+const summary = ref(null);
+const funnel = ref(null);
+const aiVsHuman = ref(null);
+const throughput = ref(null);
+const followUps = ref(null);
+const workload = ref(null);
+
+const isLoading = ref(true);
+const loadError = ref(false);
+
+const selectedPeriod = computed(
+  () => PERIODS.find(p => p.key === selectedPeriodKey.value) || PERIODS[1]
+);
+
+const hasPipelines = computed(() => pipelines.value.length > 0);
+
+const requestParams = computed(() => {
+  const until = new Date();
+  const since = new Date();
+  since.setDate(since.getDate() - selectedPeriod.value.days);
+  return {
+    pipeline_id: selectedPipelineId.value || undefined,
+    since: since.toISOString(),
+    until: until.toISOString(),
+    group_by: selectedPeriod.value.groupBy,
+  };
+});
+
+const formatMoney = (cents, currency) =>
+  new Intl.NumberFormat(resolvedLocale.value, {
+    style: 'currency',
+    currency: currency || 'BRL',
+  }).format(Number(cents || 0) / 100);
+
+const formatNumber = num =>
+  new Intl.NumberFormat(resolvedLocale.value).format(Number(num || 0));
+
+const formatPercent = ratio =>
+  ratio == null ? '—' : `${Math.round(Number(ratio) * 100)}%`;
+
+// Joins a [{ currency, value_cents }] list into a single multi-currency string,
+// honoring the locked rule that currencies are never summed together.
+const formatCurrencyList = list => {
+  if (!list || !list.length) return formatMoney(0, 'BRL');
+  return list
+    .map(entry => formatMoney(entry.value_cents, entry.currency))
+    .join(' · ');
+};
+
+// Monthly sales target box: attainment % + pacing (on track when attainment
+// keeps up with the share of the month already elapsed).
+const goal = computed(() => summary.value?.goal || null);
+const goalAttainmentPct = computed(() =>
+  goal.value ? Math.min(100, Math.round(goal.value.attainment * 100)) : 0
+);
+const goalOnTrack = computed(
+  () => goal.value && goal.value.attainment >= goal.value.month_elapsed
+);
+const goalProgressLabel = computed(() => {
+  if (!goal.value) return '';
+  const achieved = formatMoney(goal.value.achieved_cents, goal.value.currency);
+  const target = formatMoney(goal.value.target_cents, goal.value.currency);
+  return `${achieved} / ${target}`;
+});
+
+const funnelMaxCount = computed(() => {
+  const stages = funnel.value?.stages || [];
+  return Math.max(1, ...stages.map(stage => stage.count || 0));
+});
+
+const workloadMaxCount = computed(() => {
+  const list = workload.value?.responsibles || [];
+  return Math.max(1, ...list.map(entry => entry.count || 0));
+});
+
+const hasFunnel = computed(() =>
+  (funnel.value?.stages || []).some(stage => stage.count > 0)
+);
+
+const hasAiActivity = computed(() => {
+  const ai = aiVsHuman.value;
+  if (!ai) return false;
+  return ai.ai_auto_moves + ai.ai_accepted + ai.ai_dismissed > 0;
+});
+
+const throughputCollection = computed(() => {
+  const series = throughput.value?.series || [];
+  return {
+    labels: series.map(point => point.date),
+    datasets: [
+      {
+        label: t('CRM_KANBAN.DASHBOARD.THROUGHPUT.WON'),
+        backgroundColor: '#16a34a',
+        data: series.map(point => point.won),
+      },
+      {
+        label: t('CRM_KANBAN.DASHBOARD.THROUGHPUT.LOST'),
+        backgroundColor: '#e11d48',
+        data: series.map(point => point.lost),
+      },
+    ],
+  };
+});
+
+const hasThroughput = computed(() =>
+  (throughput.value?.series || []).some(point => point.won + point.lost > 0)
+);
+
+const workloadLabel = entry => {
+  if (entry.type === 'bot')
+    return entry.name || t('CRM_KANBAN.DASHBOARD.WORKLOAD.BOT');
+  if (entry.type === 'none') return t('CRM_KANBAN.DASHBOARD.WORKLOAD.NONE');
+  return entry.name || `#${entry.key}`;
+};
+
+const fetchReports = async () => {
+  if (!hasPipelines.value) return;
+  isLoading.value = true;
+  loadError.value = false;
+  try {
+    const params = requestParams.value;
+    const [
+      summaryRes,
+      funnelRes,
+      aiRes,
+      throughputRes,
+      followUpsRes,
+      workloadRes,
+    ] = await Promise.all([
+      CrmKanbanAPI.getReportSummary(params),
+      CrmKanbanAPI.getReportFunnel(params),
+      CrmKanbanAPI.getReportAiVsHuman(params),
+      CrmKanbanAPI.getReportThroughput(params),
+      CrmKanbanAPI.getReportFollowUps(params),
+      CrmKanbanAPI.getReportWorkload(params),
+    ]);
+    summary.value = summaryRes.data.payload;
+    funnel.value = funnelRes.data.payload;
+    aiVsHuman.value = aiRes.data.payload;
+    throughput.value = throughputRes.data.payload;
+    followUps.value = followUpsRes.data.payload;
+    workload.value = workloadRes.data.payload;
+  } catch (error) {
+    loadError.value = true;
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const fetchPipelines = async () => {
+  try {
+    const { data } = await CrmKanbanAPI.getReportPipelines();
+    pipelines.value = data.payload || [];
+    const defaultPipeline =
+      pipelines.value.find(pipeline => pipeline.is_default) ||
+      pipelines.value[0];
+    if (defaultPipeline) {
+      selectedPipelineId.value = String(defaultPipeline.id);
+    } else {
+      isLoading.value = false;
+    }
+  } catch (error) {
+    loadError.value = true;
+    isLoading.value = false;
+  }
+};
+
+watch([selectedPipelineId, selectedPeriodKey], () => {
+  if (selectedPipelineId.value) fetchReports();
+});
+
+onMounted(async () => {
+  await fetchPipelines();
+});
+</script>
+
+<template>
+  <div class="flex flex-col w-full h-full overflow-auto bg-n-background">
+    <header
+      class="flex flex-col gap-4 px-6 py-5 border-b sm:flex-row sm:items-center sm:justify-between border-n-weak"
+    >
+      <div class="min-w-0">
+        <h1 class="mb-1 text-xl font-semibold text-n-slate-12">
+          {{ t('CRM_KANBAN.DASHBOARD.TITLE') }}
+        </h1>
+        <p class="m-0 text-sm text-n-slate-11">
+          {{ t('CRM_KANBAN.DASHBOARD.SUBTITLE') }}
+        </p>
+      </div>
+      <div v-if="hasPipelines" class="flex flex-wrap items-center gap-3">
+        <label class="flex items-center gap-2 text-sm text-n-slate-11">
+          {{ t('CRM_KANBAN.DASHBOARD.PIPELINE_LABEL') }}
+          <select
+            v-model="selectedPipelineId"
+            class="h-9 px-2 text-sm rounded-lg border bg-n-alpha-black2 border-n-weak text-n-slate-12"
+          >
+            <option
+              v-for="pipeline in pipelines"
+              :key="pipeline.id"
+              :value="String(pipeline.id)"
+            >
+              {{ pipeline.name }}
+            </option>
+          </select>
+        </label>
+        <label class="flex items-center gap-2 text-sm text-n-slate-11">
+          {{ t('CRM_KANBAN.DASHBOARD.PERIOD_LABEL') }}
+          <select
+            v-model="selectedPeriodKey"
+            class="h-9 px-2 text-sm rounded-lg border bg-n-alpha-black2 border-n-weak text-n-slate-12"
+          >
+            <option
+              v-for="period in PERIODS"
+              :key="period.key"
+              :value="period.key"
+            >
+              {{ t(`CRM_KANBAN.DASHBOARD.PERIOD.${period.key}`) }}
+            </option>
+          </select>
+        </label>
+        <Button
+          icon="i-lucide-refresh-cw"
+          slate
+          faded
+          sm
+          :is-loading="isLoading"
+          @click="fetchReports"
+        />
+      </div>
+    </header>
+
+    <div
+      v-if="isLoading && !summary"
+      class="flex flex-col items-center justify-center flex-1 gap-3 text-n-slate-11"
+    >
+      <Spinner />
+      <span class="text-sm">{{ t('CRM_KANBAN.DASHBOARD.LOADING') }}</span>
+    </div>
+
+    <div
+      v-else-if="!hasPipelines"
+      class="flex items-center justify-center flex-1 p-8 text-sm text-center text-n-slate-11"
+    >
+      {{ t('CRM_KANBAN.DASHBOARD.EMPTY') }}
+    </div>
+
+    <div
+      v-else-if="loadError"
+      class="flex flex-col items-center justify-center flex-1 gap-3 text-n-slate-11"
+    >
+      <span class="text-sm">{{ t('CRM_KANBAN.DASHBOARD.ERROR') }}</span>
+      <Button
+        :label="t('CRM_KANBAN.DASHBOARD.RETRY')"
+        sm
+        @click="fetchReports"
+      />
+    </div>
+
+    <div v-else class="flex flex-col gap-6 p-6">
+      <!-- KPI row -->
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div class="p-4 border rounded-xl border-n-weak bg-n-solid-1">
+          <ReportMetricCard
+            :label="t('CRM_KANBAN.DASHBOARD.KPI.WON')"
+            :value="formatNumber(summary?.won_count)"
+            :info-text="t('CRM_KANBAN.DASHBOARD.KPI.WON_INFO')"
+          />
+        </div>
+        <div class="p-4 border rounded-xl border-n-weak bg-n-solid-1">
+          <ReportMetricCard
+            :label="t('CRM_KANBAN.DASHBOARD.KPI.LOST')"
+            :value="formatNumber(summary?.lost_count)"
+            :info-text="t('CRM_KANBAN.DASHBOARD.KPI.LOST_INFO')"
+          />
+        </div>
+        <div class="p-4 border rounded-xl border-n-weak bg-n-solid-1">
+          <ReportMetricCard
+            :label="t('CRM_KANBAN.DASHBOARD.KPI.WIN_RATE')"
+            :value="formatPercent(summary?.win_rate)"
+            :info-text="t('CRM_KANBAN.DASHBOARD.KPI.WIN_RATE_INFO')"
+          />
+        </div>
+        <div class="p-4 border rounded-xl border-n-weak bg-n-solid-1">
+          <ReportMetricCard
+            :label="t('CRM_KANBAN.DASHBOARD.KPI.WIN_RATE_VALUE')"
+            :value="formatPercent(summary?.win_rate_by_value)"
+            :info-text="t('CRM_KANBAN.DASHBOARD.KPI.WIN_RATE_VALUE_INFO')"
+          />
+        </div>
+        <div class="p-4 border rounded-xl border-n-weak bg-n-solid-1">
+          <ReportMetricCard
+            :label="t('CRM_KANBAN.DASHBOARD.KPI.WON_VALUE')"
+            :value="formatCurrencyList(summary?.won_value_by_currency)"
+            :info-text="t('CRM_KANBAN.DASHBOARD.KPI.WON_VALUE_INFO')"
+          />
+        </div>
+        <div class="p-4 border rounded-xl border-n-weak bg-n-solid-1">
+          <ReportMetricCard
+            :label="t('CRM_KANBAN.DASHBOARD.KPI.LOST_VALUE')"
+            :value="formatCurrencyList(summary?.lost_value_by_currency)"
+            :info-text="t('CRM_KANBAN.DASHBOARD.KPI.LOST_VALUE_INFO')"
+          />
+        </div>
+        <div class="p-4 border rounded-xl border-n-weak bg-n-solid-1">
+          <ReportMetricCard
+            :label="t('CRM_KANBAN.DASHBOARD.KPI.OPEN_VALUE')"
+            :value="formatCurrencyList(summary?.open_value_by_currency)"
+            :info-text="t('CRM_KANBAN.DASHBOARD.KPI.OPEN_VALUE_INFO')"
+          />
+        </div>
+        <div class="p-4 border rounded-xl border-n-weak bg-n-solid-1">
+          <h3
+            class="flex items-center gap-1 m-0 text-sm font-medium text-n-slate-11"
+          >
+            <span>{{ t('CRM_KANBAN.DASHBOARD.KPI.GOAL') }}</span>
+            <fluent-icon
+              v-tooltip="t('CRM_KANBAN.DASHBOARD.KPI.GOAL_INFO')"
+              size="14"
+              icon="info"
+              class="mt-0.5 text-n-slate-10"
+            />
+          </h3>
+          <template v-if="goal">
+            <p class="mt-1 mb-2 text-2xl font-medium text-n-slate-12">
+              {{ formatPercent(goal.attainment) }}
+            </p>
+            <div class="h-1.5 overflow-hidden rounded-full bg-n-alpha-black2">
+              <div
+                class="h-full rounded-full"
+                :class="goalOnTrack ? 'bg-n-teal-9' : 'bg-n-amber-9'"
+                :style="{ width: `${goalAttainmentPct}%` }"
+              />
+            </div>
+            <div class="flex items-center justify-between mt-2">
+              <span class="text-xs text-n-slate-11">
+                {{ goalProgressLabel }}
+              </span>
+              <span
+                class="px-1.5 py-0.5 text-xs font-medium rounded"
+                :class="
+                  goalOnTrack
+                    ? 'bg-n-teal-3 text-n-teal-11'
+                    : 'bg-n-amber-3 text-n-amber-11'
+                "
+              >
+                {{
+                  goalOnTrack
+                    ? t('CRM_KANBAN.DASHBOARD.KPI.GOAL_ON_TRACK')
+                    : t('CRM_KANBAN.DASHBOARD.KPI.GOAL_BEHIND')
+                }}
+              </span>
+            </div>
+          </template>
+          <p v-else class="mt-1 text-sm text-n-slate-11">
+            {{ t('CRM_KANBAN.DASHBOARD.KPI.GOAL_EMPTY') }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Funnel -->
+      <section class="p-5 border rounded-xl border-n-weak bg-n-solid-1">
+        <h3 class="mb-4 text-sm font-medium text-n-slate-12">
+          {{ t('CRM_KANBAN.DASHBOARD.FUNNEL.TITLE') }}
+        </h3>
+        <p v-if="!hasFunnel" class="text-sm text-n-slate-11">
+          {{ t('CRM_KANBAN.DASHBOARD.FUNNEL.EMPTY') }}
+        </p>
+        <div v-else class="flex flex-col gap-3">
+          <div
+            v-for="stage in funnel.stages"
+            :key="stage.id"
+            class="flex items-center gap-3"
+          >
+            <span class="w-40 shrink-0 text-sm truncate text-n-slate-11">
+              {{ stage.name }}
+            </span>
+            <div
+              class="relative flex-1 h-6 overflow-hidden rounded-md bg-n-alpha-black2"
+            >
+              <div
+                class="h-full rounded-md"
+                :style="{
+                  width: `${Math.max(2, (stage.count / funnelMaxCount) * 100)}%`,
+                  backgroundColor: stage.color || '#64748b',
+                }"
+              />
+            </div>
+            <span
+              class="w-12 text-sm font-medium text-right shrink-0 text-n-slate-12"
+            >
+              {{ formatNumber(stage.count) }}
+            </span>
+            <span
+              class="w-48 text-xs text-right truncate shrink-0 text-n-slate-11"
+            >
+              {{ formatCurrencyList(stage.value_by_currency) }}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <!-- AI vs human -->
+        <section class="p-5 border rounded-xl border-n-weak bg-n-solid-1">
+          <h3 class="mb-4 text-sm font-medium text-n-slate-12">
+            {{ t('CRM_KANBAN.DASHBOARD.AI.TITLE') }}
+          </h3>
+          <p v-if="!hasAiActivity" class="text-sm text-n-slate-11">
+            {{ t('CRM_KANBAN.DASHBOARD.AI.EMPTY') }}
+          </p>
+          <div v-else class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="m-0 text-2xl font-semibold text-n-slate-12">
+                {{ formatNumber(aiVsHuman.ai_auto_moves) }}
+              </p>
+              <p class="m-0 text-xs text-n-slate-11">
+                {{ t('CRM_KANBAN.DASHBOARD.AI.AUTO_MOVES') }}
+              </p>
+            </div>
+            <div>
+              <p class="m-0 text-2xl font-semibold text-n-slate-12">
+                {{ formatNumber(aiVsHuman.ai_accepted) }}
+              </p>
+              <p class="m-0 text-xs text-n-slate-11">
+                {{ t('CRM_KANBAN.DASHBOARD.AI.ACCEPTED') }}
+              </p>
+            </div>
+            <div>
+              <p class="m-0 text-2xl font-semibold text-n-slate-12">
+                {{ formatNumber(aiVsHuman.ai_dismissed) }}
+              </p>
+              <p class="m-0 text-xs text-n-slate-11">
+                {{ t('CRM_KANBAN.DASHBOARD.AI.DISMISSED') }}
+              </p>
+            </div>
+            <div>
+              <p class="m-0 text-2xl font-semibold text-n-slate-12">
+                {{ formatPercent(aiVsHuman.acceptance_rate) }}
+              </p>
+              <p class="m-0 text-xs text-n-slate-11">
+                {{ t('CRM_KANBAN.DASHBOARD.AI.ACCEPTANCE_RATE') }}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Follow-ups -->
+        <section class="p-5 border rounded-xl border-n-weak bg-n-solid-1">
+          <h3 class="mb-4 text-sm font-medium text-n-slate-12">
+            {{ t('CRM_KANBAN.DASHBOARD.FOLLOW_UPS.TITLE') }}
+          </h3>
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <p class="m-0 text-2xl font-semibold text-n-slate-12">
+                {{ formatNumber(followUps?.by_status?.pending) }}
+              </p>
+              <p class="m-0 text-xs text-n-slate-11">
+                {{ t('CRM_KANBAN.DASHBOARD.FOLLOW_UPS.PENDING') }}
+              </p>
+            </div>
+            <div>
+              <p class="m-0 text-2xl font-semibold text-n-ruby-11">
+                {{ formatNumber(followUps?.overdue) }}
+              </p>
+              <p class="m-0 text-xs text-n-slate-11">
+                {{ t('CRM_KANBAN.DASHBOARD.FOLLOW_UPS.OVERDUE') }}
+              </p>
+            </div>
+            <div>
+              <p class="m-0 text-2xl font-semibold text-n-slate-12">
+                {{ formatNumber(followUps?.due_soon) }}
+              </p>
+              <p class="m-0 text-xs text-n-slate-11">
+                {{ t('CRM_KANBAN.DASHBOARD.FOLLOW_UPS.DUE_SOON') }}
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Throughput -->
+      <section class="p-5 border rounded-xl border-n-weak bg-n-solid-1">
+        <h3 class="mb-4 text-sm font-medium text-n-slate-12">
+          {{ t('CRM_KANBAN.DASHBOARD.THROUGHPUT.TITLE') }}
+        </h3>
+        <p v-if="!hasThroughput" class="text-sm text-n-slate-11">
+          {{ t('CRM_KANBAN.DASHBOARD.THROUGHPUT.EMPTY') }}
+        </p>
+        <div v-else class="h-64">
+          <BarChart :collection="throughputCollection" />
+        </div>
+      </section>
+
+      <!-- Workload -->
+      <section class="p-5 border rounded-xl border-n-weak bg-n-solid-1">
+        <h3 class="mb-4 text-sm font-medium text-n-slate-12">
+          {{ t('CRM_KANBAN.DASHBOARD.WORKLOAD.TITLE') }}
+        </h3>
+        <p
+          v-if="!(workload?.responsibles || []).length"
+          class="text-sm text-n-slate-11"
+        >
+          {{ t('CRM_KANBAN.DASHBOARD.WORKLOAD.EMPTY') }}
+        </p>
+        <div v-else class="flex flex-col gap-3">
+          <div
+            v-for="entry in workload.responsibles"
+            :key="entry.key"
+            class="flex items-center gap-3"
+          >
+            <span
+              class="flex items-center w-40 gap-2 text-sm truncate shrink-0 text-n-slate-11"
+            >
+              <span
+                v-if="entry.type === 'bot'"
+                class="i-lucide-bot text-n-slate-10"
+              />
+              <span
+                v-else-if="entry.type === 'none'"
+                class="i-lucide-user-round-x text-n-slate-10"
+              />
+              <span v-else class="i-lucide-user-round text-n-slate-10" />
+              {{ workloadLabel(entry) }}
+            </span>
+            <div
+              class="relative flex-1 h-5 overflow-hidden rounded-md bg-n-alpha-black2"
+            >
+              <div
+                class="h-full rounded-md bg-n-blue-9"
+                :style="{
+                  width: `${Math.max(2, (entry.count / workloadMaxCount) * 100)}%`,
+                }"
+              />
+            </div>
+            <span
+              class="w-12 text-sm font-medium text-right shrink-0 text-n-slate-12"
+            >
+              {{ formatNumber(entry.count) }}
+            </span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</template>

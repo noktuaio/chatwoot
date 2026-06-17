@@ -9,8 +9,9 @@ class Api::V1::Accounts::Google::AuthorizationsController < Api::V1::Accounts::O
         response_type: 'code',
         prompt: 'consent', # the oauth flow does not return a refresh token, this is supposed to fix it
         access_type: 'offline', # the default is 'online'
-        state: state,
-        client_id: GlobalConfigService.load('GOOGLE_OAUTH_CLIENT_ID', nil)
+        state: state
+        # client_id vem do google_client (resolvido por conta, com fallback global) —
+        # não forçar o global aqui, senão a conta com app próprio quebra no callback.
       }
     )
 

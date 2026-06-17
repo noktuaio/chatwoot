@@ -349,6 +349,8 @@
     "LIVE_CHAT": "Live Chat",
     "SMS": "SMS",
     "WHATSAPP": "WhatsApp",
+    "WHATSAPP_OFFICIAL": "WhatsApp Oficial",
+    "WHATSAPP_API": "WhatsApp API",
     "CAMPAIGNS": "Campanhas",
     "ONGOING": "Em curso",
     "ONE_OFF": "Pontual",

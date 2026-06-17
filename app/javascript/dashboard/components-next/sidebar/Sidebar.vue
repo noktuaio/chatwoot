@@ -10,6 +10,12 @@ import { useSidebarKeyboardShortcuts } from './useSidebarKeyboardShortcuts';
 import { vOnClickOutside } from '@vueuse/components';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { useWindowSize, useEventListener } from '@vueuse/core';
+import { getUserPermissions } from 'dashboard/helper/permissionsHelper.js';
+import {
+  CRM_VIEW_PERMISSION,
+  CRM_VIEW_REPORTS_PERMISSION,
+  CRM_ADMIN_PERMISSION,
+} from 'dashboard/constants/permissions.js';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import SidebarGroup from './SidebarGroup.vue';
@@ -50,6 +56,7 @@ const { t } = useI18n();
 const isACustomBrandedInstance = useMapGetter(
   'globalConfig/isACustomBrandedInstance'
 );
+const globalConfig = useMapGetter('globalConfig/get');
 const isRTL = useMapGetter('accounts/isRTL');
 
 const { width: windowWidth } = useWindowSize();
@@ -74,6 +81,80 @@ const hasConversationUnreadCounts = computed(() => {
     FEATURE_FLAGS.CONVERSATION_UNREAD_COUNTS
   );
 });
+
+const whatsappApiCampaignsEnabled = computed(
+  () => globalConfig.value?.whatsappApiCampaignsEnabled === true
+);
+const crmKanbanEnabled = computed(
+  () => globalConfig.value?.crmKanbanEnabled === true
+);
+// ENV master (kill-switch global) exposto ao FE via globalConfig.
+const autonomiaAgentsMasterFlag = computed(
+  () => globalConfig.value?.autonomiaAgentsEnabled === true
+);
+// Gate POR CONTA (ISOLADO): conta marcada como habilitada, exposta no payload da
+// conta via `autonomia_agents_enabled` (_account.json.jbuilder ->
+// Autonomia::Agents::Config.enabled?). NÃO depende do sistema de features do
+// Chatwoot. O recurso só aparece quando a ENV master está ligada E a conta está
+// marcada como habilitada.
+const currentAccount = useMapGetter('accounts/getAccount');
+const hasAutonomiaAgentsFeature = computed(
+  () => currentAccount.value(accountId.value)?.autonomia_agents_enabled === true
+);
+const autonomiaAgentsFlag = computed(
+  () => autonomiaAgentsMasterFlag.value && hasAutonomiaAgentsFeature.value
+);
+const emailCampaignEnabled = computed(
+  () =>
+    globalConfig.value?.emailCampaignEnabled === true && crmKanbanEnabled.value
+);
+
+const currentUser = useMapGetter('getCurrentUser');
+const currentRole = useMapGetter('getCurrentRole');
+const currentCustomRoleId = useMapGetter('getCurrentCustomRoleId');
+
+// Admin-only: the Autonomia backend enforces administrator on every endpoint,
+// so hide the entry from non-admins to match (a plain agent would 403).
+const autonomiaAgentsEnabled = computed(
+  () => autonomiaAgentsFlag.value && currentRole.value === 'administrator'
+);
+
+// LOCKED DECISION: administrators and plain (non-custom-role) agents keep full
+// CRM access; custom-role seats need crm_view (crm_admin implies it).
+const canViewCrm = computed(() => {
+  if (currentRole.value === 'administrator' || !currentCustomRoleId.value) {
+    return true;
+  }
+  const permissions = getUserPermissions(currentUser.value, accountId.value);
+  return (
+    permissions.includes(CRM_ADMIN_PERMISSION) ||
+    permissions.includes(CRM_VIEW_PERMISSION)
+  );
+});
+
+// CRM reports (Dashboard) follow the same "admin/plain agent = full access"
+// rule, gated by crm_view_reports for custom-role seats.
+const canViewCrmReports = computed(() => {
+  if (currentRole.value === 'administrator' || !currentCustomRoleId.value) {
+    return true;
+  }
+  const permissions = getUserPermissions(currentUser.value, accountId.value);
+  return (
+    permissions.includes(CRM_ADMIN_PERMISSION) ||
+    permissions.includes(CRM_VIEW_REPORTS_PERMISSION)
+  );
+});
+
+// CRM SLA management is admin-grade: administrators or crm_admin custom-role seats.
+const canManageCrmSla = computed(() => {
+  if (currentRole.value === 'administrator') return true;
+  const permissions = getUserPermissions(currentUser.value, accountId.value);
+  return permissions.includes(CRM_ADMIN_PERMISSION);
+});
+
+const showCrmSidebarEntry = computed(
+  () => crmKanbanEnabled.value && canViewCrm.value
+);
 
 const fetchConversationUnreadCounts = ([currentAccountId, isEnabled]) => {
   if (!currentAccountId) return;
@@ -505,6 +586,34 @@ const menuItems = computed(() => {
         },
       ],
     },
+    ...(autonomiaAgentsEnabled.value
+      ? [
+          {
+            name: 'Agents',
+            label: t('SIDEBAR.AGENTS_AUTONOMIA'),
+            icon: 'i-lucide-bot',
+            activeOn: [
+              'autonomia_agents_index',
+              'autonomia_agents_builder',
+              'autonomia_agent_panel',
+            ],
+            children: [
+              {
+                name: 'My Agents',
+                label: t('SIDEBAR.AGENTS_HUB'),
+                to: accountScopedRoute('autonomia_agents_index'),
+                activeOn: ['autonomia_agents_index', 'autonomia_agent_panel'],
+              },
+              {
+                name: 'Agent Builder',
+                label: t('SIDEBAR.AGENTS_BUILDER'),
+                to: accountScopedRoute('autonomia_agents_builder'),
+                activeOn: ['autonomia_agents_builder'],
+              },
+            ],
+          },
+        ]
+      : []),
     {
       name: 'Contacts',
       label: t('SIDEBAR.CONTACTS'),
@@ -572,6 +681,53 @@ const menuItems = computed(() => {
         },
       ],
     },
+    ...(showCrmSidebarEntry.value
+      ? [
+          {
+            name: 'CRM',
+            label: t('SIDEBAR.CRM'),
+            icon: 'i-lucide-kanban-square',
+            children: [
+              {
+                name: 'CRM Kanban',
+                label: t('SIDEBAR.CRM_KANBAN'),
+                to: accountScopedRoute('crm_kanban_index'),
+                activeOn: ['crm_kanban_index'],
+              },
+              ...(canViewCrmReports.value
+                ? [
+                    {
+                      name: 'CRM Dashboard',
+                      label: t('SIDEBAR.CRM_DASHBOARD'),
+                      to: accountScopedRoute('crm_dashboard_index'),
+                      activeOn: ['crm_dashboard_index'],
+                    },
+                  ]
+                : []),
+              ...(canManageCrmSla.value
+                ? [
+                    {
+                      name: 'CRM SLA',
+                      label: t('SIDEBAR.CRM_SLA'),
+                      to: accountScopedRoute('crm_sla_index'),
+                      activeOn: ['crm_sla_index'],
+                    },
+                  ]
+                : []),
+              ...(emailCampaignEnabled.value && canViewCrmReports.value
+                ? [
+                    {
+                      name: 'CRM Campaign Management',
+                      label: t('SIDEBAR.CRM_CAMPAIGN_MANAGEMENT'),
+                      to: accountScopedRoute('crm_campaign_management_index'),
+                      activeOn: ['crm_campaign_management_index'],
+                    },
+                  ]
+                : []),
+            ],
+          },
+        ]
+      : []),
     {
       name: 'Companies',
       label: t('SIDEBAR.COMPANIES'),
@@ -626,7 +782,33 @@ const menuItems = computed(() => {
       name: 'Campaigns',
       label: t('SIDEBAR.CAMPAIGNS'),
       icon: 'i-lucide-megaphone',
+      // Ordem do produto: 1) Campanhas de e-mail, 2) WhatsApp Oficial, 3) WhatsApp API,
+      // 4) Chat ao vivo, 5) SMS. Itens condicionais (e-mail / WhatsApp API) somem da posição
+      // sem afetar a ordem relativa dos demais.
       children: [
+        ...(emailCampaignEnabled.value
+          ? [
+              {
+                name: 'Email Campaigns',
+                label: t('SIDEBAR.EMAIL_CAMPAIGNS'),
+                to: accountScopedRoute('campaigns_email_index'),
+              },
+            ]
+          : []),
+        {
+          name: 'WhatsApp',
+          label: t('SIDEBAR.WHATSAPP_OFFICIAL'),
+          to: accountScopedRoute('campaigns_whatsapp_index'),
+        },
+        ...(whatsappApiCampaignsEnabled.value
+          ? [
+              {
+                name: 'WhatsApp API',
+                label: t('SIDEBAR.WHATSAPP_API'),
+                to: accountScopedRoute('campaigns_whatsapp_api_index'),
+              },
+            ]
+          : []),
         {
           name: 'Live chat',
           label: t('SIDEBAR.LIVE_CHAT'),
@@ -636,11 +818,6 @@ const menuItems = computed(() => {
           name: 'SMS',
           label: t('SIDEBAR.SMS'),
           to: accountScopedRoute('campaigns_sms_index'),
-        },
-        {
-          name: 'WhatsApp',
-          label: t('SIDEBAR.WHATSAPP'),
-          to: accountScopedRoute('campaigns_whatsapp_index'),
         },
       ],
     },
@@ -816,12 +993,6 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.CUSTOM_ROLES'),
           icon: 'i-lucide-shield-plus',
           to: accountScopedRoute('custom_roles_list'),
-        },
-        {
-          name: 'Settings Sla',
-          label: t('SIDEBAR.SLA'),
-          icon: 'i-lucide-clock-alert',
-          to: accountScopedRoute('sla_list'),
         },
         {
           name: 'Conversation Workflow',

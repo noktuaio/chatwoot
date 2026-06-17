@@ -81,6 +81,9 @@ class AutomationRuleListener < BaseListener
 
   def ignore_message_created_event?(event)
     message = event.data[:message]
-    performed_by_automation?(event) || message.activity? || message.auto_reply_email?
+    performed_by_automation?(event) ||
+      message.activity? ||
+      message.auto_reply_email? ||
+      message.additional_attributes.to_h['whatsapp_api_campaign_id'].present?
   end
 end

@@ -38,7 +38,18 @@
       "CONVERSATION_PARTICIPATING_MANAGE": "Gerenciar conversas que participa e aquelas atribuídas a elas",
       "CONTACT_MANAGE": "Gerenciar contatos",
       "REPORT_MANAGE": "Gerenciar relatórios",
-      "KNOWLEDGE_BASE_MANAGE": "Gerenciar base de conhecimento"
+      "KNOWLEDGE_BASE_MANAGE": "Gerenciar base de conhecimento",
+      "CRM_VIEW": "Visualizar CRM",
+      "CRM_MANAGE_CARDS": "Gerenciar cards do CRM",
+      "CRM_MOVE_CARDS": "Mover cards do CRM",
+      "CRM_MANAGE_PIPELINES": "Gerenciar funis e automações do CRM",
+      "CRM_MANAGE_AI": "Gerenciar IA do CRM",
+      "CRM_VIEW_REPORTS": "Visualizar relatórios do CRM",
+      "CRM_ADMIN": "Administrador do CRM (acesso total)"
+    },
+    "PERMISSION_GROUPS": {
+      "GENERAL": "Geral",
+      "CRM": "CRM"
     },
     "FORM": {
       "NAME": {

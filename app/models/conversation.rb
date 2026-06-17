@@ -116,6 +116,8 @@ class Conversation < ApplicationRecord
   has_many :notifications, as: :primary_actor, dependent: :destroy_async
   has_many :attachments, through: :messages
   has_many :reporting_events, dependent: :destroy_async
+  has_many :crm_cards, class_name: 'Crm::Card', dependent: :nullify
+  has_many :crm_card_conversations, class_name: 'Crm::CardConversation', dependent: :destroy_async
 
   before_save :ensure_snooze_until_reset
   before_create :determine_conversation_status
@@ -130,6 +132,8 @@ class Conversation < ApplicationRecord
   delegate :auto_resolve_after, to: :account
 
   def can_reply?
+    return false if inbox.nil?
+
     Conversations::MessageWindowService.new(self).can_reply?
   end
 

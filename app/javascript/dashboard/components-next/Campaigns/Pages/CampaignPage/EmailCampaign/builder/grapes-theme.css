@@ -1,0 +1,57 @@
+/*
+ * grapes-theme.css
+ *
+ * Builder-scoped theming for the GrapesJS canvas chrome ONLY.
+ *
+ * GrapesJS ships its own `grapesjs/dist/css/grapes.min.css`, whose default
+ * canvas chrome renders an off-brand grey area around the email. That clashes
+ * with our design system. This file is the *allowed exception* to the
+ * "no custom CSS" rule: it exists purely to re-skin a third-party library's
+ * canvas surface so it matches our app in both light and dark themes.
+ *
+ * It is theme-adaptive by construction: it reuses the SAME CSS variables that
+ * Tailwind's `n-*` tokens resolve to (defined in `_next-colors.scss`, flipped
+ * by the `.dark` class), so light/dark parity comes for free.
+ *   - `--background-color` -> what `bg-n-background` uses (neutral app surface)
+ *
+ * Scope: every selector is prefixed with `.email-builder-canvas` (the wrapper
+ * class on the GrapesEditor container) so it can NEVER leak into any other
+ * GrapesJS instance in the app.
+ *
+ * Layout safety: we ONLY set background / box-shadow / border-radius — purely
+ * cosmetic properties that do NOT affect layout geometry. We deliberately do
+ * NOT set padding on the canvas nor max-width/position/size/transform on the
+ * frame, because the GrapesJS canvas and frame are absolutely positioned and
+ * their geometry drives drop/drag/resize coordinates — touching it breaks the
+ * editor (flagged in review).
+ */
+
+/* The GrapesJS editor root paints behind the canvas; its default chrome colour
+   is dark (#444). GrapesJS reserves a left/right panel width (--gjs-left-width)
+   even though OUR panels live OUTSIDE the editor, so a strip is left uncovered
+   by the canvas and the dark root shows through as an off-brand band. Painting
+   the root with the same neutral surface makes that strip blend in seamlessly.
+   Background ONLY — we never touch width/position (that breaks drop/drag). */
+.email-builder-canvas .gjs-editor {
+  background: rgb(var(--background-color));
+}
+
+/* Canvas surface: neutral app background so the email reads against a clean,
+   on-brand surface instead of the default off-brand grey. Background only —
+   no padding (the canvas is absolutely positioned; padding would shift the
+   drop/drag coordinate math). */
+.email-builder-canvas .gjs-cv-canvas {
+  background: rgb(var(--background-color));
+}
+
+/* The email itself: white card with a subtle shadow + rounded corners so it
+   reads as a floating "card" on the neutral surface. Cosmetic only — shadow
+   and radius do not change box geometry, so GrapesJS positioning/resize and
+   the frame's real width stay intact (no max-width override). */
+.email-builder-canvas .gjs-frame {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+}

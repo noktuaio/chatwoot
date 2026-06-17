@@ -7,6 +7,13 @@ class Microsoft::CallbacksController < OauthCallbackController
     microsoft_client
   end
 
+  # Azure v2: redime o code para o recurso Outlook (IMAP) — um recurso só, com
+  # openid p/ id_token. O refresh_token resultante é multi-recurso; o envio troca-o
+  # por um token Graph (Microsoft::GraphTokenService).
+  def token_exchange_params
+    super.merge(scope: ::Microsoft::Scopes::IMAP)
+  end
+
   def provider_name
     'microsoft'
   end

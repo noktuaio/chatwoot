@@ -154,6 +154,13 @@ export const getters = {
       item => item.channel_type === INBOX_TYPES.WHATSAPP
     );
   },
+  getWhatsAppApiCampaignInboxes($state) {
+    return $state.records.filter(
+      item =>
+        item.channel_type === INBOX_TYPES.API &&
+        item.additional_attributes?.campaign_channel_type === 'whatsapp_api'
+    );
+  },
   dialogFlowEnabledInboxes($state) {
     return $state.records.filter(
       item => item.channel_type !== INBOX_TYPES.EMAIL
@@ -375,6 +382,16 @@ export const actions = {
       throwErrorMessage(error);
       return null;
     }
+  },
+  enableWhatsappApiCampaigns: async ({ commit }, inboxId) => {
+    const response = await InboxesAPI.enableWhatsappApiCampaigns(inboxId);
+    commit(types.default.EDIT_INBOXES, response.data);
+    return response.data;
+  },
+  disableWhatsappApiCampaigns: async ({ commit }, inboxId) => {
+    const response = await InboxesAPI.disableWhatsappApiCampaigns(inboxId);
+    commit(types.default.EDIT_INBOXES, response.data);
+    return response.data;
   },
 };
 

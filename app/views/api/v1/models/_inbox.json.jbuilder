@@ -32,6 +32,9 @@ end
 
 json.tweets_enabled resource.channel.try(:tweets_enabled) if resource.twitter?
 
+## WhatsApp API (conector via motor externo) — sinaliza a aba/conexão dedicada
+json.waha_provider resource.channel.try(:waha_provider?) || false
+
 ## WebWidget Attributes
 json.allowed_domains resource.channel.try(:allowed_domains)
 json.widget_color resource.channel.try(:widget_color)

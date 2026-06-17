@@ -1,0 +1,55 @@
+class Crm::FollowUps::MessagingWindow
+  WHATSAPP_API_DEFAULT_WINDOW = 24.hours
+
+  def initialize(conversation, at: nil)
+    @conversation = conversation
+    @at = at || Time.current
+  end
+
+  def whatsapp_capable?
+    inbox = @conversation.inbox
+    return false if inbox.blank?
+
+    case inbox.channel_type
+    when 'Channel::Whatsapp'
+      true
+    when 'Channel::TwilioSms'
+      inbox.channel.medium == 'whatsapp'
+    when 'Channel::Api'
+      inbox.channel.whatsapp_api_campaign_channel?
+    else
+      false
+    end
+  end
+
+  def can_send_session_message?
+    return false unless whatsapp_capable?
+
+    window = effective_window
+    return true if window.blank?
+
+    last_incoming = @conversation.messages.incoming.last
+    return false if last_incoming.blank?
+
+    @at < last_incoming.created_at + window
+  end
+
+  def requires_template?
+    whatsapp_capable? && !can_send_session_message?
+  end
+
+  def effective_window
+    inbox = @conversation.inbox
+    case inbox.channel_type
+    when 'Channel::Whatsapp'
+      Conversations::MessageWindowService::MESSAGING_WINDOW_24_HOURS
+    when 'Channel::TwilioSms'
+      inbox.channel.medium == 'whatsapp' ? Conversations::MessageWindowService::MESSAGING_WINDOW_24_HOURS : nil
+    when 'Channel::Api'
+      return nil unless inbox.channel.whatsapp_api_campaign_channel?
+
+      hours = inbox.channel.additional_attributes.to_h['agent_reply_time_window'].presence
+      hours ? hours.to_i.hours : WHATSAPP_API_DEFAULT_WINDOW
+    end
+  end
+end

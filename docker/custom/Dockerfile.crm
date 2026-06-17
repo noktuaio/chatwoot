@@ -1,0 +1,15 @@
+FROM chatwoot/chatwoot:v4.14.1
+
+WORKDIR /app
+
+# bundle install ADITIVO sobre a base: instala pdf-reader/roo/rubyzip (extração de
+# conhecimento PDF/XLSX/DOCX). Gems ruby-puro; nokogiri (dep do roo) já vem compilada
+# na base (force_ruby_platform) => sem toolchain extra. Camada cacheável: copia só o
+# manifesto antes do app. Herda BUNDLE_WITHOUT=development:test e BUNDLE_PATH=/gems da base.
+COPY Gemfile Gemfile.lock /app/
+RUN bundle config set --local frozen false \
+    && bundle install --jobs 4 --retry 3
+
+RUN rm -rf /app/public/vite
+
+COPY . /app

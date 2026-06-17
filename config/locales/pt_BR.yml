@@ -348,6 +348,14 @@ pt_BR:
       name: 'Tradutor do Google'
       short_description: 'Traduzir automaticamente mensagens de clientes para agentes.'
       description: "Integre o Google Tradutor para ajudar os agentes a traduzir facilmente as mensagens dos clientes. Esta integração detecta automaticamente o idioma e o converte para o idioma preferido do agente ou do administrador."
+    crm_n8n:
+      name: 'n8n (Conexões do CRM)'
+      short_description: 'Automatize seu CRM com o n8n via webhooks assinados e um token de API com escopo.'
+      description: 'Conecte seu CRM Kanban ao n8n e a outras ferramentas de automação. Inscreva-se em eventos do ciclo de vida do card como webhooks de saída assinados (HMAC) e permita que sistemas externos criem, movam e fechem cards por meio de um token de API revogável e com escopo.'
+    crm_kanban_ai:
+      name: 'CRM Kanban IA'
+      short_description: 'Sugestões e movimentação automática de estágios no funil comercial.'
+      description: 'Configure a chave OpenAI para o CRM Kanban. O GPT-5.4 analisa conversas e sugere ou move cards entre estágios com base nos critérios editáveis de cada etapa.'
     openai:
       name: 'OpenAI'
       short_description: 'Sugestões, resumos e aprimoramento de mensagem e resposta com IA.'

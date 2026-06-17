@@ -12,6 +12,16 @@ import auth from './modules/auth';
 import automations from './modules/automations';
 import bulkActions from './modules/bulkActions';
 import campaigns from './modules/campaigns';
+import campaignImports from './modules/campaignImports';
+import whatsappApiCampaigns from './modules/whatsappApiCampaigns';
+import emailSenderIdentities from './modules/emailSenderIdentities';
+import emailCampaigns from './modules/emailCampaigns';
+import crmKanban from './modules/crmKanban';
+import autonomiaAgents from './modules/autonomiaAgents';
+import autonomiaSources from './modules/autonomiaSources';
+import autonomiaBuildThreads from './modules/autonomiaBuildThreads';
+import autonomiaChannels from './modules/autonomiaChannels';
+import autonomiaAnalytics from './modules/autonomiaAnalytics';
 import cannedResponse from './modules/cannedResponse';
 import categories from './modules/helpCenterCategories';
 import contactConversations from './modules/contactConversations';
@@ -77,6 +87,16 @@ export default createStore({
     automations,
     bulkActions,
     campaigns,
+    campaignImports,
+    whatsappApiCampaigns,
+    emailSenderIdentities,
+    emailCampaigns,
+    crmKanban,
+    autonomiaAgents,
+    autonomiaSources,
+    autonomiaBuildThreads,
+    autonomiaChannels,
+    autonomiaAnalytics,
     cannedResponse,
     categories,
     contactConversations,

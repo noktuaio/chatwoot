@@ -44,6 +44,18 @@ export const dynamicTime = time => {
 };
 
 /**
+ * Formats an ISO 8601 timestamp into a relative, human-readable distance from now.
+ * @param {string} isoTime - ISO 8601 timestamp (e.g. '2026-06-09T12:00:00Z').
+ * @returns {string} Relative time string (e.g. 'about 2 hours ago'), or '' when invalid.
+ */
+export const relativeTimeFromISO = isoTime => {
+  if (!isoTime) return '';
+  const date = new Date(isoTime);
+  if (Number.isNaN(date.getTime())) return '';
+  return formatDistanceToNow(date, { addSuffix: true });
+};
+
+/**
  * Formats a Unix timestamp into a specified date format.
  * @param {number} time - Unix timestamp.
  * @param {string} [dateFormat='MMM d, yyyy'] - Desired date format.

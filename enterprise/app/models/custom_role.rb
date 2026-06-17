@@ -23,6 +23,13 @@
 # - 'contact_manage': Can manage contacts.
 # - 'report_manage': Can manage reports.
 # - 'knowledge_base_manage': Can manage knowledge base portals.
+# - 'crm_view': Can view the CRM module (board/cards read-only).
+# - 'crm_manage_cards': Can create/edit/delete CRM cards, links and follow-ups.
+# - 'crm_move_cards': Can drag CRM cards between stages.
+# - 'crm_manage_pipelines': Can manage CRM pipelines, stages, automations and inbox settings.
+# - 'crm_manage_ai': Can manage CRM AI settings and trigger/accept AI suggestions.
+# - 'crm_view_reports': Can view CRM reports (forward-looking).
+# - 'crm_admin': Umbrella that implies every crm_* permission.
 
 class CustomRole < ApplicationRecord
   belongs_to :account
@@ -35,6 +42,13 @@ class CustomRole < ApplicationRecord
     contact_manage
     report_manage
     knowledge_base_manage
+    crm_view
+    crm_manage_cards
+    crm_move_cards
+    crm_manage_pipelines
+    crm_manage_ai
+    crm_view_reports
+    crm_admin
   ].freeze
 
   validates :name, presence: true

@@ -6,6 +6,7 @@
 #  active_at                :datetime
 #  auto_offline             :boolean          default(TRUE), not null
 #  availability             :integer          default("online"), not null
+#  integration              :boolean          default(FALSE), not null
 #  role                     :integer          default("agent")
 #  created_at               :datetime         not null
 #  updated_at               :datetime         not null
@@ -20,6 +21,7 @@
 #  index_account_users_on_account_id                (account_id)
 #  index_account_users_on_agent_capacity_policy_id  (agent_capacity_policy_id)
 #  index_account_users_on_custom_role_id            (custom_role_id)
+#  index_account_users_on_integration               (integration)
 #  index_account_users_on_user_id                   (user_id)
 #  uniq_user_id_per_account_id                      (account_id,user_id) UNIQUE
 #
@@ -36,8 +38,13 @@ class AccountUser < ApplicationRecord
 
   accepts_nested_attributes_for :account
 
-  after_create_commit :notify_creation, :create_notification_setting
-  after_destroy :notify_deletion, :remove_user_from_account
+  # Integration members back Crm::IntegrationToken (integration: true). They must
+  # never trigger agent lifecycle infra — presence, notification settings, the
+  # AGENT_ADDED/REMOVED dispatch, or Agents::DestroyJob (plan B-T4).
+  scope :human, -> { where(integration: false) }
+
+  after_create_commit :notify_creation, :create_notification_setting, unless: :integration?
+  after_destroy :notify_deletion, :remove_user_from_account, unless: :integration?
   after_save :update_presence_in_redis, if: :saved_change_to_availability?
 
   validates :user_id, uniqueness: { scope: :account_id }

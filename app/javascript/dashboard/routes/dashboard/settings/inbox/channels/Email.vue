@@ -14,7 +14,6 @@ const provider = ref('');
 const getters = useStoreGetters();
 const { t } = useI18n();
 
-const globalConfig = getters['globalConfig/get'];
 const isAChatwootInstance = getters['globalConfig/isAChatwootInstance'];
 
 const emailProviderList = computed(() => {
@@ -22,14 +21,16 @@ const emailProviderList = computed(() => {
     {
       title: t('INBOX_MGMT.EMAIL_PROVIDERS.MICROSOFT.TITLE'),
       description: t('INBOX_MGMT.EMAIL_PROVIDERS.MICROSOFT.DESCRIPTION'),
-      isEnabled: !!globalConfig.value.azureAppId,
+      // Sempre visível: a liberação (credencial por conta ou global) é resolvida
+      // dentro do wizard, não mais por um config global do super admin.
+      isEnabled: true,
       key: 'microsoft',
       icon: 'i-woot-outlook',
     },
     {
       title: t('INBOX_MGMT.EMAIL_PROVIDERS.GOOGLE.TITLE'),
       description: t('INBOX_MGMT.EMAIL_PROVIDERS.GOOGLE.DESCRIPTION'),
-      isEnabled: !!window.chatwootConfig.googleOAuthClientId,
+      isEnabled: true,
       key: 'google',
       icon: 'i-woot-gmail',
     },

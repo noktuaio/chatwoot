@@ -1,14 +1,17 @@
 class OauthCallbackController < ApplicationController
   def show
-    @response = oauth_client.auth_code.get_token(
-      oauth_code,
-      redirect_uri: "#{base_url}/#{provider_name}/callback"
-    )
+    @response = oauth_client.auth_code.get_token(oauth_code, token_exchange_params)
 
     handle_response
   rescue StandardError => e
     ChatwootExceptionTracker.new(e).capture_exception
     redirect_to '/'
+  end
+
+  # Provedores que precisam fixar o escopo de UM recurso na troca do code
+  # (ex.: Microsoft v2, que recusa code multi-recurso sem `scope`) sobrescrevem isto.
+  def token_exchange_params
+    { redirect_uri: "#{base_url}/#{provider_name}/callback" }
   end
 
   private
@@ -52,7 +55,7 @@ class OauthCallbackController < ApplicationController
                             provider_config: {
                               access_token: parsed_body['access_token'],
                               refresh_token: parsed_body['refresh_token'],
-                              expires_on: (Time.current.utc + 1.hour).to_s
+                              expires_on: token_expires_on
                             }
                           })
   end
@@ -62,6 +65,17 @@ class OauthCallbackController < ApplicationController
   # claim (e.g. Microsoft SMTP requires UPN).
   def imap_login_identity
     users_data['email']
+  end
+
+  # Usa a expiração REAL do token (não um valor fixo de 1h, que causava refresh
+  # desnecessário / falha quando o provedor devolve uma janela diferente).
+  def token_expires_on
+    return Time.at(@response.expires_at).utc.to_s if @response.respond_to?(:expires_at) && @response.expires_at.present?
+
+    expires_in = parsed_body['expires_in'].to_i
+    return (Time.current.utc + expires_in.seconds).to_s if expires_in.positive?
+
+    (Time.current.utc + 1.hour).to_s
   end
 
   def provider_name
@@ -115,6 +129,12 @@ class OauthCallbackController < ApplicationController
   def return_to
     account # resolving the sgid records which purpose matched
     @return_to
+  end
+
+  # Conta usada para resolver as credenciais OAuth por conta (com fallback global).
+  # No callback ela vem do `state` assinado — mesmo callback global de sempre.
+  def oauth_account
+    account
   end
 
   # Fallback name, for when name field is missing from users_data

@@ -23,6 +23,56 @@ dashboard_apps:
   i18n_key: dashboard_apps
   hook_type: account
   allow_multiple_hooks: true
+crm_n8n:
+  id: crm_n8n
+  feature_flag: crm_integration
+  logo: crm_n8n.png
+  i18n_key: crm_n8n
+  action: /crm_n8n
+  hook_type: account
+  allow_multiple_hooks: false
+crm_kanban_ai:
+  id: crm_kanban_ai
+  logo: crm_kanban_ai.png
+  i18n_key: crm_kanban_ai
+  action: /crm_kanban_ai
+  hook_type: account
+  allow_multiple_hooks: false
+  settings_json_schema:
+    {
+      'type': 'object',
+      'properties':
+        {
+          'api_key': { 'type': 'string' },
+          'api_base': { 'type': 'string' },
+          'enabled': { 'type': 'boolean' },
+        },
+      'required': ['api_key'],
+      'additionalProperties': false,
+    }
+  settings_form_schema:
+    [
+      {
+        'label': 'API Key',
+        'type': 'text',
+        'name': 'api_key',
+        'validation': 'required',
+      },
+      {
+        'label': 'API Base URL',
+        'type': 'text',
+        'name': 'api_base',
+        'validation': '',
+        'help': 'Optional. Defaults to https://api.openai.com',
+      },
+      {
+        'label': 'Enable CRM Kanban AI',
+        'type': 'checkbox',
+        'name': 'enabled',
+        'validation': '',
+      },
+    ]
+  visible_properties: ['api_base', 'enabled']
 openai:
   id: openai
   logo: openai.png

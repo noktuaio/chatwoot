@@ -1,0 +1,118 @@
+{
+  "CAMPAIGN_IMPORT": {
+    "ACTIONS": {
+      "IMPORT_BASE": "Campaign Base",
+      "HISTORY": "Import history",
+      "CHOOSE_FILE": "Choose file",
+      "BACK_TO_CONTACTS": "Back to contacts",
+      "CONFIRM": "Import",
+      "UNDO_LABELS": "Undo labels",
+      "DELETE": "Delete base"
+    },
+    "API": {
+      "CREATE_SUCCESS": "File received. Validation has started.",
+      "CREATE_ERROR": "Could not upload the file.",
+      "CONFIRM_SUCCESS": "Import queued.",
+      "CONFIRM_ERROR": "Could not confirm the import.",
+      "UNDO_SUCCESS": "Label removal queued.",
+      "UNDO_ERROR": "Could not undo labels.",
+      "DELETE_SUCCESS": "Base removed.",
+      "DELETE_ERROR": "Could not remove the base.",
+      "DOWNLOAD_ERROR": "Could not download the file."
+    },
+    "DIALOG": {
+      "TITLE": "Import campaign base",
+      "DESCRIPTION": "Upload a CSV or XLSX with name and Brazilian mobile phone. Invalid files import no contacts.",
+      "SUBMIT": "Validate file",
+      "STEPS": {
+        "FILE": {
+          "NUMBER": "1",
+          "TITLE": "Upload the base",
+          "BODY": "Use CSV or XLSX with name and phone columns."
+        },
+        "BATCHES": {
+          "NUMBER": "2",
+          "TITLE": "Set the batches",
+          "BODY": "Each contact receives the campaign label and one batch label."
+        },
+        "REVIEW": {
+          "NUMBER": "3",
+          "TITLE": "Review before importing",
+          "BODY": "If any row has an error, nothing is imported until the file is fixed."
+        }
+      }
+    },
+    "FIELDS": {
+      "CAMPAIGN_NAME": "Campaign name",
+      "CAMPAIGN_NAME_PLACEHOLDER": "Example: junho_whatsapp",
+      "BATCH_COUNT": "Batch count",
+      "BATCH_COUNT_HELP": "Batches split the base into operating groups. The first batch can be smaller when the split is not exact.",
+      "BATCH_COUNT_EXAMPLE": "Example: 101 contacts in 10 batches creates the first batch with 2 contacts and the others with 11.",
+      "FILE": "File",
+      "FILE_PLACEHOLDER": "CSV or XLSX",
+      "FILE_HELP": "Accepted headers: nome, name, cliente, contato, telefone, whatsapp, celular, and número. Only Brazilian mobile phones are valid."
+    },
+    "HISTORY": {
+      "TITLE": "Campaign import history",
+      "SUBTITLE": "Track validations, imports, and campaign label undo actions.",
+      "EMPTY": "No campaign import has been created yet.",
+      "BATCHES": "batches",
+      "ROWS_SEPARATOR": "/",
+      "INVALID_ROWS": "{count} rows with errors",
+      "GUIDE": {
+        "VALIDATE": {
+          "TITLE": "Automatic validation",
+          "BODY": "This page refreshes itself while a base is validating or importing."
+        },
+        "CONFIRM": {
+          "TITLE": "Import only after confirmation",
+          "BODY": "Ready bases do not create contacts until you click Import."
+        },
+        "UNDO": {
+          "TITLE": "Label control",
+          "BODY": "Undo removes only this import's labels from affected contacts."
+        }
+      },
+      "COLUMNS": {
+        "NAME": "Base",
+        "STATUS": "Status",
+        "ROWS": "Valid rows",
+        "LABELS": "Labels",
+        "FILES": "Files",
+        "ACTIONS": "Actions"
+      }
+    },
+    "DOWNLOADS": {
+      "ERRORS": "Errors",
+      "NORMALIZED": "Normalized",
+      "REPORT": "Report"
+    },
+    "UNDO_DIALOG": {
+      "TITLE": "Undo import labels",
+      "DESCRIPTION": "This removes only labels created by this base from affected contacts. Contacts will not be deleted.",
+      "CONFIRM": "Undo labels"
+    },
+    "DELETE_DIALOG": {
+      "TITLE": "Delete uploaded base",
+      "DESCRIPTION": "This removes this base record and its files. It is only allowed before contacts are imported.",
+      "CONFIRM": "Delete base"
+    },
+    "STATUS": {
+      "UPLOADED": "Uploaded",
+      "VALIDATING": "Validating",
+      "VALIDATION_FAILED": "Validation failed",
+      "READY_TO_CONFIRM": "Ready to confirm",
+      "CONFIRMED": "Confirmed",
+      "QUEUED": "Queued",
+      "IMPORTING": "Importing",
+      "COMPLETED": "Completed",
+      "COMPLETED_WITH_FAILURES": "Completed with failures",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled",
+      "EXPIRED": "Expired",
+      "UNDOING_LABELS": "Undoing labels",
+      "LABELS_UNDONE": "Labels undone",
+      "UNDO_FAILED": "Undo failed"
+    }
+  }
+}

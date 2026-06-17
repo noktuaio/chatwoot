@@ -13,4 +13,12 @@ export const BUS_EVENTS = {
   NEW_CONVERSATION_MODAL: 'newConversationModal',
   INSERT_INTO_RICH_EDITOR: 'insertIntoRichEditor',
   INSERT_INTO_NORMAL_EDITOR: 'insertIntoNormalEditor',
+  CRM_FOLLOW_UP_DUE: 'CRM_FOLLOW_UP_DUE',
+  // Geração de e-mail por IA (assíncrona) concluída/falhou — toast global + atualização do selo.
+  EMAIL_CAMPAIGN_AI_READY: 'EMAIL_CAMPAIGN_AI_READY',
+  EMAIL_CAMPAIGN_AI_FAILED: 'EMAIL_CAMPAIGN_AI_FAILED',
+  // Emitted when a realtime card event arrives while a server-only filter
+  // (responsible=bot/none, AI-pending) is active and the card cannot be
+  // classified client-side; the board page refetches the active view.
+  CRM_BOARD_REFETCH: 'CRM_BOARD_REFETCH',
 };

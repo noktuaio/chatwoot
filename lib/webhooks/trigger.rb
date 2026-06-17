@@ -1,6 +1,9 @@
 class Webhooks::Trigger
   SUPPORTED_ERROR_HANDLE_EVENTS = %w[message_created message_updated].freeze
   RETRYABLE_AGENT_BOT_STATUSES = [429, 500].freeze
+  # 5xx is retryable for CRM deliveries; 4xx (except none here) is a permanent
+  # consumer error and must NOT be retried (plan D5).
+  RETRYABLE_CRM_STATUS_RANGE = (500..599).freeze
 
   class RetryableError < StandardError
     attr_reader :status
@@ -27,6 +30,10 @@ class Webhooks::Trigger
     perform_request
   rescue StandardError => e
     raise RetryableError.new(status: http_status(e), message: e.message) if retryable_agent_bot_error?(e)
+    # CRM deliveries (plan D5/B1): surface transient transport/5xx failures so the
+    # dedicated Webhooks::CrmDeliveryJob can retry. Core webhook types still fall
+    # through to handle_failure (at-most-once, unchanged).
+    raise RetryableError.new(status: http_status(e), message: e.message) if retryable_crm_error?(e)
 
     handle_failure(e)
   end
@@ -54,6 +61,9 @@ class Webhooks::Trigger
   def request_headers(body)
     headers = { 'Content-Type' => 'application/json', 'Accept' => 'application/json' }
     headers['X-Chatwoot-Delivery'] = @delivery_id if @delivery_id.present?
+    # Stable per-logical-event id (crm_activities.id) for consumer-side dedup,
+    # distinct from the per-attempt X-Chatwoot-Delivery (plan §3.1, R4). Additive.
+    headers['X-Chatwoot-Event-Id'] = @payload[:event_id].to_s if @payload.is_a?(Hash) && @payload[:event_id].present?
     if @secret.present?
       ts = Time.now.to_i.to_s
       headers['X-Chatwoot-Timestamp'] = ts
@@ -124,6 +134,15 @@ class Webhooks::Trigger
 
   def retryable_agent_bot_error?(error)
     @webhook_type == :agent_bot_webhook && RETRYABLE_AGENT_BOT_STATUSES.include?(http_status(error))
+  end
+
+  # Retry CRM deliveries on transport failures (timeout/connection -> FetchError)
+  # and on 5xx server errors (HttpError). 4xx / SSRF / bad-URL are permanent.
+  def retryable_crm_error?(error)
+    return false unless @webhook_type == :crm_account_webhook
+    return true if error.is_a?(SafeFetch::FetchError)
+
+    RETRYABLE_CRM_STATUS_RANGE.include?(http_status(error).to_i) if error.is_a?(SafeFetch::HttpError)
   end
 
   def http_status(error)

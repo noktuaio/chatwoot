@@ -60,6 +60,11 @@ class Inbox < ApplicationRecord
   belongs_to :channel, polymorphic: true, dependent: :destroy
 
   has_many :campaigns, dependent: :destroy_async
+  has_many :crm_pipeline_inboxes, class_name: 'Crm::PipelineInbox', dependent: :destroy_async
+  has_one :crm_inbox_setting, class_name: 'Crm::InboxSetting', dependent: :destroy_async
+  has_many :crm_cards, class_name: 'Crm::Card', dependent: :nullify
+  has_many :whatsapp_api_campaigns, dependent: :destroy_async
+  has_many :whatsapp_api_message_templates, dependent: :destroy_async
   has_many :contact_inboxes, dependent: :destroy_async
   has_many :contacts, through: :contact_inboxes
 
@@ -72,6 +77,12 @@ class Inbox < ApplicationRecord
   has_one :assignment_policy, through: :inbox_assignment_policy
   has_one :agent_bot_inbox, dependent: :destroy_async
   has_one :agent_bot, through: :agent_bot_inbox
+  # Conserto "caixa deletada" (Autonomia Agents): a FK autonomia_agent_inboxes.inbox_id (sem
+  # ON DELETE CASCADE) barrava o Inbox#destroy quando havia agente conectado. dependent: :destroy
+  # (síncrono, NÃO _async) remove o vínculo ANTES da deleção do Inbox → some a FK; e o
+  # after_destroy de cada AgentInbox limpa o AgentBot-espelho + AgentBotInbox. Agente vira "sem caixa".
+  # Inerte em instalações sem o módulo (tabela ausente ⇒ nenhuma linha associada).
+  has_many :autonomia_agent_inboxes, class_name: 'Autonomia::Agents::AgentInbox', dependent: :destroy
   has_many :webhooks, dependent: :destroy_async
   has_many :hooks, dependent: :destroy_async, class_name: 'Integrations::Hook'
 

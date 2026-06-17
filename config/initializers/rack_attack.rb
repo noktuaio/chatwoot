@@ -247,7 +247,41 @@ class Rack::Attack
     "#{user_identifier}:#{match_data[:account_id]}" if user_identifier.present?
   end
 
+  ###-----------------------------------------------###
+  ###-----------CRM Integration Token Throttle------###
+  ###-----------------------------------------------###
+
+  # Per-token rate limit for the CRM inbound API (plan §3.3, B-API2). Keyed on
+  # the api_access_token header so a single integration token (n8n) can't hammer
+  # the CRM endpoints. Every CRM endpoint (cards/pipelines/stages and the CRM
+  # reports) is nested under /api/v1/accounts/:id/crm/, so this single prefix
+  # covers the full token-reachable surface.
+  CRM_TOKEN_THROTTLE_PATH = %r{\A/api/v1/accounts/\d+/crm/}.freeze
+
+  throttle('crm/integration_token', limit: ENV.fetch('RATE_LIMIT_CRM_INTEGRATION_TOKEN', '300').to_i, period: 1.minute) do |req|
+    if CRM_TOKEN_THROTTLE_PATH.match?(req.path)
+      api_access_token = req.get_header('HTTP_API_ACCESS_TOKEN') || req.get_header('api_access_token')
+      api_access_token.presence
+    end
+  end
+
   ## ----------------------------------------------- ##
+end
+
+# Throttled responder: emit a stable JSON envelope and an explicit Retry-After
+# (seconds) computed from the throttle period. Applies to every throttle.
+Rack::Attack.throttled_responder = lambda do |request|
+  match_data = request.env['rack.attack.match_data'] || {}
+  now = match_data[:epoch_time] || Time.now.to_i
+  period = match_data[:period].to_i
+  retry_after = period.positive? ? (period - (now % period)) : period
+
+  headers = {
+    'Content-Type' => 'application/json',
+    'Retry-After' => retry_after.to_s
+  }
+  body = { error: { code: 'rate_limited', message: 'Too many requests. Retry later.' } }.to_json
+  [429, headers, [body]]
 end
 
 # Log blocked events

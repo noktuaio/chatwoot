@@ -1,0 +1,15 @@
+json.id sender_identity.id
+json.account_id sender_identity.account_id
+json.domain sender_identity.domain
+json.from_email sender_identity.from_email
+json.reply_to_inbox_id sender_identity.reply_to_inbox_id
+json.status sender_identity.status
+json.dkim_records sender_identity.dkim_records
+json.spf_record sender_identity.spf_record
+json.dmarc_record sender_identity.dmarc_record
+json.ses_configuration_set sender_identity.ses_configuration_set
+json.provider sender_identity.provider
+json.verified_at sender_identity.verified_at
+json.last_error sender_identity.last_error
+json.created_at sender_identity.created_at
+json.updated_at sender_identity.updated_at
