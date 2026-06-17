@@ -2,9 +2,8 @@
 
 require 'rails_helper'
 
-RSpec.describe Account::MarketingAttributionService do
+RSpec.describe Internal::Accounts::MarketingAttributionService do
   let(:account) { create(:account) }
-  let(:request) { instance_double(ActionDispatch::Request, referer: nil) }
   let(:cookies) { {} }
 
   describe '#perform' do
@@ -12,7 +11,7 @@ RSpec.describe Account::MarketingAttributionService do
       allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
     end
 
-    it 'stores first and last touch attribution from cookies' do
+    it 'stores website-shaped attribution from cookies' do
       cookies[described_class::FIRST_TOUCH_COOKIE] = encoded_cookie(
         'utm_source' => 'reddit',
         'utm_medium' => 'paid_social',
@@ -32,7 +31,7 @@ RSpec.describe Account::MarketingAttributionService do
         'captured_at' => '2026-06-17T11:00:00.000Z'
       )
 
-      described_class.new(account: account, cookies: cookies, request: request).perform
+      described_class.new(account: account, cookies: cookies).perform
 
       attribution = account.reload.internal_attributes['marketing_attribution']
       expect(attribution['captured_from']).to eq('cookie')
@@ -56,39 +55,18 @@ RSpec.describe Account::MarketingAttributionService do
         'source_type' => 'paid_social'
       )
 
-      described_class.new(account: account, cookies: cookies, request: request).perform
+      described_class.new(account: account, cookies: cookies).perform
 
       attribution = account.reload.internal_attributes['marketing_attribution']
       expect(attribution['first_touch']['source']).to eq('google')
       expect(attribution['last_touch']['source']).to eq('linkedin')
     end
 
-    it 'falls back to the request referer when cookies are unavailable' do
-      request = instance_double(
-        ActionDispatch::Request,
-        referer: 'https://app.chatwoot.com/app/auth/signup?utm_source=google&utm_medium=cpc&gclid=abc&private_param=ignored'
-      )
-
-      described_class.new(account: account, cookies: cookies, request: request).perform
-
-      attribution = account.reload.internal_attributes['marketing_attribution']
-      expect(attribution['captured_from']).to eq('request_referer')
-      expect(attribution['last_touch']).to include(
-        'utm_source' => 'google',
-        'utm_medium' => 'cpc',
-        'gclid' => 'abc',
-        'source' => 'google',
-        'source_type' => 'paid_search'
-      )
-      expect(attribution['last_touch']['landing_page']).to include('utm_source=google')
-      expect(attribution['last_touch']['landing_page']).not_to include('private_param')
-    end
-
     it 'does not store attribution outside Chatwoot Cloud' do
       allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(false)
       cookies[described_class::LAST_TOUCH_COOKIE] = encoded_cookie('utm_source' => 'reddit')
 
-      described_class.new(account: account, cookies: cookies, request: request).perform
+      described_class.new(account: account, cookies: cookies).perform
 
       expect(account.reload.internal_attributes).not_to include('marketing_attribution')
     end
