@@ -64,6 +64,24 @@ RSpec.describe Internal::Accounts::MarketingAttributionService do
     expect(attribution['last_touch']['utm_campaign']).to eq('C++ launch')
   end
 
+  it 'preserves an existing touch when the matching cookie is absent' do
+    account.update!(
+      internal_attributes: {
+        'marketing_attribution' => {
+          'first_touch' => { 'source' => 'reddit' },
+          'last_touch' => { 'source' => 'github' }
+        }
+      }
+    )
+    cookies[described_class::LAST_TOUCH_COOKIE] = encoded_cookie('source' => 'google')
+
+    described_class.new(account: account, cookies: cookies).perform
+
+    attribution = account.reload.internal_attributes['marketing_attribution']
+    expect(attribution['first_touch']['source']).to eq('reddit')
+    expect(attribution['last_touch']['source']).to eq('google')
+  end
+
   def encoded_cookie(payload)
     payload.to_json.bytes.map do |byte|
       character = byte.chr

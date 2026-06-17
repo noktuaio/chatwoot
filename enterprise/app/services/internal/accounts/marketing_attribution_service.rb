@@ -13,11 +13,12 @@ class Internal::Accounts::MarketingAttributionService
     last_touch = attribution_cookie(LAST_TOUCH_COOKIE)
     return unless first_touch || last_touch
 
+    existing_attribution = account.internal_attributes['marketing_attribution'] || {}
     account.update!(
       internal_attributes: account.internal_attributes.merge(
         'marketing_attribution' => {
-          'first_touch' => first_touch,
-          'last_touch' => last_touch,
+          'first_touch' => first_touch || existing_attribution['first_touch'],
+          'last_touch' => last_touch || existing_attribution['last_touch'],
           'captured_from' => 'cookie',
           'stored_at' => Time.current.iso8601
         }.compact
