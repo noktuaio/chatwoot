@@ -40,7 +40,34 @@ RSpec.describe Internal::Accounts::MarketingAttributionService do
     expect(account.reload.internal_attributes).not_to include('marketing_attribution')
   end
 
+  it 'preserves plus signs from Rails-decoded cookie values' do
+    cookies[described_class::LAST_TOUCH_COOKIE] = {
+      'source' => 'google',
+      'utm_campaign' => 'C++ launch'
+    }.to_json
+
+    described_class.new(account: account, cookies: cookies).perform
+
+    attribution = account.reload.internal_attributes['marketing_attribution']
+    expect(attribution['last_touch']['utm_campaign']).to eq('C++ launch')
+  end
+
+  it 'falls back to percent-decoding raw cookie values' do
+    cookies[described_class::LAST_TOUCH_COOKIE] = encoded_cookie(
+      'source' => 'google',
+      'utm_campaign' => 'C++ launch'
+    )
+
+    described_class.new(account: account, cookies: cookies).perform
+
+    attribution = account.reload.internal_attributes['marketing_attribution']
+    expect(attribution['last_touch']['utm_campaign']).to eq('C++ launch')
+  end
+
   def encoded_cookie(payload)
-    CGI.escape(payload.to_json)
+    payload.to_json.bytes.map do |byte|
+      character = byte.chr
+      character.match?(/[A-Za-z0-9_.~-]/) ? character : "%#{byte.to_s(16).upcase.rjust(2, '0')}"
+    end.join
   end
 end

@@ -28,6 +28,26 @@ class Internal::Accounts::MarketingAttributionService
   private
 
   def attribution_cookie(cookie_name)
-    JSON.parse(CGI.unescape(cookies[cookie_name].to_s)) if cookies[cookie_name].present?
+    return if cookies[cookie_name].blank?
+
+    parse_cookie(cookies[cookie_name].to_s)
+  end
+
+  def parse_cookie(cookie_value)
+    JSON.parse(cookie_value)
+  rescue JSON::ParserError, ArgumentError
+    parse_percent_encoded_cookie(cookie_value)
+  end
+
+  def parse_percent_encoded_cookie(cookie_value)
+    JSON.parse(percent_decode(cookie_value))
+  rescue JSON::ParserError, ArgumentError
+    nil
+  end
+
+  def percent_decode(value)
+    value.gsub(/%[0-9A-Fa-f]{2}/) do |encoded_byte|
+      [encoded_byte[1..].to_i(16)].pack('C')
+    end.force_encoding(Encoding::UTF_8)
   end
 end
