@@ -2,6 +2,7 @@
 import WootDropdownItem from 'shared/components/ui/dropdown/DropdownItem.vue';
 import WootDropdownMenu from 'shared/components/ui/dropdown/DropdownMenu.vue';
 import Avatar from 'next/avatar/Avatar.vue';
+import Icon from 'dashboard/components-next/icon/Icon.vue';
 import EmojiIcon from 'dashboard/components-next/emoji-icon-picker/EmojiIcon.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 
@@ -10,6 +11,7 @@ export default {
     WootDropdownItem,
     WootDropdownMenu,
     Avatar,
+    Icon,
     EmojiIcon,
     NextButton,
   },
@@ -34,6 +36,10 @@ export default {
     noSearchResult: {
       type: String,
       default: 'No results found',
+    },
+    showEmojiIcon: {
+      type: Boolean,
+      default: false,
     },
   },
   emits: ['select'],
@@ -117,7 +123,7 @@ export default {
                 rounded-full
               />
               <div
-                v-if="option.icon"
+                v-if="option.icon && showEmojiIcon"
                 class="flex items-center justify-center flex-shrink-0 text-sm rounded-full size-6 outline outline-1 -outline-offset-1 outline-n-weak"
               >
                 <EmojiIcon
@@ -126,6 +132,11 @@ export default {
                   class="size-3.5 !text-sm"
                 />
               </div>
+              <Icon
+                v-else-if="option.icon"
+                :icon="option.icon"
+                class="size-5 text-n-slate-11"
+              />
             </NextButton>
           </WootDropdownItem>
         </WootDropdownMenu>
