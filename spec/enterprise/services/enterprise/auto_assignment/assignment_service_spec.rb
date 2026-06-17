@@ -182,5 +182,23 @@ RSpec.describe Enterprise::AutoAssignment::AssignmentService, type: :service do
         expect(conversation2.reload.assignee).to be_present
       end
     end
+
+    context 'when excluding by age via the assignment policy' do
+      let!(:old_conversation) { create(:conversation, inbox: inbox, assignee: nil, created_at: 25.hours.ago) }
+      let!(:recent_conversation) { create(:conversation, inbox: inbox, assignee: nil, created_at: 1.hour.ago) }
+
+      before do
+        InboxCapacityLimit.destroy_all
+        assignment_policy.update!(exclude_older_than_hours: 24)
+      end
+
+      it 'skips conversations older than the policy threshold without a capacity policy' do
+        assigned_count = assignment_service.perform_bulk_assignment(limit: 10)
+
+        expect(assigned_count).to eq(1)
+        expect(old_conversation.reload.assignee).to be_nil
+        expect(recent_conversation.reload.assignee).to be_present
+      end
+    end
   end
 end

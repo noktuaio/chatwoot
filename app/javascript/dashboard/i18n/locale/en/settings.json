@@ -812,6 +812,10 @@
           "INPUT_MAX": "Assign max",
           "DURATION": "Conversations per agent in every"
         },
+        "EXCLUDE_OLDER_THAN": {
+          "LABEL": "Skip stale conversations",
+          "DESCRIPTION": "Unassigned conversations older than this are skipped by auto-assignment, so agents only pick up recent backlog. Defaults to 7 days; clear the field to assign conversations regardless of age."
+        },
         "INBOXES": {
           "LABEL": "Added inboxes",
           "DESCRIPTION": "Add inboxes for which this policy will be applicable.",
