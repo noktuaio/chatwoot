@@ -6,6 +6,7 @@ import * as APIHelpers from '../../../utils/api';
 import '../../../../routes';
 
 vi.spyOn(APIHelpers, 'setUser');
+vi.spyOn(APIHelpers, 'setAuthCredentials');
 vi.spyOn(APIHelpers, 'clearCookiesOnLogout');
 vi.spyOn(APIHelpers, 'getHeaderExpiry');
 vi.spyOn(Cookies, 'get');
@@ -34,6 +35,32 @@ describe('#actions', () => {
       });
       await actions.validityCheck({ commit });
       expect(APIHelpers.clearCookiesOnLogout);
+    });
+  });
+
+  describe('#loginWithSso', () => {
+    it('stores auth credentials and current user', async () => {
+      const mockResponse = {
+        data: { data: { id: 1, name: 'John' } },
+        headers: { expiry: 581842904 },
+      };
+      axios.post.mockResolvedValue(mockResponse);
+
+      const result = await actions.loginWithSso(
+        { commit },
+        { email: 'agent@example.com', ssoAuthToken: 'sso-token' }
+      );
+
+      expect(axios.post).toHaveBeenCalledWith('/auth/sign_in', {
+        email: 'agent@example.com',
+        sso_auth_token: 'sso-token',
+      });
+      expect(APIHelpers.setAuthCredentials).toHaveBeenCalledWith(mockResponse);
+      expect(commit.mock.calls).toEqual([
+        [types.SET_CURRENT_USER, { id: 1, name: 'John' }],
+        [types.SET_CURRENT_USER_UI_FLAGS, { isFetching: false }],
+      ]);
+      expect(result).toEqual({ id: 1, name: 'John' });
     });
   });
 

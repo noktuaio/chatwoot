@@ -41,6 +41,33 @@ describe('#validateAuthenticateRoutePermission', () => {
 
       expect(mockAssign).toHaveBeenCalledWith('/app/login');
     });
+
+    it('should complete SSO token login before redirecting', async () => {
+      const to = {
+        name: 'login',
+        params: {},
+        query: {
+          email: 'agent@example.com',
+          sso_auth_token: 'sso-token',
+        },
+      };
+      const currentUser = {
+        account_id: 7,
+        id: 1,
+        accounts: [{ id: 7, status: 'active', role: 'administrator' }],
+      };
+
+      store.getters.isLoggedIn = false;
+      store.dispatch.mockResolvedValue(currentUser);
+
+      await validateAuthenticateRoutePermission(to, next);
+
+      expect(store.dispatch).toHaveBeenCalledWith('loginWithSso', {
+        email: 'agent@example.com',
+        ssoAuthToken: 'sso-token',
+      });
+      expect(next).toHaveBeenCalledWith('/app/accounts/7/dashboard');
+    });
   });
 
   describe('when user is logged in', () => {

@@ -12,8 +12,33 @@ const routes = [...dashboard.routes];
 
 export const router = createRouter({ history: createWebHistory(), routes });
 
+const getSsoCredentials = to => {
+  const { email, sso_auth_token: ssoAuthToken } = to.query || {};
+  if (!email || !ssoAuthToken) return null;
+
+  return { email, ssoAuthToken };
+};
+
+const defaultAuthenticatedRoute = user => {
+  const accountId = user?.account_id || user?.accounts?.[0]?.id;
+  return accountId
+    ? frontendURL(`accounts/${accountId}/dashboard`)
+    : frontendURL('no-accounts');
+};
+
 export const validateAuthenticateRoutePermission = async (to, next) => {
   const { isLoggedIn, getCurrentUser: user } = store.getters;
+  const ssoCredentials = getSsoCredentials(to);
+
+  if (!isLoggedIn && ssoCredentials) {
+    try {
+      const currentUser = await store.dispatch('loginWithSso', ssoCredentials);
+      return next(defaultAuthenticatedRoute(currentUser));
+    } catch {
+      window.location.assign('/app/login?error=autonomia-sso-error');
+      return '';
+    }
+  }
 
   if (!isLoggedIn) {
     if (window.chatwootConfig?.autonomiaSsoAutoRedirect === 'true') {

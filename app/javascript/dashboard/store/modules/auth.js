@@ -1,7 +1,11 @@
 import types from '../mutation-types';
 import authAPI from '../../api/auth';
 
-import { setUser, clearCookiesOnLogout } from '../utils/api';
+import {
+  setAuthCredentials,
+  setUser,
+  clearCookiesOnLogout,
+} from '../utils/api';
 import SessionStorage from 'shared/helpers/sessionStorage';
 import { SESSION_STORAGE_KEYS } from 'dashboard/constants/sessionStorage';
 
@@ -120,6 +124,16 @@ export const actions = {
       commit(types.CLEAR_USER);
     }
     commit(types.SET_CURRENT_USER_UI_FLAGS, { isFetching: false });
+  },
+  async loginWithSso({ commit }, { email, ssoAuthToken }) {
+    const response = await authAPI.loginWithSso({ email, ssoAuthToken });
+    const currentUser = response.data.data;
+
+    setAuthCredentials(response);
+    commit(types.SET_CURRENT_USER, currentUser);
+    commit(types.SET_CURRENT_USER_UI_FLAGS, { isFetching: false });
+
+    return currentUser;
   },
   logout({ commit }) {
     commit(types.CLEAR_USER);

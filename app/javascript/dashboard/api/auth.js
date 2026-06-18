@@ -12,6 +12,12 @@ export default {
     const urlData = endPoints('validityCheck');
     return axios.get(urlData.url);
   },
+  loginWithSso({ email, ssoAuthToken }) {
+    return axios.post('/auth/sign_in', {
+      email,
+      sso_auth_token: ssoAuthToken,
+    });
+  },
   logout() {
     const urlData = endPoints('logout');
     const fetchPromise = new Promise((resolve, reject) => {
