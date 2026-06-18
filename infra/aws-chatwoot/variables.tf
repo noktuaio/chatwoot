@@ -45,7 +45,7 @@ variable "github_actions_repository" {
 
 variable "github_actions_extra_repositories" {
   type    = list(string)
-  default = ["noktuaio/chat"]
+  default = ["noktuaio/chat", "autonom-ia2/chat"]
 }
 
 variable "image_tag" {
