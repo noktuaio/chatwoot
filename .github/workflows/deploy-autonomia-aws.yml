@@ -80,8 +80,21 @@ jobs:
 
       - name: Verify public SSO redirect
         run: |
-          location=$(curl -sI https://agents.autonomia.site/auth/autonomia | awk 'BEGIN{IGNORECASE=1} /^location:/ {print $2}' | tr -d '\r')
-          echo "$location"
-          test -n "$location"
-          echo "$location" | grep -F 'client_id=talkai'
-          echo "$location" | grep -F 'redirect_uri=https%3A%2F%2Fagents.autonomia.site%2Fauth%2Fautonomia%2Fcallback'
+          for attempt in $(seq 1 18); do
+            headers=$(curl -sS -I --max-time 10 https://agents.autonomia.site/auth/autonomia || true)
+            status=$(printf '%s\n' "$headers" | awk 'NR == 1 {print $2}')
+            location=$(printf '%s\n' "$headers" | awk 'BEGIN{IGNORECASE=1} /^location:/ {print $2}' | tr -d '\r')
+
+            if [ -n "$location" ] \
+              && printf '%s\n' "$location" | grep -F 'client_id=talkai' \
+              && printf '%s\n' "$location" | grep -F 'redirect_uri=https%3A%2F%2Fagents.autonomia.site%2Fauth%2Fautonomia%2Fcallback'; then
+              echo "$location"
+              exit 0
+            fi
+
+            echo "Attempt $attempt: status=${status:-none} location=${location:-none}"
+            sleep 10
+          done
+
+          echo "SSO redirect smoke test failed"
+          exit 1
