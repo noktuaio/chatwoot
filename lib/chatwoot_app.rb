@@ -34,12 +34,9 @@ module ChatwootApp
   end
 
   def self.extensions
-    if custom?
-      %w[enterprise custom]
-    elsif enterprise?
-      %w[enterprise]
-    else
-      %w[]
+    [].tap do |extensions|
+      extensions << 'enterprise' if enterprise?
+      extensions << 'custom' if custom?
     end
   end
 
