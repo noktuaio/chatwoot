@@ -7,8 +7,19 @@ import ResetPassword from './auth/reset/password/Index.vue';
 import Confirmation from './auth/confirmation/Index.vue';
 import VerifyEmail from './auth/verify-email/Index.vue';
 import PasswordEdit from './auth/password/Edit.vue';
+import AcceptInvitation from './auth/accept-invitation/Index.vue';
 
 export default [
+  {
+    path: '/accept-invitation',
+    name: 'accept_invitation',
+    component: AcceptInvitation,
+    meta: { ignoreSession: true },
+    props: route => ({
+      token: route.query.token,
+      clientId: route.query.client_id,
+    }),
+  },
   {
     path: frontendURL('login'),
     name: 'login',
