@@ -16,6 +16,11 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
   const { isLoggedIn, getCurrentUser: user } = store.getters;
 
   if (!isLoggedIn) {
+    if (window.chatwootConfig?.autonomiaSsoAutoRedirect === 'true') {
+      const returnTo = encodeURIComponent(to.fullPath || '/app');
+      window.location.assign(`/auth/autonomia?return_to=${returnTo}`);
+      return '';
+    }
     window.location.assign('/app/login');
     return '';
   }

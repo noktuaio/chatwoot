@@ -35,7 +35,7 @@ variable "github_repo_url" {
 
 variable "github_branch" {
   type    = string
-  default = "autonomia/custom-image-port"
+  default = "main"
 }
 
 variable "image_tag" {
@@ -86,6 +86,36 @@ variable "autonomia_agents_enabled" {
 variable "autonomia_agents_global" {
   type    = bool
   default = false
+}
+
+variable "autonomia_sso_enabled" {
+  type    = bool
+  default = true
+}
+
+variable "autonomia_sso_auto_redirect" {
+  type    = bool
+  default = true
+}
+
+variable "autonomia_auth_issuer" {
+  type    = string
+  default = "https://auth.autonomia.site"
+}
+
+variable "autonomia_auth_token_endpoint" {
+  type    = string
+  default = "https://auth.api-autonomia.com/oauth/token"
+}
+
+variable "autonomia_auth_context_endpoint" {
+  type    = string
+  default = "https://auth.api-autonomia.com/me/context"
+}
+
+variable "autonomia_auth_client_id" {
+  type    = string
+  default = "talkai"
 }
 
 variable "email_campaign_enabled" {

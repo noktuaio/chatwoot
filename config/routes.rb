@@ -1,4 +1,8 @@
 Rails.application.routes.draw do
+  get '/auth/autonomia', to: 'autonomia/auth#start'
+  get '/auth/autonomia/callback', to: 'autonomia/auth#callback'
+  get '/app/auth/callback', to: 'autonomia/auth#callback'
+
   # AUTH STARTS
   mount_devise_token_auth_for 'User', at: 'auth', controllers: {
     confirmations: 'devise_overrides/confirmations',

@@ -840,6 +840,14 @@ resource "helm_release" "chatwoot" {
         ACTIVE_STORAGE_SERVICE               = "amazon"
         AUTONOMIA_AGENTS_ENABLED             = tostring(var.autonomia_agents_enabled)
         AUTONOMIA_AGENTS_GLOBAL              = tostring(var.autonomia_agents_global)
+        AUTONOMIA_AUTH_CLIENT_ID             = var.autonomia_auth_client_id
+        AUTONOMIA_AUTH_CONTEXT_ENDPOINT      = var.autonomia_auth_context_endpoint
+        AUTONOMIA_AUTH_ISSUER                = var.autonomia_auth_issuer
+        AUTONOMIA_AUTH_REDIRECT_URI          = "https://${var.domain_name}/app/auth/callback"
+        AUTONOMIA_AUTH_TOKEN_ENDPOINT        = var.autonomia_auth_token_endpoint
+        AUTONOMIA_SSO_AUTO_REDIRECT          = tostring(var.autonomia_sso_auto_redirect)
+        AUTONOMIA_SSO_ENABLED                = tostring(var.autonomia_sso_enabled)
+        AUTONOMIA_SSO_URL                    = "/auth/autonomia"
         AWS_REGION                           = var.aws_region
         CAMPAIGN_IMPORT_ENABLED              = tostring(var.campaign_import_enabled)
         CHATWOOT_BASE_URL                    = "https://${var.domain_name}"

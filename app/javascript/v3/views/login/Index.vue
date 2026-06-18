@@ -106,10 +106,26 @@ export default {
     showSamlLogin() {
       return this.allowedLoginMethods.includes('saml');
     },
+    showAutonomiaSso() {
+      return window.chatwootConfig.autonomiaSsoEnabled === 'true';
+    },
+    autonomiaSsoUrl() {
+      return window.chatwootConfig.autonomiaSsoUrl || '/auth/autonomia';
+    },
   },
   created() {
     if (this.ssoAuthToken) {
       this.submitLogin();
+    }
+    if (
+      this.showAutonomiaSso &&
+      window.chatwootConfig.autonomiaSsoAutoRedirect === 'true' &&
+      !this.ssoAuthToken &&
+      !this.authError &&
+      !this.email
+    ) {
+      window.location.assign(this.autonomiaSsoUrl);
+      return;
     }
     if (this.authError) {
       const messageKey = ERROR_MESSAGES[this.authError] ?? 'LOGIN.API.UNAUTH';
@@ -346,6 +362,17 @@ export default {
       <div v-if="!email">
         <div class="flex flex-col gap-4">
           <GoogleOAuthButton v-if="showGoogleOAuth" />
+          <div v-if="showAutonomiaSso" class="text-center">
+            <a
+              :href="autonomiaSsoUrl"
+              class="inline-flex justify-center w-full px-4 py-3 items-center bg-n-background dark:bg-n-solid-3 rounded-md shadow-sm ring-1 ring-inset ring-n-container dark:ring-n-container focus:outline-offset-0 hover:bg-n-alpha-2 dark:hover:bg-n-alpha-2"
+            >
+              <Icon icon="i-lucide-cloud" class="size-5 text-n-slate-11" />
+              <span class="ml-2 text-base font-medium text-n-slate-12">
+                {{ $t('LOGIN.AUTONOMIA.LABEL') }}
+              </span>
+            </a>
+          </div>
           <div v-if="showSamlLogin" class="text-center">
             <router-link
               to="/app/login/sso"
@@ -361,7 +388,7 @@ export default {
             </router-link>
           </div>
           <SimpleDivider
-            v-if="showGoogleOAuth || showSamlLogin"
+            v-if="showGoogleOAuth || showSamlLogin || showAutonomiaSso"
             :label="$t('COMMON.OR')"
             class="uppercase"
           />
