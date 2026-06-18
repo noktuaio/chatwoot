@@ -37,3 +37,15 @@ output "uploads_bucket" {
 output "dns_instruction" {
   value = "Create a CNAME outside AWS: ${var.domain_name} -> the ALB DNS name shown by the Kubernetes ingress after deployment."
 }
+
+output "ec2_instance_id" {
+  value = aws_instance.chatwoot.id
+}
+
+output "ec2_alb_dns_name" {
+  value = aws_lb.ec2.dns_name
+}
+
+output "ec2_dns_instruction" {
+  value = "After validation, update the external CNAME for ${var.domain_name} to ${aws_lb.ec2.dns_name}."
+}

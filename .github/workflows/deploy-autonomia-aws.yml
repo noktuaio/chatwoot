@@ -19,8 +19,9 @@ env:
   AWS_REGION: us-east-1
   AWS_ROLE_ARN: arn:aws:iam::140023375763:role/chatwoot-autonomia-prod-github-actions-deploy
   ECR_REPOSITORY: chatwoot-autonomia-prod
-  EKS_CLUSTER_NAME: chatwoot-autonomia-prod-eks
-  KUBE_NAMESPACE: chatwoot
+  EC2_INSTANCE_ID: i-0c12f13722ad4e78c
+  EC2_ALB_DNS_NAME: chatwoot-autonomia-prod-ec2-1353010243.us-east-1.elb.amazonaws.com
+  SSM_RUNTIME_IMAGE_PARAMETER: /chatwoot/prod/runtime-image
   STABLE_IMAGE_TAG: autonomia-custom-image-port-ce
 
 jobs:
@@ -66,22 +67,39 @@ jobs:
           cache-from: type=gha,scope=chatwoot-autonomia-prod-linux-amd64
           cache-to: type=gha,mode=max,scope=chatwoot-autonomia-prod-linux-amd64
 
-      - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region "$AWS_REGION"
-
-      - name: Deploy image
+      - name: Deploy image to EC2
         env:
           IMAGE_URI: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
         run: |
-          kubectl set image deployment/chatwoot-web chatwoot-web="$IMAGE_URI" -n "$KUBE_NAMESPACE"
-          kubectl set image deployment/chatwoot-worker chatwoot-workers="$IMAGE_URI" -n "$KUBE_NAMESPACE"
-          kubectl rollout status deployment/chatwoot-web -n "$KUBE_NAMESPACE" --timeout=300s
-          kubectl rollout status deployment/chatwoot-worker -n "$KUBE_NAMESPACE" --timeout=300s
+          aws ssm put-parameter \
+            --name "$SSM_RUNTIME_IMAGE_PARAMETER" \
+            --type String \
+            --value "$IMAGE_URI" \
+            --overwrite
+
+          command_id=$(aws ssm send-command \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --parameters "commands=[\"sudo /opt/chatwoot/deploy.sh '$IMAGE_URI'\"]" \
+            --query 'Command.CommandId' \
+            --output text)
+
+          aws ssm wait command-executed \
+            --command-id "$command_id" \
+            --instance-id "$EC2_INSTANCE_ID"
+
+          aws ssm get-command-invocation \
+            --command-id "$command_id" \
+            --instance-id "$EC2_INSTANCE_ID" \
+            --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' \
+            --output json
 
       - name: Verify public SSO redirect
         run: |
           for attempt in $(seq 1 18); do
-            headers=$(curl -sS -I --max-time 10 https://agents.autonomia.site/auth/autonomia || true)
+            headers=$(curl -k -sS -I --max-time 10 \
+              --connect-to "agents.autonomia.site:443:${EC2_ALB_DNS_NAME}:443" \
+              https://agents.autonomia.site/auth/autonomia || true)
             status=$(printf '%s\n' "$headers" | awk 'NR == 1 {print $2}')
             location=$(printf '%s\n' "$headers" | awk 'BEGIN{IGNORECASE=1} /^location:/ {print $2}' | tr -d '\r')
 
