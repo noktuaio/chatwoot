@@ -8,14 +8,14 @@ class Autonomia::ProductInvitations::AgentInviter
   pattr_initialize [:account!, :inviter!, :agent_params!]
 
   def perform
-    access_token = Autonomia::Sso::TokenStore.access_token_for(inviter)
+    authorization_token = Autonomia::Sso::TokenStore.authorization_token_for(inviter)
     user_link = Autonomia::UserLink.find_by(user: inviter)
 
-    raise Error, 'Sua sessao do Auth expirou. Saia e entre novamente para convidar agentes.' if access_token.blank? || user_link.blank?
+    raise Error, 'Sua sessao do Auth expirou. Saia e entre novamente para convidar agentes.' if authorization_token.blank? || user_link.blank?
     raise Error, 'Este usuario ja faz parte da conta.' if account.users.exists?(email: email)
 
     response = Autonomia::ProductInvitations::Client.new.create!(
-      access_token: access_token,
+      authorization_token: authorization_token,
       payload: invitation_payload(user_link)
     )
     store_pending_invitation!(response)

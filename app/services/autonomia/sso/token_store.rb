@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
 class Autonomia::Sso::TokenStore
-  TOKEN_PURPOSE = :autonomia_identity_access_token
+  TOKEN_PURPOSE = :autonomia_identity_authorization_token
   DEFAULT_TTL = 55.minutes
 
   def self.write!(user_link, token)
     new(user_link).write!(token)
   end
 
-  def self.access_token_for(user)
+  def self.authorization_token_for(user)
     user_link = Autonomia::UserLink.find_by(user: user)
     return if user_link.blank?
 
-    new(user_link).access_token
+    new(user_link).authorization_token
   end
 
   def initialize(user_link)
@@ -20,19 +20,19 @@ class Autonomia::Sso::TokenStore
   end
 
   def write!(token)
-    return if token.access_token.blank?
+    return if token.context_token.blank?
 
     metadata = (@user_link.metadata || {}).merge(
-      'identity_access_token' => encryptor.encrypt_and_sign(token.access_token, purpose: TOKEN_PURPOSE),
-      'identity_access_token_expires_at' => expires_at(token).iso8601
+      'identity_authorization_token' => encryptor.encrypt_and_sign(token.context_token, purpose: TOKEN_PURPOSE),
+      'identity_authorization_token_expires_at' => expires_at(token).iso8601
     )
     @user_link.update!(metadata: metadata)
   end
 
-  def access_token
+  def authorization_token
     return if token_expired?
 
-    encrypted_token = @user_link.metadata&.fetch('identity_access_token', nil)
+    encrypted_token = @user_link.metadata&.fetch('identity_authorization_token', nil)
     return if encrypted_token.blank?
 
     encryptor.decrypt_and_verify(encrypted_token, purpose: TOKEN_PURPOSE)
@@ -43,7 +43,7 @@ class Autonomia::Sso::TokenStore
   private
 
   def token_expired?
-    expires_at = @user_link.metadata&.fetch('identity_access_token_expires_at', nil)
+    expires_at = @user_link.metadata&.fetch('identity_authorization_token_expires_at', nil)
     return true if expires_at.blank?
 
     Time.zone.parse(expires_at).past?
