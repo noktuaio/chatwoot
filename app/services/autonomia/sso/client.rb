@@ -4,7 +4,11 @@ require 'net/http'
 require 'uri'
 
 class Autonomia::Sso::Client
-  Token = Struct.new(:access_token, :id_token, :refresh_token, keyword_init: true)
+  Token = Struct.new(:access_token, :id_token, :refresh_token, keyword_init: true) do
+    def context_token
+      id_token.presence || access_token
+    end
+  end
 
   def exchange_code!(code:, redirect_uri:, code_verifier:)
     response = post_form(token_endpoint, {

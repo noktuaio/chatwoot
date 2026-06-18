@@ -20,6 +20,7 @@ playwright/.auth/
 .auth/
 
 # Test artifacts
+artifacts/
 screenshots/
 videos/
 downloads/

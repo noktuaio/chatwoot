@@ -24,12 +24,13 @@ class Autonomia::AuthController < ApplicationController
     state = decode_state
     return redirect_to login_page_url(error: 'autonomia-sso-state') if state.blank?
 
-    token = Autonomia::Sso::Client.new.exchange_code!(
+    client = Autonomia::Sso::Client.new
+    token = client.exchange_code!(
       code: params.require(:code),
       redirect_uri: callback_url,
       code_verifier: state[:code_verifier]
     )
-    context = Autonomia::Sso::Client.new.fetch_context!(token.access_token)
+    context = client.fetch_context!(token.context_token)
     user = Autonomia::Sso::Provisioner.new(context: context).perform
 
     redirect_to login_page_url(email: ERB::Util.url_encode(user.email), sso_auth_token: user.generate_sso_auth_token)

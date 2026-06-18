@@ -36,7 +36,7 @@ RSpec.describe 'Autonomia::AuthController', type: :request do
   describe 'GET /auth/autonomia/callback' do
     let(:code) { SecureRandom.urlsafe_base64(24) }
     let(:user) { create(:user) }
-    let(:token) { Autonomia::Sso::Client::Token.new(access_token: 'identity-access-token') }
+    let(:token) { Autonomia::Sso::Client::Token.new(access_token: 'identity-access-token', id_token: 'identity-id-token') }
     let(:client) { instance_double(Autonomia::Sso::Client) }
     let(:provisioner) { instance_double(Autonomia::Sso::Provisioner, perform: user) }
 
@@ -50,7 +50,7 @@ RSpec.describe 'Autonomia::AuthController', type: :request do
 
       allow(Autonomia::Sso::Client).to receive(:new).and_return(client)
       allow(client).to receive(:exchange_code!).and_return(token)
-      allow(client).to receive(:fetch_context!).with('identity-access-token').and_return({})
+      allow(client).to receive(:fetch_context!).with('identity-id-token').and_return({})
       allow(Autonomia::Sso::Provisioner).to receive(:new).with(context: {}).and_return(provisioner)
 
       with_modified_env sso_env do
@@ -62,6 +62,30 @@ RSpec.describe 'Autonomia::AuthController', type: :request do
         redirect_uri: callback_url,
         code_verifier: be_present
       )
+      expect(response).to redirect_to(
+        %r{\A#{frontend_url}/app/login\?email=#{Regexp.escape(ERB::Util.url_encode(user.email))}&sso_auth_token=}
+      )
+    end
+
+    it 'falls back to the access token when Identity does not return an ID token' do
+      with_modified_env sso_env do
+        get '/auth/autonomia'
+      end
+
+      state = Rack::Utils.parse_query(URI.parse(response.location).query).fetch('state')
+      reset!
+
+      allow(Autonomia::Sso::Client).to receive(:new).and_return(client)
+      allow(client).to receive(:exchange_code!).and_return(
+        Autonomia::Sso::Client::Token.new(access_token: 'identity-access-token')
+      )
+      allow(client).to receive(:fetch_context!).with('identity-access-token').and_return({})
+      allow(Autonomia::Sso::Provisioner).to receive(:new).with(context: {}).and_return(provisioner)
+
+      with_modified_env sso_env do
+        get '/auth/autonomia/callback', params: { code: code, state: state }
+      end
+
       expect(response).to redirect_to(
         %r{\A#{frontend_url}/app/login\?email=#{Regexp.escape(ERB::Util.url_encode(user.email))}&sso_auth_token=}
       )
