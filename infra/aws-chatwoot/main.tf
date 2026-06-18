@@ -725,7 +725,7 @@ resource "helm_release" "chatwoot" {
       image = {
         repository = aws_ecr_repository.chatwoot.repository_url
         tag        = var.image_tag
-        pullPolicy = "IfNotPresent"
+        pullPolicy = "Always"
       }
 
       postgresql = {
