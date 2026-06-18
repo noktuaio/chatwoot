@@ -30,7 +30,7 @@ variable "certificate_arn" {
 
 variable "github_repo_url" {
   type    = string
-  default = "https://github.com/noktuaio/chatwoot.git"
+  default = "https://github.com/autonom-ia/chat.git"
 }
 
 variable "github_branch" {
@@ -40,7 +40,7 @@ variable "github_branch" {
 
 variable "github_actions_repository" {
   type    = string
-  default = "noktuaio/chatwoot"
+  default = "autonom-ia/chat"
 }
 
 variable "image_tag" {
