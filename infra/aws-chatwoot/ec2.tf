@@ -91,6 +91,10 @@ resource "aws_ssm_parameter" "chatwoot_ec2_runtime_image" {
   description = "Chatwoot EC2 Docker image URI"
   type        = "String"
   value       = local.ec2_image_uri
+
+  lifecycle {
+    ignore_changes = [value]
+  }
 }
 
 resource "aws_security_group" "ec2_alb" {

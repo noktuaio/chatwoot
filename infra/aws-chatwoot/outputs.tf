@@ -6,10 +6,6 @@ output "region" {
   value = var.aws_region
 }
 
-output "cluster_name" {
-  value = aws_eks_cluster.this.name
-}
-
 output "domain_name" {
   value = var.domain_name
 }
