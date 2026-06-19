@@ -43,7 +43,13 @@ class Crm::Cards::FilterQuery
 
   def base_scope
     @scope.includes(:contact, :owner, :inbox, :stage, :pipeline,
-                    primary_conversation: [:conversation_participants, { applied_sla: :sla_policy }])
+                    primary_conversation: conversation_preloads)
+  end
+
+  def conversation_preloads
+    preloads = [:conversation_participants]
+    preloads << { applied_sla: :sla_policy } if Conversation.reflect_on_association(:applied_sla)
+    preloads
   end
 
   def apply_filters(cards)

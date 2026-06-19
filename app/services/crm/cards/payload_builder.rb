@@ -189,6 +189,7 @@ class Crm::Cards::PayloadBuilder
   # native push_event_data shape that SLACardLabel/evaluateSLAStatus consume.
   def applied_sla_payload
     return unless @card.account.feature_enabled?('sla')
+    return unless primary_conversation.class.reflect_on_association(:applied_sla)
 
     primary_conversation.applied_sla&.push_event_data
   end
