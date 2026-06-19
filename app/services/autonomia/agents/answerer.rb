@@ -36,6 +36,14 @@ module Autonomia
         /\b[A-Z]{2,}-\d{2,}\b/                   # SKU/código tipo ST-045
       ].freeze
 
+      INTERNAL_GUIDANCE_PATTERNS = [
+        /quando\s+n[ãa]o\s+tiver\s+seguran[çc]a\s+para\s+responder/i,
+        /explique\s+brevemente\s+e\s+encaminhe/i,
+        /sem\s+repetir\s+uma\s+frase\s+fixa/i,
+        /use\s+esta\s+mensagem\s+apenas\s+como\s+refer[êe]ncia/i,
+        /orienta[çc][ãa]o\s+de\s+encaminhamento/i
+      ].freeze
+
       def initialize(agent:, query:, history: [], images: [])
         @agent = agent
         @query = query.to_s
@@ -110,6 +118,12 @@ module Autonomia
         confidence = anchored_confidence(self_conf, parsed, snippets, used, reply_present, grounded_by_instruction)
         # P2.2(b): sem fonte real e sem âncora, remover a frase de grounding ("nosso material") da reply.
         reply = sanitize_grounding_phrase(parsed['reply'], used, grounded_by_instruction)
+        if internal_guidance_reply?(reply)
+          reply = nil
+          reply_present = false
+          answered = false
+          confidence = 0.0
+        end
 
         if handoff?(parsed, confidence, answered, snippets, reply_present, grounded_by_instruction)
           handoff_result(parsed, confidence, used)
@@ -233,11 +247,20 @@ module Autonomia
       def handoff_reply(parsed)
         reply = parsed['reply'].to_s.strip
         return if reply.blank?
+        return if internal_guidance_reply?(reply)
 
         # Quando o próprio modelo pediu handoff, ou quando a resposta é uma recusa de "não sei",
         # a frase gerada é segura e tende a variar por contexto. Nos demais gates determinísticos
         # (ex.: resposta específica demais sem base forte), não entregamos a resposta bloqueada.
         return sanitize_grounding_phrase(reply, [], false) if parsed['should_handoff'] == true || refusal_no_info?(parsed)
+      end
+
+      def internal_guidance_reply?(reply)
+        text = reply.to_s.strip
+        return false if text.blank?
+
+        fallback = @agent.fallback_message.to_s.strip
+        text == fallback || INTERNAL_GUIDANCE_PATTERNS.any? { |re| text.match?(re) }
       end
 
       # used_snippet_ids ∩ ids dos snippets -> { id, content, source: label } (conteúdo do usuário, ok expor).
