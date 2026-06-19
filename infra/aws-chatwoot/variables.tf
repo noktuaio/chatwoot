@@ -95,7 +95,7 @@ variable "autonomia_agents_enabled" {
 
 variable "autonomia_agents_global" {
   type    = bool
-  default = false
+  default = true
 }
 
 variable "autonomia_sso_enabled" {
