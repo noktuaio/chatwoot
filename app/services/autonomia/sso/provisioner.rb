@@ -22,7 +22,7 @@ class Autonomia::Sso::Provisioner
   end
 
   def find_or_create_account
-    Autonomia::AccountLink.find_by(identity_organization_id: identity_organization_id)&.account || create_account
+    pending_agent_invitation_account || linked_account || create_account
   end
 
   def create_user
@@ -46,6 +46,7 @@ class Autonomia::Sso::Provisioner
   end
 
   def sync_account_name(account)
+    return if pending_agent_invitation(account).present?
     return if organization_name.blank?
     return if account.name == organization_name
 
@@ -85,6 +86,13 @@ class Autonomia::Sso::Provisioner
     pending_agent_invitations(account)[identity_email.downcase]
   end
 
+  def pending_agent_invitation_account
+    Account.where(
+      "custom_attributes -> 'autonomia_pending_agent_invitations' ? :email",
+      email: identity_email.downcase
+    ).first
+  end
+
   def consume_pending_agent_invitation(account)
     invitations = pending_agent_invitations(account)
     invitations.delete(identity_email.downcase)
@@ -101,6 +109,10 @@ class Autonomia::Sso::Provisioner
 
   def linked_user
     Autonomia::UserLink.find_by(identity_user_id: identity_user_id)&.user
+  end
+
+  def linked_account
+    Autonomia::AccountLink.find_by(identity_organization_id: identity_organization_id)&.account
   end
 
   def identity_user
