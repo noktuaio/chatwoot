@@ -1,5 +1,5 @@
 class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autonomia::BaseController
-  before_action :fetch_agent, only: [:show, :update, :destroy]
+  before_action :fetch_agent, only: [:show, :update, :destroy, :avatar]
 
   # Andaime mínimo aplicado pelo backend em modo manual (IP oculto) — embrulha a instrução do
   # usuário com guardrails de segurança/formato/handoff. Nunca vem do params nem é exposto.
@@ -12,7 +12,7 @@ class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autono
   SCAFFOLD
 
   def index
-    @agents = agents_scope.order(created_at: :desc)
+    @agents = agents_scope.with_attached_avatar.order(created_at: :desc)
   end
 
   def show; end
@@ -36,6 +36,19 @@ class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autono
   def destroy
     @agent.destroy!
     head :no_content
+  end
+
+  def avatar
+    if request.delete?
+      @agent.avatar.purge if @agent.avatar.attached?
+    else
+      return render_unprocessable('avatar_required') if params[:avatar].blank?
+
+      @agent.avatar.attach(params[:avatar])
+      @agent.save!
+    end
+
+    render :show
   end
 
   private

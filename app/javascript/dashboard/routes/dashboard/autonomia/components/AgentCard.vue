@@ -62,7 +62,12 @@ const statusLabel = computed(() => {
     class="flex flex-col w-full gap-3 p-4 text-left transition-all duration-150 border shadow-sm rounded-xl border-n-weak bg-n-solid-1 hover:border-n-slate-6 hover:shadow-md hover:-translate-y-0.5"
   >
     <div class="flex items-start gap-3">
-      <Avatar :name="agent.name" :size="40" rounded-full />
+      <Avatar
+        :name="agent.name"
+        :src="agent.avatar_url"
+        :size="40"
+        rounded-full
+      />
       <button
         type="button"
         class="flex flex-col min-w-0 gap-1.5 text-left outline-1 outline-transparent rounded-md focus-visible:outline-n-brand"

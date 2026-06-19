@@ -591,7 +591,7 @@ const menuItems = computed(() => {
           {
             name: 'Agents',
             label: t('SIDEBAR.AGENTS_AUTONOMIA'),
-            icon: 'i-lucide-bot',
+            image: '/brand-assets/autonomia-menu-icon.png',
             activeOn: [
               'autonomia_agents_index',
               'autonomia_agents_builder',

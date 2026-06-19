@@ -7,6 +7,7 @@ const props = defineProps({
   to: { type: [Object, String], default: '' },
   label: { type: String, default: '' },
   icon: { type: [String, Object], default: '' },
+  image: { type: String, default: '' },
   expandable: { type: Boolean, default: false },
   isExpanded: { type: Boolean, default: false },
   isActive: { type: Boolean, default: false },
@@ -38,8 +39,14 @@ const count = computed(() =>
     }"
     @click.stop="emit('toggle')"
   >
-    <div v-if="icon" class="relative flex items-center gap-2">
-      <Icon v-if="icon" :icon="icon" class="size-4" />
+    <div v-if="icon || image" class="relative flex items-center gap-2">
+      <img
+        v-if="image"
+        :src="image"
+        :alt="label"
+        class="object-contain rounded-sm size-4"
+      />
+      <Icon v-else-if="icon" :icon="icon" class="size-4" />
       <span
         v-if="showBadge"
         class="size-2 -top-px ltr:-right-px rtl:-left-px bg-n-brand absolute rounded-full border border-n-solid-2"

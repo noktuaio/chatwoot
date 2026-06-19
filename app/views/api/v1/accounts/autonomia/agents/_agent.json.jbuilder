@@ -1,5 +1,6 @@
 json.id agent.id
 json.name agent.name
+json.avatar_url agent.avatar_url
 json.agent_type agent.agent_type
 json.status agent.status
 json.mode agent.mode

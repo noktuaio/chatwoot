@@ -226,6 +226,8 @@ Rails.application.routes.draw do
                 post :test,    to: 'agents/playground#test'
                 post :suggest, to: 'agents/playground#suggest'
                 get  :analytics, to: 'agents/analytics#index'   # Fase F
+                patch :avatar
+                delete :avatar
               end
               resources :sources, only: [:index, :create, :destroy], controller: 'agents/sources' do
                 member { post :resync }

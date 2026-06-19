@@ -14,6 +14,7 @@ const props = defineProps({
   name: { type: String, required: true },
   label: { type: String, required: true },
   icon: { type: [String, Object, Function], default: null },
+  image: { type: String, default: '' },
   to: { type: Object, default: null },
   activeOn: { type: Array, default: () => [] },
   children: { type: Array, default: undefined },
@@ -271,7 +272,13 @@ watch(
           :title="label"
           @click="hasChildren ? handleCollapsedClick() : undefined"
         >
-          <Icon v-if="icon" :icon="icon" class="size-4" />
+          <img
+            v-if="image"
+            :src="image"
+            :alt="label"
+            class="object-contain rounded-sm size-4"
+          />
+          <Icon v-else-if="icon" :icon="icon" class="size-4" />
         </component>
         <SidebarCollapsedPopover
           v-if="hasChildren && isPopoverOpen"
@@ -290,6 +297,7 @@ watch(
     <template v-else>
       <SidebarGroupHeader
         :icon
+        :image
         :name
         :label
         :to

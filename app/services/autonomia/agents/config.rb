@@ -119,6 +119,26 @@ module Autonomia
         BOOLEAN.cast(ENV.fetch('AI_HUMANIZE_CHANNEL_TYPING', true))
       end
 
+      # Exposição do prompt completo no painel "Testar".
+      #
+      # Por padrão fica desligado porque o payload contém instruction/scaffold
+      # completos. Para habilitar em produção:
+      #   AUTONOMIA_AGENT_TEST_PROMPT_VISIBLE=true
+      #   AUTONOMIA_AGENT_TEST_PROMPT_AGENT_IDS=2,5
+      #
+      # O wildcard "*" existe para diagnóstico controlado, mas ainda exige a
+      # chave geral ligada explicitamente.
+      def self.test_prompt_visible_for?(agent)
+        return false unless BOOLEAN.cast(ENV.fetch('AUTONOMIA_AGENT_TEST_PROMPT_VISIBLE', false))
+        return false if agent.blank?
+
+        allowed_ids = ENV.fetch('AUTONOMIA_AGENT_TEST_PROMPT_AGENT_IDS', '')
+                         .split(',')
+                         .map(&:strip)
+                         .compact_blank
+        allowed_ids.include?('*') || allowed_ids.include?(agent.id.to_s)
+      end
+
       # Parâmetros do quebrador/ritmo (espelham o CONFIG do script n8n v3 que o produto calibrou).
       # Centralizados aqui p/ tunar sem caçar literais no código. Chars de chunk + janelas de delay (ms).
       HUMANIZE = {

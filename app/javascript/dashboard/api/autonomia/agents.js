@@ -18,6 +18,18 @@ class AutonomiaAgentsAPI extends ApiClient {
     });
   }
 
+  updateAvatar(agentId, avatar) {
+    const formData = new FormData();
+    formData.append('avatar', avatar);
+    return axios.patch(`${this.url}/${agentId}/avatar`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+
+  deleteAvatar(agentId) {
+    return axios.delete(`${this.url}/${agentId}/avatar`);
+  }
+
   suggest(agentId, { message, history }) {
     return axios.post(`${this.url}/${agentId}/suggest`, { message, history });
   }
