@@ -1,18 +1,17 @@
 module Autonomia
   module Agents
-    # Resultado SÍNCRONO do motor de resposta. Fronteira de segurança: NUNCA carrega
-    # instruction/scaffold/prompt montado. `used_knowledge[].content` é conteúdo do próprio
+    # Resultado SÍNCRONO do motor de resposta. `used_knowledge[].content` é conteúdo do próprio
     # usuário (ok expor). `error` é um código curto (ex.: 'ai_unavailable'), nunca a mensagem
     # crua do LLM. `raw_reply` é o texto do modelo antes do portão (gerado, não é IP) — exposto
-    # só no Copilot (/suggest); o Testar (/test) o ignora.
+    # só no Copilot (/suggest). `debug_prompt` é auditoria exclusiva do Testar (/test).
     class AnswerResult
       attr_reader :reply, :confidence, :handoff, :used_knowledge,
-                  :answered_from_knowledge, :raw_reply, :error
+                  :answered_from_knowledge, :raw_reply, :error, :debug_prompt
 
       # handoff: { should: Boolean, reason: String|nil }
       # used_knowledge: Array<{ id:, content:, source: }>
       def initialize(reply:, confidence:, handoff:, used_knowledge: [],
-                     answered_from_knowledge: false, raw_reply: nil, error: nil)
+                     answered_from_knowledge: false, raw_reply: nil, error: nil, debug_prompt: nil)
         @reply = reply
         @confidence = confidence
         @handoff = handoff
@@ -20,6 +19,7 @@ module Autonomia
         @answered_from_knowledge = answered_from_knowledge
         @raw_reply = raw_reply
         @error = error
+        @debug_prompt = debug_prompt
       end
 
       # Consumido pelo jbuilder do Testar. NÃO inclui raw_reply (esse é só do Copilot).

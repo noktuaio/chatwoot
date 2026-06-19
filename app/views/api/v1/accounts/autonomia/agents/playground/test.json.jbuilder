@@ -10,6 +10,16 @@ json.used_knowledge @result.used_knowledge do |k|
   json.source k[:source]
 end
 json.error @result.error if @result.error.present?
+if @result.debug_prompt.present?
+  json.prompt do
+    json.model @result.debug_prompt[:model]
+    json.reasoning_effort @result.debug_prompt[:reasoning_effort]
+    json.instructions @result.debug_prompt[:instructions]
+    json.input @result.debug_prompt[:input]
+    json.tools @result.debug_prompt[:tools]
+    json.schema @result.debug_prompt[:schema]
+  end
+end
 
 # ENTREGA HUMANIZADA (paridade do Testar com a produção): quando ligada para o agente, expõe os
 # MESMOS pedaços + delay (ms) do ReplyChunker que o canal real entregaria, para o painel tocar a

@@ -6,7 +6,8 @@ module Autonomia
     # confiança e aplica o portão. NÃO executa reassignment (Fase D). Em sandbox não há conversa real.
     #
     # SEGURANÇA: o prompt montado (scaffold + instruction) vai direto ao ResponsesClient via
-    # `instructions` e é descartado. NUNCA entra no AnswerResult nem em log.
+    # `instructions` e nunca entra em log. No modo Testar ele volta no AnswerResult como
+    # auditoria visual do sandbox; os fluxos de operação/suggest continuam sem expor esse dado.
     class Answerer
       # Recusa "não tenho/não encontrei informação" (pt/en). Determinístico, p/ rebaixar confiança (P2.1).
       # NÃO casa recusa de injeção/fora-de-escopo (texto próprio) nem negação factual firme ("não, a X não faz").
@@ -40,6 +41,7 @@ module Autonomia
         @query = query.to_s
         @history = history
         @images = Array(images)
+        @debug_prompt = nil
       end
 
       # -> Autonomia::Agents::AnswerResult
@@ -71,6 +73,7 @@ module Autonomia
         return nil if credential.blank?
 
         pb = PromptBuilder.new(agent: @agent, query: @query, history: @history, snippets: snippets, images: @images)
+        @debug_prompt = build_debug_prompt(pb)
         raw = Crm::Ai::ResponsesClient.new(credential: credential).create(
           model: Config::ANSWERER_MODEL,
           instructions: pb.instructions,
@@ -115,7 +118,7 @@ module Autonomia
             reply: reply, confidence: confidence,
             handoff: { should: false, reason: nil },
             used_knowledge: used, answered_from_knowledge: answered,
-            raw_reply: parsed['reply']
+            raw_reply: parsed['reply'], debug_prompt: @debug_prompt
           )
         end
       end
@@ -222,7 +225,8 @@ module Autonomia
           confidence: confidence,
           handoff: { should: true, reason: parsed['handoff_reason'].presence || 'low_confidence' },
           used_knowledge: used, answered_from_knowledge: false,
-          raw_reply: parsed['reply'] # melhor esforço preservado p/ o Copilot
+          raw_reply: parsed['reply'], # melhor esforço preservado p/ o Copilot
+          debug_prompt: @debug_prompt
         )
       end
 
@@ -267,8 +271,20 @@ module Autonomia
           confidence: 0.0,
           handoff: { should: true, reason: 'ai_unavailable' },
           used_knowledge: [], answered_from_knowledge: false,
-          raw_reply: nil, error: 'ai_unavailable'
+          raw_reply: nil, error: 'ai_unavailable',
+          debug_prompt: @debug_prompt
         )
+      end
+
+      def build_debug_prompt(prompt_builder)
+        {
+          model: Config::ANSWERER_MODEL,
+          reasoning_effort: Config::ANSWERER_REASONING_EFFORT,
+          instructions: prompt_builder.instructions,
+          input: prompt_builder.input,
+          tools: Crm::Ai::WebSearch.tools,
+          schema: PromptBuilder::ANSWER_SCHEMA
+        }
       end
     end
   end

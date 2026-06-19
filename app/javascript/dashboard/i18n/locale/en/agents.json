@@ -170,6 +170,10 @@
       "CONFIDENCE": "Confidence",
       "HANDOFF_NOTICE": "Would hand off to a human: {reason}",
       "KNOWLEDGE_USED": "Knowledge used ({count})",
+      "PROMPT_USED": "Prompt used",
+      "PROMPT_INSTRUCTIONS": "Instructions",
+      "PROMPT_INPUT": "Input",
+      "PROMPT_REQUEST": "Request configuration",
       "SOURCE": "Source: {source}",
       "CONVERSATION": "Test conversation",
       "NOT_FINALIZED": "This agent isn't finalized yet. Finish building it so the test reflects its real behavior."

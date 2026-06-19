@@ -170,6 +170,10 @@
       "CONFIDENCE": "Confiança",
       "HANDOFF_NOTICE": "Transferiria para um humano: {reason}",
       "KNOWLEDGE_USED": "Conhecimento utilizado ({count})",
+      "PROMPT_USED": "Prompt utilizado",
+      "PROMPT_INSTRUCTIONS": "Instruções",
+      "PROMPT_INPUT": "Entrada",
+      "PROMPT_REQUEST": "Configuração da chamada",
       "SOURCE": "Fonte: {source}",
       "CONVERSATION": "Conversa de teste",
       "NOT_FINALIZED": "Este agente ainda não foi finalizado. Conclua a construção para o teste refletir o comportamento real."

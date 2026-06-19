@@ -91,6 +91,25 @@ const confidenceClass = confidence => {
   return 'bg-n-ruby-9';
 };
 
+const prettyJson = value => {
+  if (value === undefined || value === null) return '';
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch (error) {
+    return String(value);
+  }
+};
+
+const promptRequestConfig = prompt => {
+  if (!prompt) return null;
+  return {
+    model: prompt.model,
+    reasoning_effort: prompt.reasoning_effort,
+    tools: prompt.tools || [],
+    schema: prompt.schema,
+  };
+};
+
 const resetConversation = () => {
   messages.value = [];
   persistMessages();
@@ -145,6 +164,7 @@ const pushAssistantTurn = async data => {
     confidence: data.confidence,
     handoff: data.handoff,
     usedKnowledge: data.used_knowledge || [],
+    prompt: data.prompt || null,
     meta: true,
   };
 
@@ -306,6 +326,42 @@ const onSend = async ({ content, images = [] }) => {
                   </span>
                 </li>
               </ul>
+            </Accordion>
+
+            <Accordion
+              v-if="message.prompt"
+              :title="t('AGENTS.TEST.PROMPT_USED')"
+            >
+              <div class="flex flex-col gap-3">
+                <section class="flex flex-col gap-1">
+                  <span class="text-xs font-medium text-n-slate-12">
+                    {{ t('AGENTS.TEST.PROMPT_INSTRUCTIONS') }}
+                  </span>
+                  <pre
+                    class="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-n-weak bg-n-alpha-1 p-3 text-[11px] leading-relaxed text-n-slate-11"
+                  ><code>{{ message.prompt.instructions }}</code></pre>
+                </section>
+
+                <section class="flex flex-col gap-1">
+                  <span class="text-xs font-medium text-n-slate-12">
+                    {{ t('AGENTS.TEST.PROMPT_INPUT') }}
+                  </span>
+                  <pre
+                    class="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-n-weak bg-n-alpha-1 p-3 text-[11px] leading-relaxed text-n-slate-11"
+                  ><code>{{ prettyJson(message.prompt.input) }}</code></pre>
+                </section>
+
+                <section class="flex flex-col gap-1">
+                  <span class="text-xs font-medium text-n-slate-12">
+                    {{ t('AGENTS.TEST.PROMPT_REQUEST') }}
+                  </span>
+                  <pre
+                    class="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-n-weak bg-n-alpha-1 p-3 text-[11px] leading-relaxed text-n-slate-11"
+                  ><code>{{
+                    prettyJson(promptRequestConfig(message.prompt))
+                  }}</code></pre>
+                </section>
+              </div>
             </Accordion>
           </div>
         </template>
