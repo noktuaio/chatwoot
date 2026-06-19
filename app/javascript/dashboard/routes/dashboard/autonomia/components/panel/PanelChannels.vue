@@ -1,5 +1,6 @@
 <script setup>
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
@@ -13,14 +14,23 @@ const props = defineProps({
     type: Number,
     required: true,
   },
+  agent: {
+    type: Object,
+    required: true,
+  },
 });
 
 const { t } = useI18n();
 const store = useStore();
+const router = useRouter();
 
 const connected = useMapGetter('autonomiaChannels/getConnected');
 const eligible = useMapGetter('autonomiaChannels/getEligible');
 const uiFlags = useMapGetter('autonomiaChannels/getUIFlags');
+
+const isAgentPublished = computed(
+  () => props.agent?.enabled === true && props.agent?.status === 'active'
+);
 
 const fetchChannels = () => {
   store.dispatch('autonomiaChannels/fetch', { agentId: props.agentId });
@@ -29,6 +39,14 @@ const fetchChannels = () => {
 // Eligible entries carry the real inbox `id`; connected entries are
 // agent-inbox joins exposing `inbox_id`/`inbox_name`.
 const onConnect = async inbox => {
+  if (!isAgentPublished.value) {
+    router.replace({
+      name: 'autonomia_agent_panel',
+      params: { agentId: props.agentId, tab: 'publish' },
+    });
+    return;
+  }
+
   try {
     await store.dispatch('autonomiaChannels/connect', {
       agentId: props.agentId,

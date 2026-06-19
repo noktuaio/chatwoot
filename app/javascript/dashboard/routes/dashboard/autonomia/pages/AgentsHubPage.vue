@@ -46,7 +46,10 @@ const editAgentWithAI = agent => {
 const openAgent = agent => {
   router.push({
     name: 'autonomia_agent_panel',
-    params: { agentId: agent.id, tab: 'test' },
+    params: {
+      agentId: agent.id,
+      tab: agent.status === 'draft' ? 'publish' : 'test',
+    },
   });
 };
 
