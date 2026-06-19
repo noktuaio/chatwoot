@@ -55,6 +55,9 @@ export default {
         DEFAULT_AUTH_API_BASE_URL
       ).replace(/\/$/, '');
     },
+    autonomiaSsoUrl() {
+      return window.chatwootConfig.autonomiaSsoUrl || '/auth/autonomia';
+    },
     canSubmit() {
       return !this.v$.$invalid && Boolean(this.token);
     },
@@ -77,6 +80,23 @@ export default {
         return payload.errors.join(', ');
       }
       return this.$t('ACCEPT_INVITATION.ERRORS.GENERIC');
+    },
+    autonomiaLoginUrl() {
+      const url = new URL(this.autonomiaSsoUrl, window.location.origin);
+      url.searchParams.set('prompt', 'login');
+      return url.toString();
+    },
+    postAcceptLoginUrl(payload) {
+      if (!payload?.loginUrl) {
+        return this.autonomiaLoginUrl();
+      }
+
+      const loginUrl = new URL(payload.loginUrl, window.location.origin);
+      const isProductLoginUrl =
+        loginUrl.origin === window.location.origin &&
+        loginUrl.pathname.replace(/\/$/, '') === '/login';
+
+      return isProductLoginUrl ? this.autonomiaLoginUrl() : loginUrl.toString();
     },
     async submitForm() {
       this.v$.$touch();
@@ -123,7 +143,7 @@ export default {
           throw new Error(this.parseErrorMessage(payload));
         }
 
-        window.location.assign(payload.loginUrl || '/auth/autonomia');
+        window.location.assign(this.postAcceptLoginUrl(payload));
       } catch (error) {
         this.submitApi.hasErrored = true;
         this.submitApi.showLoading = false;
