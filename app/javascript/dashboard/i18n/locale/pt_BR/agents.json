@@ -17,7 +17,16 @@
       },
       "CHANNELS_COUNT": "Nenhum canal | 1 canal | {count} canais",
       "NO_METRICS": "—",
-      "OPEN": "Abrir agente"
+      "OPEN": "Abrir agente",
+      "EDIT_AI": "Alterar IA",
+      "DELETE": "Excluir",
+      "DELETE_ERROR": "Não foi possível excluir este agente. Tente novamente.",
+      "DELETE_DIALOG": {
+        "TITLE": "Excluir agente",
+        "DESCRIPTION": "Tem certeza que deseja excluir {name}? Esta ação remove o agente, seus canais e conhecimentos vinculados.",
+        "CONFIRM": "Excluir agente",
+        "CANCEL": "Cancelar"
+      }
     },
     "TYPES": {
       "PICK_TITLE": "O que seu agente deve fazer?",
@@ -54,9 +63,11 @@
     },
     "BUILDER": {
       "TITLE": "Construtor de agentes",
+      "EDIT_TITLE": "Ajustar agente com IA",
       "BUILDER_NAME": "Construtor",
       "YOU": "Você",
       "INTRO": "Conte o que este agente deve fazer — descreva seu negócio e como ele deve ajudar. Vamos fazer algumas perguntas e montar para você.",
+      "EDIT_INTRO": "Conte o que deseja alterar neste agente. A IA mantém a configuração atual e ajusta apenas o que você pedir.",
       "FAILED": "Algo deu errado ao montar seu agente. Envie outra mensagem para tentar de novo.",
       "TIMEOUT": "Isto está demorando mais do que o esperado. Envie sua mensagem novamente.",
       "PLACEHOLDER": "Digite sua resposta…",

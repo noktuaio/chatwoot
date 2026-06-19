@@ -112,6 +112,7 @@ describe('#autonomiaBuildThreads store', () => {
       expect(dispatch).toHaveBeenCalledWith('send', {
         threadId: 3,
         content: 'materiais prontos',
+        extra: { force_close: true },
         echo: false,
       });
     });

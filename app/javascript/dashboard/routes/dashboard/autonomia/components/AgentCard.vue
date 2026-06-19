@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
+import NextButton from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
   agent: {
@@ -11,7 +12,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['select']);
+const emit = defineEmits(['select', 'edit-ai', 'delete']);
 
 const { t } = useI18n();
 
@@ -49,20 +50,24 @@ const statusDotClass = computed(
   () => STATUS_DOT[status.value] || STATUS_DOT.draft
 );
 
-const statusLabel = computed(() =>
-  t(`AGENTS.HUB.STATUS.${status.value.toUpperCase()}`)
-);
+const statusLabel = computed(() => {
+  if (status.value === 'active') return t('AGENTS.HUB.STATUS.ACTIVE');
+  if (status.value === 'paused') return t('AGENTS.HUB.STATUS.PAUSED');
+  return t('AGENTS.HUB.STATUS.DRAFT');
+});
 </script>
 
 <template>
-  <button
-    type="button"
-    class="flex flex-col w-full gap-3 p-4 text-left transition-all duration-150 border shadow-sm rounded-xl border-n-weak bg-n-solid-1 hover:border-n-slate-6 hover:shadow-md hover:-translate-y-0.5 outline-1 outline-transparent focus-visible:outline-n-brand"
-    @click="emit('select', agent)"
+  <article
+    class="flex flex-col w-full gap-3 p-4 text-left transition-all duration-150 border shadow-sm rounded-xl border-n-weak bg-n-solid-1 hover:border-n-slate-6 hover:shadow-md hover:-translate-y-0.5"
   >
     <div class="flex items-start gap-3">
       <Avatar :name="agent.name" :size="40" rounded-full />
-      <div class="flex flex-col min-w-0 gap-1.5">
+      <button
+        type="button"
+        class="flex flex-col min-w-0 gap-1.5 text-left outline-1 outline-transparent rounded-md focus-visible:outline-n-brand"
+        @click="emit('select', agent)"
+      >
         <span class="text-sm font-medium truncate text-n-slate-12">
           {{ agent.name }}
         </span>
@@ -73,12 +78,16 @@ const statusLabel = computed(() =>
           <span class="rounded-full size-1.5" :class="statusDotClass" />
           {{ statusLabel }}
         </span>
-      </div>
+      </button>
     </div>
 
-    <p class="m-0 text-sm line-clamp-2 text-n-slate-11">
+    <button
+      type="button"
+      class="m-0 text-sm text-left outline-1 outline-transparent rounded-md line-clamp-2 text-n-slate-11 focus-visible:outline-n-brand"
+      @click="emit('select', agent)"
+    >
       {{ summary }}
-    </p>
+    </button>
 
     <div
       class="flex items-center gap-4 pt-3 mt-auto text-xs border-t text-n-slate-11 border-n-weak"
@@ -92,5 +101,24 @@ const statusLabel = computed(() =>
         {{ metricPlaceholder }}
       </span>
     </div>
-  </button>
+
+    <div class="flex flex-wrap items-center justify-end gap-2 pt-1">
+      <NextButton
+        ghost
+        slate
+        xs
+        icon="i-lucide-wand-sparkles"
+        :label="t('AGENTS.HUB.EDIT_AI')"
+        @click="emit('edit-ai', agent)"
+      />
+      <NextButton
+        ghost
+        ruby
+        xs
+        icon="i-lucide-trash-2"
+        :label="t('AGENTS.HUB.DELETE')"
+        @click="emit('delete', agent)"
+      />
+    </div>
+  </article>
 </template>

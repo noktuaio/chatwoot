@@ -3,11 +3,13 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
+import { useAlert } from 'dashboard/composables';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import EmptyStateLayout from 'dashboard/components-next/EmptyStateLayout.vue';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import AgentCard from '../components/AgentCard.vue';
 
 // HUB "Meus Agentes" — the entry point. Lists the account's agents and the
@@ -19,6 +21,9 @@ const store = useStore();
 const router = useRouter();
 
 const loadError = ref(false);
+const deleteDialogRef = ref(null);
+const agentPendingDelete = ref(null);
+const isDeleting = ref(false);
 
 const agents = useMapGetter('autonomiaAgents/getRecords');
 const uiFlags = useMapGetter('autonomiaAgents/getUIFlags');
@@ -31,11 +36,37 @@ const goToCreate = () => {
   router.push({ name: 'autonomia_agents_builder' });
 };
 
+const editAgentWithAI = agent => {
+  router.push({
+    name: 'autonomia_agents_builder_edit',
+    params: { agentId: agent.id },
+  });
+};
+
 const openAgent = agent => {
   router.push({
     name: 'autonomia_agent_panel',
     params: { agentId: agent.id, tab: 'test' },
   });
+};
+
+const requestDeleteAgent = agent => {
+  agentPendingDelete.value = agent;
+  deleteDialogRef.value?.open();
+};
+
+const confirmDeleteAgent = async () => {
+  if (!agentPendingDelete.value?.id || isDeleting.value) return;
+  isDeleting.value = true;
+  try {
+    await store.dispatch('autonomiaAgents/delete', agentPendingDelete.value.id);
+    deleteDialogRef.value?.close();
+    agentPendingDelete.value = null;
+  } catch {
+    useAlert(t('AGENTS.HUB.DELETE_ERROR'));
+  } finally {
+    isDeleting.value = false;
+  }
 };
 
 // The `get` factory action does not expose an error flag in uiFlags, so a network
@@ -142,8 +173,30 @@ onMounted(() => loadAgents());
           :key="agent.id"
           :agent="agent"
           @select="openAgent"
+          @edit-ai="editAgentWithAI"
+          @delete="requestDeleteAgent"
         />
       </div>
     </div>
+
+    <Dialog
+      ref="deleteDialogRef"
+      type="alert"
+      width="md"
+      :title="t('AGENTS.HUB.DELETE_DIALOG.TITLE')"
+      :confirm-button-label="t('AGENTS.HUB.DELETE_DIALOG.CONFIRM')"
+      :cancel-button-label="t('AGENTS.HUB.DELETE_DIALOG.CANCEL')"
+      :is-loading="isDeleting"
+      @confirm="confirmDeleteAgent"
+      @close="agentPendingDelete = null"
+    >
+      <p class="m-0 text-sm leading-relaxed text-n-slate-11">
+        {{
+          t('AGENTS.HUB.DELETE_DIALOG.DESCRIPTION', {
+            name: agentPendingDelete?.name,
+          })
+        }}
+      </p>
+    </Dialog>
   </div>
 </template>
