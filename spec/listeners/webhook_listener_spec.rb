@@ -79,6 +79,35 @@ describe WebhookListener do
         expect(WebhookJob).not_to receive(:perform_later)
         listener.message_created(api_event)
       end
+
+      it 'does not trigger API inbox webhook for WAHA status conversations' do
+        channel_api = create(:channel_api, account: account)
+        api_inbox = channel_api.inbox
+        status_contact = create(
+          :contact,
+          account: account,
+          custom_attributes: { 'waha_whatsapp_chat_id' => 'status@broadcast' }
+        )
+        status_contact_inbox = create(:contact_inbox, contact: status_contact, inbox: api_inbox)
+        status_conversation = create(
+          :conversation,
+          account: account,
+          inbox: api_inbox,
+          contact: status_contact,
+          contact_inbox: status_contact_inbox
+        )
+        api_message = create(
+          :message,
+          message_type: 'outgoing',
+          account: account,
+          inbox: api_inbox,
+          conversation: status_conversation
+        )
+        api_event = Events::Base.new(event_name, Time.zone.now, message: api_message)
+
+        expect(WebhookJob).not_to receive(:perform_later)
+        listener.message_created(api_event)
+      end
     end
   end
 

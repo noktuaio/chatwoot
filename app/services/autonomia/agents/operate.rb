@@ -20,6 +20,7 @@ module Autonomia
       # comportamento normal. Predicado puro/idempotente, sem efeitos colaterais.
       def self.active_for?(conversation)
         return false if conversation.blank?
+        return false if ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(conversation)
         return false unless conversation.pending?
         return false if conversation.assignee_id.present?
 

@@ -20,6 +20,7 @@ module Autonomia
         def perform(conversation_id, agent_inbox_id, reply_to_message_id, chunks, index = 0, meta = {})
           conversation = Conversation.find_by(id: conversation_id)
           return if conversation.blank?
+          return if ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(conversation)
           return unless ::Autonomia::Agents::Config.enabled?(conversation.account)
 
           agent_inbox = ::Autonomia::Agents::AgentInbox.find_by(id: agent_inbox_id)
@@ -117,6 +118,8 @@ module Autonomia
         end
 
         def bot_in_command?(conversation)
+          return false if ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(conversation)
+
           conversation.pending? && conversation.assignee_id.blank?
         end
 

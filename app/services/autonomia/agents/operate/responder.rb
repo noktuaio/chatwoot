@@ -42,6 +42,8 @@ module Autonomia
 
         # -> Result
         def perform
+          return Result.handed_off if ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(@conversation)
+
           # A chamada à IA (lenta) roda FORA do lock para não segurar a linha da conversa.
           result = answer
           return handoff(result) if handoff?(result)
@@ -138,6 +140,8 @@ module Autonomia
         # Reavaliação de estado FRESCO dentro do lock: a conversa ainda está sob comando do
         # bot (pending + unassigned)? Se um humano assumiu durante a chamada à IA, NÃO posta.
         def still_eligible?
+          return false if ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(@conversation)
+
           @conversation.reload.pending? && @conversation.assignee_id.blank?
         end
 

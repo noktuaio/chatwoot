@@ -177,6 +177,7 @@ class WebhookListener < BaseListener
   def deliver_api_inbox_webhooks(payload, inbox)
     return unless inbox.channel_type == 'Channel::Api'
     return if inbox.channel.webhook_url.blank?
+    return if autonomia_blocked_api_broadcast_payload?(payload)
 
     WebhookJob.perform_later(inbox.channel.webhook_url, payload, :api_inbox_webhook,
                              secret: inbox.channel.secret, delivery_id: SecureRandom.uuid)
@@ -185,5 +186,15 @@ class WebhookListener < BaseListener
   def deliver_webhook_payloads(payload, inbox)
     deliver_account_webhooks(payload, inbox.account)
     deliver_api_inbox_webhooks(payload, inbox)
+  end
+
+  def autonomia_blocked_api_broadcast_payload?(payload)
+    conversation_id = payload.dig(:conversation, :id) || payload.dig('conversation', 'id')
+    return false if conversation_id.blank?
+
+    conversation = Conversation.includes(:contact, :contact_inbox).find_by(id: conversation_id)
+    return false if conversation.blank?
+
+    ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(conversation)
   end
 end

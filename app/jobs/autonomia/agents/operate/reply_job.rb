@@ -25,6 +25,7 @@ module Autonomia
         def perform(conversation_id, message_id, phase = 'trigger')
           conversation = Conversation.find_by(id: conversation_id)
           return if conversation.blank?
+          return if ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(conversation)
 
           # Gate POR CONTA: ENV master + feature da conta DONA da conversa. Job roda
           # fora de request (sem Current.account); a conta certa é conversation.account.
@@ -44,6 +45,7 @@ module Autonomia
         # agente ATIVO, conversa PENDING (bot no comando) e UNASSIGNED (nenhum humano).
         # Qualquer falha -> nil -> no-op. Não toca o core de mensagens.
         def eligible_agent_inbox(conversation)
+          return if ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(conversation)
           return unless conversation.pending?
           return if conversation.assignee_id.present?
 

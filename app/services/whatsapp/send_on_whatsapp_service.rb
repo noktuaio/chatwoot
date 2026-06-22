@@ -6,6 +6,8 @@ class Whatsapp::SendOnWhatsappService < Base::SendOnChannelService
   end
 
   def perform_reply
+    return block_broadcast_delivery! if broadcast_destination?
+
     should_send_template_message = template_params.present? || !message.conversation.can_reply?
     if should_send_template_message
       send_template_message
@@ -44,5 +46,14 @@ class Whatsapp::SendOnWhatsappService < Base::SendOnChannelService
 
   def template_params
     message.additional_attributes && message.additional_attributes['template_params']
+  end
+
+  def broadcast_destination?
+    ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(message.conversation)
+  end
+
+  def block_broadcast_delivery!
+    message.update!(status: :failed, external_error: 'Blocked broadcast/status WhatsApp destination')
+    Rails.logger.warn("[autonomia][broadcast_guard] blocked_whatsapp_outbound message=#{message.id} conversation=#{message.conversation_id}")
   end
 end

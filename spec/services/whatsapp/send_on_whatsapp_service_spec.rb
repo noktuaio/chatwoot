@@ -72,6 +72,20 @@ describe Whatsapp::SendOnWhatsappService do
         expect(message.reload.source_id).to eq('123456789')
       end
 
+      it 'marks broadcast/status destinations as failed without calling the channel' do
+        contact_inbox.update_column(:source_id, 'status@broadcast')
+        message = create(:message, message_type: :outgoing, content: 'test',
+                                   conversation: conversation, account: conversation.account)
+
+        described_class.new(message: message).perform
+
+        expect(message.reload).to have_attributes(
+          status: 'failed',
+          external_error: 'Blocked broadcast/status WhatsApp destination',
+          source_id: nil
+        )
+      end
+
       it 'marks message as failed when template name is blank' do
         processor = instance_double(Whatsapp::TemplateProcessorService)
         allow(Whatsapp::TemplateProcessorService).to receive(:new).and_return(processor)
