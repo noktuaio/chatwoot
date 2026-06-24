@@ -110,7 +110,7 @@ resource "aws_db_instance" "chatwoot" {
   publicly_accessible     = false
   skip_final_snapshot     = true
   deletion_protection     = false
-  backup_retention_period = 7
+  backup_retention_period = var.rds_backup_retention_period
 }
 
 resource "aws_elasticache_subnet_group" "chatwoot" {
