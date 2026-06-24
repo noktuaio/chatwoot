@@ -2,17 +2,17 @@
   Template: Company Anniversary Celebration
   File: 02-anniversary-milestone.html
   Category: reengagement / brand-building
-
+  
   Purpose:
   Celebrate company milestone (anniversary/birthday) to strengthen emotional connection with customers.
   Build brand loyalty through gratitude, storytelling, and exclusive gift offer.
-
+  
   When to send:
   - Company anniversary date (annual celebration)
   - Major milestone (5 years, 10 years, etc.)
   - Funding/growth milestone announcement
   - Community size milestone (100K customers, etc.)
-
+  
   Personalize:
   - {{first_name}} (optional)
   - {{years}} - number of years (e.g., "7")
@@ -22,7 +22,7 @@
   - {{discount_percentage}} (e.g., "20%")
   - {{outlets_count}}, {{products_sold}}, {{countries_count}} - milestone stats
   - Brand colors (#F39C45 primary, #F7F1EB background, #222222 text)
-
+  
   Notes:
   - Marketing email (unsubscribe required - included in footer)
   - Emotional hook: gratitude + nostalgia = strong connection
@@ -50,9 +50,9 @@
     <!-- 2) Hero Section: Big Image, Headline, Subcopy, CTA -->
     <mj-section background-color="#FFF6ED" padding="0 0 0 0">
       <mj-column width="100%" background-color="transparent" padding="24px 15px 24px 15px">
-        <mj-image
-          src="https://res.cloudinary.com/dk79hhqvp/image/upload/v1760997432/uploaded-by-ai/a-vibrant-and-festive-image-featuring-colorful-_ai_generated.jpg"
-          alt="Confetti and celebration banner"
+        <mj-image 
+          src="https://res.cloudinary.com/dk79hhqvp/image/upload/v1760997432/uploaded-by-ai/a-vibrant-and-festive-image-featuring-colorful-_ai_generated.jpg" 
+          alt="Confetti and celebration banner" 
           width="500px"
           height="281px"
           padding="0 0 14px 0"

@@ -2,24 +2,24 @@
   Template: Product Launch Teaser - Mystery Reveal
   File: 02-teaser-mystery.mjml
   Category: product-launch / pre-launch
-
+  
   Purpose:
   Build anticipation and curiosity before a major product/collection launch.
   Mystery approach with poetic copy to spark intrigue and maximize opt-in for launch notification.
-
+  
   When to send:
   - 7-14 days before major product launch
   - New collection pre-announcement
   - Brand refresh or rebrand teaser
   - Mystery drop / limited edition preview
   - Series of 2-3 teaser emails (this can be #1 or #2)
-
+  
   Personalize:
   - {{first_name}} (optional, works without)
   - {{notification_url}} for "Get notified" CTA
   - {{launch_date}} (optional, can be vague like "soon")
   - Brand colors (#FDC500 accent, #FDF4EF background, #0F172A text)
-
+  
   Notes:
   - Marketing email (unsubscribe required - include in footer if needed)
   - Poetic, aspirational tone ("spark delight", "beauty to every corner")
@@ -29,7 +29,7 @@
   - Soft, warm color palette = premium/lifestyle brand aesthetic
   - Letter-spacing used strategically for elegant typography
   - Works best for home decor, fashion, beauty, lifestyle brands
-
+  
   Conversion goal:
   Primary: Maximize "Get notified" click-through (target 15-25% CTR)
   Secondary: Build anticipation and engagement pre-launch

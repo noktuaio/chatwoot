@@ -6,7 +6,6 @@ import { useAlert } from 'dashboard/composables';
 import AutonomiaBuilderImagesAPI from 'dashboard/api/autonomia/builderImages';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
-import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import Select from 'dashboard/components-next/select/Select.vue';
@@ -37,8 +36,6 @@ const builderPhase = useMapGetter('autonomiaBuildThreads/getPhase');
 const builderUiFlags = useMapGetter('autonomiaBuildThreads/getUIFlags');
 
 const reconverseDialogRef = ref(null);
-const avatarPreviewUrl = ref('');
-const isUploadingAvatar = ref(false);
 
 const advancedMode = ref(props.agent.mode === 'manual');
 
@@ -50,16 +47,22 @@ const TONE_OPTIONS = computed(() =>
 );
 
 const HANDOFF_OPTIONS = computed(() =>
-  ['none', 'inbox_member'].map(value => ({
+  ['low_confidence', 'always_ask', 'never'].map(value => ({
     value,
     label: t(`AGENTS.TUNE.HANDOFF_OPTIONS.${value.toUpperCase()}`),
   }))
 );
 
-const VALID_HANDOFF_STRATEGIES = new Set(['none', 'inbox_member']);
-
-const normalizeHandoffStrategy = value =>
-  VALID_HANDOFF_STRATEGIES.has(value) ? value : 'none';
+// V2.2 — where the agent actuates. `external` (default) atende clientes;
+// `internal` is a team copilot that never connects to an inbox; `both` does
+// both. Switching to `internal` while channels are connected is rejected by the
+// backend (422) — surfaced to the user, never crashes.
+const ACTUATION_OPTIONS = computed(() =>
+  ['external', 'internal', 'both'].map(value => ({
+    value,
+    label: t(`AGENTS.TUNE.ACTUATION_OPTIONS.${value.toUpperCase()}`),
+  }))
+);
 
 // handoff_strategy/confidence_threshold are jsonb `config` store-accessors on
 // the backend — read them from agent.config, never the top level.
@@ -67,14 +70,13 @@ const form = reactive({
   greeting: props.agent.greeting || '',
   fallback_message: props.agent.fallback_message || '',
   tone: props.agent.tone || 'friendly',
-  handoff_strategy: normalizeHandoffStrategy(
-    props.agent.config?.handoff_strategy
-  ),
+  handoff_strategy: props.agent.config?.handoff_strategy || 'low_confidence',
   confidence_threshold:
     props.agent.config?.confidence_threshold != null
       ? props.agent.config.confidence_threshold
       : 0.6,
   instruction: props.agent.instruction || '',
+  actuation: props.agent.actuation || 'external',
 });
 
 watch(
@@ -83,24 +85,19 @@ watch(
     form.greeting = agent.greeting || '';
     form.fallback_message = agent.fallback_message || '';
     form.tone = agent.tone || 'friendly';
-    form.handoff_strategy = normalizeHandoffStrategy(
-      agent.config?.handoff_strategy
-    );
+    form.handoff_strategy = agent.config?.handoff_strategy || 'low_confidence';
     form.confidence_threshold =
       agent.config?.confidence_threshold != null
         ? agent.config.confidence_threshold
         : 0.6;
     form.instruction = agent.instruction || '';
+    form.actuation = agent.actuation || 'external';
     advancedMode.value = agent.mode === 'manual';
   }
 );
 
 const isSaving = computed(
   () => store.getters['autonomiaAgents/getUIFlags'].updatingItem
-);
-
-const avatarSource = computed(
-  () => avatarPreviewUrl.value || props.agent.avatar_url || ''
 );
 
 // handoff_strategy/confidence_threshold MUST be nested under `config` — the
@@ -113,6 +110,7 @@ const buildPayload = (extra = {}) => ({
   greeting: form.greeting,
   fallback_message: form.fallback_message,
   tone: form.tone,
+  actuation: form.actuation,
   mode: advancedMode.value ? 'manual' : 'guided',
   config: {
     handoff_strategy: form.handoff_strategy,
@@ -126,40 +124,10 @@ const saveSettings = async (extra = {}) => {
     await store.dispatch('autonomiaAgents/update', buildPayload(extra));
     useAlert(t('AGENTS.TUNE.SAVE_SUCCESS'));
   } catch (error) {
-    useAlert(t('AGENTS.TUNE.SAVE_ERROR'));
-  }
-};
-
-const onAvatarUpload = async ({ file, url }) => {
-  if (!file || isUploadingAvatar.value) return;
-  avatarPreviewUrl.value = url;
-  isUploadingAvatar.value = true;
-  try {
-    await store.dispatch('autonomiaAgents/updateAvatar', {
-      agentId: props.agentId,
-      avatar: file,
-    });
-    avatarPreviewUrl.value = '';
-    useAlert(t('AGENTS.TUNE.AVATAR_UPLOAD_SUCCESS'));
-  } catch (error) {
-    avatarPreviewUrl.value = '';
-    useAlert(t('AGENTS.TUNE.AVATAR_UPLOAD_ERROR'));
-  } finally {
-    isUploadingAvatar.value = false;
-  }
-};
-
-const onAvatarDelete = async () => {
-  if (isUploadingAvatar.value) return;
-  isUploadingAvatar.value = true;
-  try {
-    await store.dispatch('autonomiaAgents/deleteAvatar', props.agentId);
-    avatarPreviewUrl.value = '';
-    useAlert(t('AGENTS.TUNE.AVATAR_DELETE_SUCCESS'));
-  } catch (error) {
-    useAlert(t('AGENTS.TUNE.AVATAR_DELETE_ERROR'));
-  } finally {
-    isUploadingAvatar.value = false;
+    // The backend rejects switching to `internal` while channels are still
+    // connected (422). Surface its human-readable message so the user knows to
+    // disconnect first; fall back to the generic save error otherwise.
+    useAlert(error?.message || t('AGENTS.TUNE.SAVE_ERROR'));
   }
 };
 
@@ -258,33 +226,6 @@ watch(builderPhase, phase => {
 
 <template>
   <div class="flex flex-col w-full h-full max-w-3xl gap-8 px-6 py-6 mx-auto">
-    <section
-      class="flex items-center justify-between gap-4 pb-6 border-b border-n-weak"
-    >
-      <div class="flex items-center min-w-0 gap-3">
-        <Avatar
-          :name="agent.name"
-          :src="avatarSource"
-          :size="56"
-          rounded-full
-          allow-upload
-          @upload="onAvatarUpload"
-          @delete="onAvatarDelete"
-        />
-        <div class="flex flex-col min-w-0 gap-1">
-          <h2 class="text-sm font-medium text-n-slate-12">
-            {{ t('AGENTS.TUNE.IDENTITY_TITLE') }}
-          </h2>
-          <p class="text-xs leading-relaxed text-n-slate-10">
-            {{ t('AGENTS.TUNE.IDENTITY_HINT') }}
-          </p>
-        </div>
-      </div>
-      <span v-if="isUploadingAvatar" class="text-xs shrink-0 text-n-slate-10">
-        {{ t('AGENTS.TUNE.AVATAR_UPDATING') }}
-      </span>
-    </section>
-
     <!-- Mode toggle: guided (default) vs advanced/manual -->
     <div class="flex items-center justify-between">
       <div class="flex flex-col">
@@ -370,6 +311,20 @@ watch(builderPhase, phase => {
         {{ t('AGENTS.TUNE.SIMPLE_TITLE') }}
       </h3>
 
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium text-n-slate-12">
+          {{ t('AGENTS.TUNE.ACTUATION_LABEL') }}
+        </label>
+        <Select
+          v-model="form.actuation"
+          :options="ACTUATION_OPTIONS"
+          class="w-full"
+        />
+        <p class="text-xs text-n-slate-10">
+          {{ t('AGENTS.TUNE.ACTUATION_HINT') }}
+        </p>
+      </div>
+
       <Input
         v-model="form.greeting"
         :label="t('AGENTS.TUNE.GREETING')"
@@ -397,9 +352,6 @@ watch(builderPhase, phase => {
           :options="HANDOFF_OPTIONS"
           class="w-full"
         />
-        <p class="text-xs leading-relaxed text-n-slate-10">
-          {{ t('AGENTS.TUNE.HANDOFF_HINT') }}
-        </p>
       </div>
 
       <div class="flex flex-col gap-1">

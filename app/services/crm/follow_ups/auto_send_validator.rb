@@ -42,7 +42,7 @@ class Crm::FollowUps::AutoSendValidator
     # via Crm::FollowUps::TemplateCandidates and fills metadata just before
     # MessageSender), so the template is unknowable at create time. Skip the
     # create-time fallback gate for them; the message_body placeholder still guards.
-    return if ai_followup?
+    return if ai_driven?
     return unless Crm::FollowUps::MessagingWindow.new(conversation, at: @follow_up.due_at).requires_template?
     return if template_fallback_configured?(conversation)
 
@@ -70,6 +70,11 @@ class Crm::FollowUps::AutoSendValidator
 
   def ai_followup?
     metadata['source'] == 'ai_followup'
+  end
+
+  # ai_followup OU ai_callback: ambos escolhem template/escrevem o body no envio.
+  def ai_driven?
+    %w[ai_followup ai_callback].include?(metadata['source'])
   end
 
   def metadata

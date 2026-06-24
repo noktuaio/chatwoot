@@ -31,4 +31,12 @@ json.name @account.name
 json.support_email @account.support_email
 json.status @account.status
 json.autonomia_agents_enabled Autonomia::Agents::Config.enabled?(@account)
+# Guia da Plataforma: gate EXATO do backend (Config.enabled? + credencial de IA resolvível) — o widget
+# do guia só aparece quando o /autonomia/guide/chat de fato responderia. Best-effort: nunca quebra o
+# payload da conta.
+json.autonomia_guide_available(begin
+  Autonomia::Guide::Seed.eligible?(@account)
+rescue StandardError
+  false
+end)
 json.cache_keys @account.cache_keys

@@ -43,6 +43,7 @@ const typeKeyForGroup = {
   reminder: 'REMINDER',
   whatsapp: 'WHATSAPP',
   closeDate: 'CLOSE',
+  meeting: 'MEETING',
 };
 const typeKey = computed(() => typeKeyForGroup[group.value]);
 
@@ -60,6 +61,7 @@ const isDone = computed(
 
 const hasConversation = computed(() => Boolean(props.event.conversation_id));
 const hasCard = computed(() => Boolean(props.event.card_id));
+const hasJoinLink = computed(() => Boolean(props.event.online_meeting_url));
 
 const snoozePresets = [
   { key: '1h', label: 'SNOOZE_1H' },
@@ -70,6 +72,16 @@ const snoozePresets = [
 const onOpenDeal = () => {
   emit('openDeal', props.event);
   emit('openCard', props.event);
+};
+
+const onJoinMeeting = () => {
+  if (props.event.online_meeting_url) {
+    window.open(
+      props.event.online_meeting_url,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  }
 };
 </script>
 
@@ -230,6 +242,31 @@ const onOpenDeal = () => {
       <p v-else class="mb-0 px-1 text-xs text-n-slate-11">
         {{ t(`CRM_KANBAN.CALENDAR.TYPE.${typeKey}`) }}
       </p>
+    </div>
+
+    <!-- Meeting actions -->
+    <div
+      v-else-if="group === 'meeting'"
+      class="flex flex-col gap-2 border-t border-n-weak pt-3"
+    >
+      <Button
+        v-if="hasJoinLink"
+        variant="solid"
+        color="blue"
+        size="sm"
+        icon="i-lucide-video"
+        :label="t('CRM_KANBAN.CALENDAR.EVENT.JOIN_MEETING')"
+        @click="onJoinMeeting"
+      />
+      <Button
+        v-if="hasCard"
+        variant="ghost"
+        color="slate"
+        size="sm"
+        icon="i-lucide-briefcase"
+        :label="t('CRM_KANBAN.CALENDAR.EVENT.OPEN_DEAL')"
+        @click="onOpenDeal"
+      />
     </div>
 
     <!-- Expected close actions -->

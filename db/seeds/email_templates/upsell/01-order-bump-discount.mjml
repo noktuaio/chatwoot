@@ -2,17 +2,17 @@
   Template: Order Bump with Future Discount
   File: 02-order-bump-discount.mjml
   Category: upsell / cross-sell
-
+  
   Purpose:
   Encourage customers to add one more item to their existing order before checkout.
   Incentivize with 20% off next purchase as a reward for upgrading current order.
-
+  
   When to send:
   - Post-purchase (within 2-4 hours after order confirmation)
   - Before order is shipped/processed
   - Cart abandonment recovery (alternative use case)
   - After first purchase (new customer upsell)
-
+  
   Personalize:
   - {{first_name}}
   - {{order_number}} (optional reference)
@@ -20,7 +20,7 @@
   - "Add to my order" link → modify existing order or recommended products
   - Product recommendations based on purchase history
   - Brand logo + colors (#1B4332 primary, #f8f5ef background)
-
+    
   Notes:
   - Marketing email (requires unsubscribe link - included in footer)
   - Soft upsell approach: "caring" tone vs aggressive sales
@@ -29,7 +29,7 @@
   - Works well for beauty/wellness brands with community-driven messaging
   - Time-sensitive: only valid while order is still modifiable (24-48h window)
   - A/B test: discount now vs. discount next time
-
+  
   Conversion goal:
   Primary: Increase Average Order Value (AOV) by 15-30%
   Secondary: Build loyalty with future discount incentive

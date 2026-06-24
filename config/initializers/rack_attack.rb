@@ -265,6 +265,51 @@ class Rack::Attack
     end
   end
 
+  ###-----------------------------------------------###
+  ###-----------Public Booking (CRM S6)-------------###
+  ###-----------------------------------------------###
+
+  # Public, unauthenticated booking surface (/public/api/v1/booking/:slug). Both
+  # endpoints are prime abuse targets, so throttle per IP. The slug segment is
+  # opaque, so we path-match the prefix + verb instead of an exact path.
+  PUBLIC_BOOKING_PATH = %r{\A/public/api/v1/booking/}.freeze
+  PUBLIC_BOOKING_SLOTS_PATH = %r{\A/public/api/v1/booking/[^/]+/slots\z}.freeze
+  PUBLIC_BOOKING_CONFIRM_PATH = %r{\A/public/api/v1/booking/(?<slug>[^/]+)/confirm\z}.freeze
+  # The bare slug create endpoint (POST .../booking/:slug, NOT /slots or /confirm).
+  PUBLIC_BOOKING_CREATE_PATH = %r{\A/public/api/v1/booking/(?<slug>[^/]+)\z}.freeze
+
+  # Booking attempts (POST to the slug) now trigger a REAL email, so they are the
+  # most abusable surface. Tighten to ~10 PER HOUR per IP (was per-minute).
+  throttle('public_booking/create_ip', limit: ENV.fetch('RATE_LIMIT_PUBLIC_BOOKING', '10').to_i, period: 1.hour) do |req|
+    req.ip if req.post? && PUBLIC_BOOKING_CREATE_PATH.match?(req.path_without_extensions)
+  end
+
+  # NOTE: these throttles are PER IP only — we deliberately do NOT add per-slug
+  # caps. Rack::Attack counts BEFORE any validation, so a per-slug quota could be
+  # drained by anyone who knows the (public) slug using invalid payloads/tokens — an
+  # attacker-triggerable denial of service that would lock legitimate bookers out of
+  # a specific page. Per-IP limits bound each abuse source (the standard defense for
+  # "email me a link" endpoints); distributed abuse is an upstream-infra concern.
+
+  # Confirm endpoint (POST .../confirm) per IP (~20/hour): deters brute-forcing the
+  # signed token (HMAC-signed + 30-min expiry, so already infeasible).
+  throttle('public_booking/confirm_ip', limit: ENV.fetch('RATE_LIMIT_PUBLIC_BOOKING_CONFIRM', '20').to_i, period: 1.hour) do |req|
+    req.ip if req.post? && PUBLIC_BOOKING_CONFIRM_PATH.match?(req.path_without_extensions)
+  end
+
+  # Slot lookups (GET .../slots) — cheaper but still rate-limited to deter scraping.
+  throttle('public_booking/slots_ip', limit: ENV.fetch('RATE_LIMIT_PUBLIC_BOOKING_SLOTS', '60').to_i, period: 1.minute) do |req|
+    req.ip if req.get? && PUBLIC_BOOKING_SLOTS_PATH.match?(req.path_without_extensions)
+  end
+
+  # CRM calendar push webhooks (S7-B): public + unauthenticated. Generous per-IP cap
+  # (providers batch from their own ranges) just to bound abuse — the handler only
+  # verifies a secret and enqueues, never trusts the payload.
+  CRM_CALENDAR_WEBHOOK_PATH = %r{\A/webhooks/crm_calendar/}.freeze
+  throttle('crm_calendar_webhook/ip', limit: ENV.fetch('RATE_LIMIT_CRM_CALENDAR_WEBHOOK', '300').to_i, period: 1.minute) do |req|
+    req.ip if req.post? && CRM_CALENDAR_WEBHOOK_PATH.match?(req.path_without_extensions)
+  end
+
   ## ----------------------------------------------- ##
 end
 

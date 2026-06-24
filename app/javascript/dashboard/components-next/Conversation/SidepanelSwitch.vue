@@ -26,10 +26,23 @@ const isCopilotPanelOpen = computed(
   () => uiSettings.value.is_copilot_panel_open
 );
 
+// Copiloto Autonom.ia — vive DENTRO da conversa (não é botão flutuante). Gated pelas flags do CRM
+// (independe do Captain). Mutuamente exclusivo com o painel de contato e com o copiloto nativo.
+const globalConfig = useMapGetter('globalConfig/get');
+const showAutonomiaCopilot = computed(
+  () =>
+    globalConfig.value?.crmKanbanEnabled === true &&
+    globalConfig.value?.crmCopilotEnabled === true
+);
+const isAutonomiaCopilotOpen = computed(
+  () => uiSettings.value.is_autonomia_copilot_panel_open
+);
+
 const toggleConversationSidebarToggle = () => {
   updateUISettings({
     is_contact_sidebar_open: !isContactSidebarOpen.value,
     is_copilot_panel_open: false,
+    is_autonomia_copilot_panel_open: false,
   });
 };
 
@@ -37,6 +50,7 @@ const handleConversationSidebarToggle = () => {
   updateUISettings({
     is_contact_sidebar_open: true,
     is_copilot_panel_open: false,
+    is_autonomia_copilot_panel_open: false,
   });
 };
 
@@ -44,6 +58,15 @@ const handleCopilotSidebarToggle = () => {
   updateUISettings({
     is_contact_sidebar_open: false,
     is_copilot_panel_open: true,
+    is_autonomia_copilot_panel_open: false,
+  });
+};
+
+const handleAutonomiaCopilotToggle = () => {
+  updateUISettings({
+    is_contact_sidebar_open: false,
+    is_copilot_panel_open: false,
+    is_autonomia_copilot_panel_open: true,
   });
 };
 
@@ -72,7 +95,7 @@ useKeyboardEvents(keyboardEvents);
       @click="handleConversationSidebarToggle"
     />
     <Button
-      v-if="showCopilotTab"
+      v-if="showCopilotTab && !showAutonomiaCopilot"
       v-tooltip.bottom="$t('CONVERSATION.SIDEBAR.COPILOT')"
       ghost
       slate
@@ -84,6 +107,20 @@ useKeyboardEvents(keyboardEvents);
       }"
       icon="i-woot-captain"
       @click="handleCopilotSidebarToggle"
+    />
+    <Button
+      v-if="showAutonomiaCopilot"
+      v-tooltip.bottom="$t('AUTONOMIA_COPILOT.TITLE')"
+      ghost
+      slate
+      sm
+      class="!rounded-full transition-all duration-[250ms] ease-out active:!scale-95 active:duration-75"
+      :class="{
+        'bg-n-alpha-2 !text-n-iris-9 active:!brightness-105 active:shadow-sm':
+          isAutonomiaCopilotOpen,
+      }"
+      icon="i-lucide-sparkles"
+      @click="handleAutonomiaCopilotToggle"
     />
   </ButtonGroup>
 </template>

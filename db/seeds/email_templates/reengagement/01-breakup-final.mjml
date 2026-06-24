@@ -2,23 +2,23 @@
   Template: Re-engagement Breakup (Final Notice)
   File: 01-breakup-final.mjml
   Category: reengagement / winback
-
+  
   Purpose:
   Last-ditch effort to re-engage inactive subscribers before automatic list cleanup.
   Emotional "breakup" angle with clear fork: stay or unsubscribe.
-
+  
   When to send:
   - No email opens in 90+ days
   - No clicks in 120+ days
   - After 2-3 lighter re-engagement attempts failed
-
+  
   Personalize:
   - {{first_name}} (optional, works fine without)
   - Update preferences link
   - Stay subscribed confirmation link
   - Unsubscribe link
   - Brand logo + colors
-
+  
   Notes:
   - ⚠️ High-risk template: use as FINAL email before removal
   - Emotional hook ("Is This The End? 💔") increases engagement
@@ -26,7 +26,7 @@
   - Can boost list health by removing dead weight
   - CAN compliance: must honor all choices within 10 business days
   - Consider A/B testing subject lines (emotional vs. factual)
-
+  
   Conversion goal:
   Primary: Get ANY response (click on any CTA)
   Secondary: Clean list of truly inactive users

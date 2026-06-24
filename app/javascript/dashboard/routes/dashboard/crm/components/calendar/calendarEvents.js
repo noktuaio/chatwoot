@@ -1,10 +1,11 @@
 /**
  * calendarEvents.js — pure helpers for the CRM calendar (Lista & Calendário v2).
  *
- * The calendar shows three overlapping "calendars" (overlays), keyed by event TYPE:
+ * The calendar shows four overlapping "calendars" (overlays), keyed by event TYPE:
  *   - reminder   → follow-up reminder-only / snooze-conversation (task-like, can be overdue)
  *   - whatsapp   → scheduled WhatsApp auto-send (precise instant, cannot move to the past)
  *   - closeDate  → expected_close forecast (a deal milestone, drag mutates the deal date)
+ *   - meeting    → native calendar meeting invite (timed event, read-only in P1)
  *
  * Calendar events come from `GET /crm/calendar/events`, each:
  *   { id, event_type, title, starts_at (ISO8601), status, card_id, conversation_id,
@@ -37,15 +38,21 @@ export const OVERLAY_GROUP = {
   REMINDER: 'reminder',
   WHATSAPP: 'whatsapp',
   CLOSE_DATE: 'closeDate',
+  MEETING: 'meeting',
+  EXTERNAL: 'external',
 };
 
 /**
  * Map a backend `event_type` to one of the three overlay groups.
  * @param {String} eventType
- * @returns {'reminder'|'whatsapp'|'closeDate'}
+ * @returns {'reminder'|'whatsapp'|'closeDate'|'meeting'}
  */
 export const EVENT_TYPE_GROUP = eventType => {
   switch (eventType) {
+    case 'meeting':
+      return OVERLAY_GROUP.MEETING;
+    case 'external':
+      return OVERLAY_GROUP.EXTERNAL;
     case 'expected_close':
       return OVERLAY_GROUP.CLOSE_DATE;
     case 'follow_up_auto_send_message':
@@ -87,6 +94,25 @@ export const EVENT_TYPE_META = {
     textClass: 'text-n-amber-11',
     pillClass: 'bg-n-amber-9/10 text-n-amber-11',
     overlayKey: 'closeDates',
+  },
+  [OVERLAY_GROUP.MEETING]: {
+    group: OVERLAY_GROUP.MEETING,
+    icon: 'i-lucide-video',
+    dotClass: 'bg-n-iris-9',
+    textClass: 'text-n-iris-11',
+    pillClass: 'bg-n-iris-9/10 text-n-iris-12',
+    overlayKey: 'meetings',
+  },
+  // External events are read-only availability context: muted/neutral, no
+  // provider-brand color, a generic calendar icon. Rendered distinctly (dashed
+  // outline) by the grid so they never read as a clickable CRM event.
+  [OVERLAY_GROUP.EXTERNAL]: {
+    group: OVERLAY_GROUP.EXTERNAL,
+    icon: 'i-lucide-calendar',
+    dotClass: 'bg-n-slate-8',
+    textClass: 'text-n-slate-10',
+    pillClass: 'bg-n-alpha-1 text-n-slate-10',
+    overlayKey: 'external',
   },
 };
 
@@ -145,6 +171,9 @@ export const isOverdue = (event, now = new Date()) => {
   if (isEventDone(event)) return false;
   if (EVENT_TYPE_GROUP(event.event_type) === OVERLAY_GROUP.WHATSAPP)
     return false;
+  // External (read-only) events are availability context, never "overdue".
+  if (EVENT_TYPE_GROUP(event.event_type) === OVERLAY_GROUP.EXTERNAL)
+    return false;
   const start = eventStart(event);
   if (!start) return false;
   return isBefore(start, now);
@@ -161,6 +190,11 @@ export const overdueCount = (events = [], now = new Date()) =>
  */
 export const isDraggable = (event, now = new Date()) => {
   if (isEventDone(event)) return false;
+  if (EVENT_TYPE_GROUP(event.event_type) === OVERLAY_GROUP.MEETING)
+    return false;
+  // External events are read-only context — never draggable.
+  if (EVENT_TYPE_GROUP(event.event_type) === OVERLAY_GROUP.EXTERNAL)
+    return false;
   if (EVENT_TYPE_GROUP(event.event_type) === OVERLAY_GROUP.WHATSAPP) {
     const start = eventStart(event);
     if (start && isBefore(start, now)) return false;
@@ -191,6 +225,8 @@ export const filterByOverlays = (events = [], overlays = {}) => {
     reminders: overlays.reminders !== false,
     whatsapp: overlays.whatsapp !== false,
     closeDates: overlays.closeDates !== false,
+    meetings: overlays.meetings !== false,
+    external: overlays.external !== false,
   };
   return events.filter(e => enabled[eventMeta(e).overlayKey]);
 };
@@ -262,6 +298,30 @@ export const weekdayLabels = (formatStr = 'EEEEEE') => {
   return Array.from({ length: 7 }, (_, i) =>
     format(addDays(start, i), formatStr, { locale: ptBR })
   );
+};
+
+/* -------------------------------------------------------------------------- */
+/* Aggregation — dense days collapse into per-type count chips                 */
+/* (avoids the "+154 more" dead-end: a 200-event day reads as its shape)       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Aggregate a set of events into per-overlay-group counts, sorted desc.
+ * @returns {Array<{group:string, count:number, meta:object}>}
+ */
+export const aggregateByGroup = (events = []) => {
+  const counts = {};
+  (events || []).forEach(e => {
+    const group = EVENT_TYPE_GROUP(e.event_type);
+    counts[group] = (counts[group] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .map(([group, count]) => ({
+      group,
+      count,
+      meta: EVENT_TYPE_META[group],
+    }))
+    .sort((a, b) => b.count - a.count);
 };
 
 /* -------------------------------------------------------------------------- */

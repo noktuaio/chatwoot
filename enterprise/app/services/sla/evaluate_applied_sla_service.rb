@@ -2,6 +2,11 @@ class Sla::EvaluateAppliedSlaService
   pattr_initialize [:applied_sla!]
 
   def perform
+    # Choke point definitivo do processamento de SLA: nenhum SlaEvent é criado quando a conta não tem
+    # a feature `sla` (cobre o job folha ProcessAppliedSlaJob e qualquer invocação direta, mesmo que o
+    # applied_sla tenha sido criado quando a flag ainda estava ligada).
+    return unless applied_sla.account.feature_enabled?('sla')
+
     check_sla_thresholds
 
     # We will calculate again in the next iteration

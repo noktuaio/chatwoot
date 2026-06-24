@@ -99,6 +99,21 @@ crm_idempotency_keys_cleanup_job:
   class: 'Crm::IdempotencyKeysCleanupJob'
   queue: scheduled_jobs
 
+# executed every 15 minutes; 2-way sync sweep — reconciles imminent meetings with
+# the provider calendar (cancel/reschedule made directly in Google/Outlook).
+# Meetings flag + CRM_CALENDAR_SYNC_ENABLED checked inside the job.
+crm_meeting_sync_sweep_job:
+  cron: '*/15 * * * *'
+  class: 'Crm::Meetings::SyncSweepJob'
+  queue: scheduled_jobs
+
+# executed every 6 hours; (re)creates/renews calendar push subscriptions (S7-B).
+# Gated OFF by default (CRM_CALENDAR_WEBHOOKS_ENABLED) — needs domain verification.
+crm_calendar_subscription_renewal_job:
+  cron: '0 */6 * * *'
+  class: 'Crm::Calendar::SubscriptionRenewalJob'
+  queue: scheduled_jobs
+
 # executed every 15 minutes; AI auto follow-up planner, flags checked inside the job
 crm_ai_auto_followup_scan_job:
   cron: '*/15 * * * *'

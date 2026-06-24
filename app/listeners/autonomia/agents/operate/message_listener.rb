@@ -16,7 +16,6 @@ module Autonomia
         def message_created(event)
           message = event.data[:message]
           return if ignored?(message)
-          return if ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(message.conversation)
 
           # Gate POR CONTA: ENV master + feature `autonomia_agents` da conta DESTA
           # mensagem (rodamos fora de request, sem Current.account). message.account

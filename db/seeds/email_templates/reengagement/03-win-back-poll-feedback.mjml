@@ -2,17 +2,17 @@
   Template: Win-Back with Anonymous Poll
   File: 05-win-back-poll-feedback.mjml
   Category: reengagement / winback
-
+  
   Purpose:
   Re-engage inactive users (120+ days) by collecting feedback via anonymous poll.
   Gentle, empathetic tone with easy one-click response options and graceful exit option.
-
+  
   When to send:
   - 120+ days of inactivity (no logins/usage)
   - After 2-3 lighter re-engagement emails failed
   - Before final "breakup" email in winback series
   - SaaS products, subscription services, community platforms
-
+  
   Personalize:
   - {{first_name}} or {{user_name}}
   - {{service_name}} (e.g., "Your Service Name")
@@ -21,7 +21,7 @@
   - {{feedback_link_1}} through {{feedback_link_4}} - unique tracking URLs for poll options
   - {{unsubscribe_link}} - one-click opt-out
   - Brand colors (#00838f primary teal, #e0f7fa light cyan)
-
+  
   Notes:
   - Marketing email (unsubscribe required - prominently featured)
   - Empathetic tone: "No hard feelings" = non-guilt approach

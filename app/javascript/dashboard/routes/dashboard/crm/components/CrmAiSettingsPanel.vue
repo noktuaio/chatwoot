@@ -21,6 +21,8 @@ const loadFailed = ref(false);
 const form = reactive({
   enabled: true,
   autoMoveEnabled: false,
+  callbackEnabled: true,
+  callbackMode: 'reminder',
   staleHours: 48,
   stageCriteria: {},
   stageHandoff: {},
@@ -64,6 +66,12 @@ const loadSettings = async () => {
     const payload = response.data.payload || {};
     form.enabled = payload.enabled !== false;
     form.autoMoveEnabled = payload.auto_move_enabled === true;
+    form.callbackEnabled = payload.callback_enabled !== false;
+    form.callbackMode = ['reminder', 'message', 'both'].includes(
+      payload.callback_mode
+    )
+      ? payload.callback_mode
+      : 'reminder';
     form.staleHours = Number(payload.stale_hours || 48);
     form.stageCriteria = Object.fromEntries(
       (payload.stages || []).map(stage => [stage.id, stage.ai_criteria || ''])
@@ -117,6 +125,8 @@ const saveSettings = async ({ silent = false } = {}) => {
       ai_settings: {
         enabled: form.enabled,
         auto_move_enabled: form.autoMoveEnabled,
+        callback_enabled: form.callbackEnabled,
+        callback_mode: form.callbackMode,
         stale_hours: form.staleHours,
         auto_followup: {
           enabled: form.autoFollowup.enabled,
@@ -137,6 +147,12 @@ const saveSettings = async ({ silent = false } = {}) => {
     const payload = response.data.payload || {};
     form.enabled = payload.enabled !== false;
     form.autoMoveEnabled = payload.auto_move_enabled === true;
+    form.callbackEnabled = payload.callback_enabled !== false;
+    form.callbackMode = ['reminder', 'message', 'both'].includes(
+      payload.callback_mode
+    )
+      ? payload.callback_mode
+      : 'reminder';
     form.staleHours = Number(payload.stale_hours || 48);
     if (!silent) useAlert(t('CRM_KANBAN.AI_SETTINGS.SAVE_SUCCESS'));
   } catch {
@@ -198,6 +214,40 @@ watch(
           class="rounded border-n-weak"
         />
         {{ t('CRM_KANBAN.AI_SETTINGS.AUTO_MOVE') }}
+      </label>
+
+      <label class="flex items-start gap-2 text-sm text-n-slate-12">
+        <input
+          v-model="form.callbackEnabled"
+          type="checkbox"
+          class="mt-0.5 rounded border-n-weak"
+        />
+        <span class="grid gap-0.5">
+          <span>{{ t('CRM_KANBAN.AI_SETTINGS.CALLBACK') }}</span>
+          <span class="text-xs text-n-slate-11">
+            {{ t('CRM_KANBAN.AI_SETTINGS.CALLBACK_HELP') }}
+          </span>
+        </span>
+      </label>
+
+      <label v-if="form.callbackEnabled" class="grid gap-1 pl-6">
+        <span class="text-xs text-n-slate-11">
+          {{ t('CRM_KANBAN.AI_SETTINGS.CALLBACK_MODE') }}
+        </span>
+        <select
+          v-model="form.callbackMode"
+          class="reset-base w-full rounded-lg border-0 bg-n-alpha-black2 px-3 py-2 text-sm text-n-slate-12 outline outline-1 outline-n-weak"
+        >
+          <option value="reminder">
+            {{ t('CRM_KANBAN.AI_SETTINGS.CALLBACK_MODE_REMINDER') }}
+          </option>
+          <option value="message">
+            {{ t('CRM_KANBAN.AI_SETTINGS.CALLBACK_MODE_MESSAGE') }}
+          </option>
+          <option value="both">
+            {{ t('CRM_KANBAN.AI_SETTINGS.CALLBACK_MODE_BOTH') }}
+          </option>
+        </select>
       </label>
 
       <label class="grid gap-1">

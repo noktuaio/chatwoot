@@ -2,27 +2,27 @@
   Template: Welcome & Account Activation for Donors
   File: 04-welcome-donation-activation.mjml
   Category: welcome / onboarding
-
+  
   Purpose:
   Welcome new donors after first donation and prompt account activation to access donor portal.
   Combines gratitude, mission reinforcement, and practical account setup in one flow.
-
+  
   When to send:
   - Immediately after first donation is confirmed (within 5-15 minutes)
   - After recurring donation signup
   - After major one-time contribution (threshold-based)
   - NPO/charity/cause-driven organizations only
-
+  
   Personalize:
   - {{firstName}} or {{first_name}}
   - {{activationLink}} - unique account activation URL
   - {{donationAmount}} (optional, can add "Your $50 gift")
   - {{projectName}} (optional, specific project funded)
   - Brand colors (#34c759 primary green, #d5f5e3 light green, #257a3e dark green)
-
+  
   Tested on:
   Gmail (web/mobile), Outlook, Apple Mail, iOS Mail
-
+  
   Notes:
   - Transactional email (account activation = no unsubscribe required in most jurisdictions)
   - Emotional hook: gratitude + impact storytelling ("plant, protect, educate")
@@ -32,39 +32,39 @@
   - Mission reinforcement section = donor retention strategy
   - Works for environmental, humanitarian, animal welfare, education NGOs
   - Activation link should expire (24-48h) for security
-
+  
   Conversion goal:
   Primary: Achieve 60-80% account activation rate
   Secondary: Build emotional connection with cause/mission
   Tertiary: Drive social media follows for ongoing engagement
-
+  
   Design notes:
   - Green palette (#34c759, #d5f5e3, #257a3e) = nature, growth, hope
   - Heart leaf image = emotional + mission-aligned visual
   - Three-tone background sections = visual hierarchy (light → medium → dark → light)
   - Emoji usage (🌿) = friendly, approachable tone
   - 7 social icons = omnichannel community building
-
+  
   Donor psychology:
   - Immediate gratitude = reinforces positive decision
   - Impact framing: "plant, protect, educate" = tangible outcomes
   - Future benefits: "manage donations, download receipts" = practical value
   - Community language: "Together, Let's Grow" = collective mission
   - Transparency offer: "real impact reports" = trust building
-
+  
   A/B test suggestions:
   - Subject line: "Welcome to the family!" vs. "Activate your donor account"
   - CTA copy: "Activate Account" vs. "See My Impact"
   - Add donation confirmation: "Your $X is already at work"
   - Include progress bar: "X trees planted thanks to donors like you"
-
+  
   Best practices:
   - Send immediately after donation (strike while motivation is hot)
   - Keep tone warm, mission-focused (not transactional)
   - Provide fallback link (email clients may block buttons)
   - Emphasize tangible benefits of activation (receipts, reports, updates)
   - Link to social proof (project photos, impact videos)
-
+  
   Security notes:
   - Activation link must be unique, time-limited (24-48h)
   - Use HTTPS for activation URL
@@ -90,7 +90,7 @@
         </mj-text>
       </mj-column>
     </mj-section>
-
+    
     <!-- Account Activation Section -->
     <mj-section background-color="#edfafa" padding="20px 0">
       <mj-column width="100%" background-color="transparent" padding="20px 15px">

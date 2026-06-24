@@ -16,6 +16,8 @@ const inboxes = useMapGetter('inboxes/getInboxes');
 
 const schedules = ref([]);
 const isLoading = ref(false);
+const loadError = ref(false);
+const hasLoaded = ref(false);
 const editingInbox = ref(null);
 
 const fetchSchedules = async () => {
@@ -23,8 +25,14 @@ const fetchSchedules = async () => {
   try {
     const response = await CrmServiceSchedulesAPI.get();
     schedules.value = response.data.payload || [];
+    loadError.value = false;
+    hasLoaded.value = true;
   } catch (error) {
+    // NÃO renderizar tudo como "não configurado" no escuro: se o fetch falhar, um inbox com calendário
+    // real apareceria vazio e salvar (upsert) sobrescreveria o real. Mostramos erro + retry.
     schedules.value = [];
+    loadError.value = true;
+    useAlert(t('CRM_SLA.SCHEDULES.EDITOR.API.LOAD_ERROR'));
   } finally {
     isLoading.value = false;
   }
@@ -37,12 +45,17 @@ const scheduleFor = inboxId =>
     schedule => schedule.owner_type === 'Inbox' && schedule.owner_id === inboxId
   );
 
+// Só monta as linhas (com botão editar) DEPOIS de um fetch bem-sucedido. Senão, durante o load
+// inicial (inboxes já no store, schedules ainda não), tudo apareceria "não configurado" e dava p/
+// abrir o editor e salvar por cima de um calendário real.
 const rows = computed(() =>
-  (inboxes.value || []).map(inbox => ({
-    id: inbox.id,
-    name: inbox.name,
-    schedule: scheduleFor(inbox.id),
-  }))
+  hasLoaded.value
+    ? (inboxes.value || []).map(inbox => ({
+        id: inbox.id,
+        name: inbox.name,
+        schedule: scheduleFor(inbox.id),
+      }))
+    : []
 );
 
 const tableHeaders = computed(() => [
@@ -85,7 +98,25 @@ const removeSchedule = async schedule => {
       </p>
     </div>
 
+    <div
+      v-if="loadError"
+      class="flex flex-col items-start gap-2 rounded-lg border border-n-weak p-4"
+    >
+      <p class="mb-0 text-sm text-n-slate-11">
+        {{ t('CRM_SLA.SCHEDULES.EDITOR.API.LOAD_ERROR') }}
+      </p>
+      <Button
+        sm
+        slate
+        faded
+        :label="t('CRM_SLA.SCHEDULES.LIST.RETRY')"
+        :is-loading="isLoading"
+        @click="fetchSchedules"
+      />
+    </div>
+
     <BaseTable
+      v-else
       :headers="tableHeaders"
       :items="rows"
       :loading="isLoading"
@@ -136,7 +167,7 @@ const removeSchedule = async schedule => {
     </BaseTable>
 
     <CrmScheduleEditor
-      v-if="editingInbox"
+      v-if="editingInbox && hasLoaded && !loadError"
       owner-type="Inbox"
       :owner-id="editingInbox.id"
       :owner-name="editingInbox.name"

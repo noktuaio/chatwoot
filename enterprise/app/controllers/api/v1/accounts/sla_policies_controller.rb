@@ -1,4 +1,5 @@
 class Api::V1::Accounts::SlaPoliciesController < Api::V1::Accounts::EnterpriseAccountsController
+  before_action :ensure_sla_feature
   before_action :fetch_sla, only: [:show, :update, :destroy]
   before_action :check_authorization
 
@@ -29,5 +30,10 @@ class Api::V1::Accounts::SlaPoliciesController < Api::V1::Accounts::EnterpriseAc
 
   def fetch_sla
     @sla_policy = Current.account.sla_policies.find_by(id: params[:id])
+  end
+
+  # Gate da feature `sla`: a API some (404) quando a conta não tem a feature, alinhado à UI.
+  def ensure_sla_feature
+    render json: { error: 'sla.disabled' }, status: :not_found unless Current.account.feature_enabled?('sla')
   end
 end

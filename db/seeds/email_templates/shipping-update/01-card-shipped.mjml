@@ -2,16 +2,16 @@
   Template: Card Shipped Confirmation
   File: 01-card-shipped.mjml
   Category: shipping-update / order-tracking
-
+  
   Purpose:
   Confirm that a physical greeting card has been mailed and provide tracking info.
   Reassures customers and sets delivery expectations.
-
+  
   When to send:
   - Immediately after card is dropped in the mail
   - When postal tracking number is generated
   - Physical product fulfillment completion
-
+  
   Personalize:
   - {{ship_date}} (e.g., "04/11/2024")
   - {{order_number}} (e.g., "650065")
@@ -19,7 +19,7 @@
   - {{recipient_name}} (e.g., "Smiles Davis")
   - {{tracking_url}} for "Track my order" button
   - Brand logo + colors (#005E80 primary, #FFF7D6 secondary)
-
+  
   Notes:
   - Transactional email (shipping confirmation = no unsubscribe required in most jurisdictions)
   - Warm, friendly tone with emojis fits greeting card brand personality
@@ -27,7 +27,7 @@
   - Delivery window "2–7 days" manages expectations for postal variability
   - Help section reduces support tickets by being proactive
   - Works for any physical card/gift product with slight copy adjustments
-
+  
   Conversion goal:
   Primary: Reduce "where's my order?" support inquiries
   Secondary: Drive traffic to store for repeat purchases

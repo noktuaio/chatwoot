@@ -241,13 +241,6 @@
       "RECONVERSE_CLOSE": "Concluído",
       "CURRENT_CARD": "O que o seu agente faz hoje",
       "NO_CARD": "Ainda não há resumo disponível.",
-      "IDENTITY_TITLE": "Imagem do agente",
-      "IDENTITY_HINT": "Use uma foto ou marca para identificar este agente nos cartões e painéis.",
-      "AVATAR_UPDATING": "A atualizar imagem…",
-      "AVATAR_UPLOAD_SUCCESS": "Imagem do agente atualizada.",
-      "AVATAR_UPLOAD_ERROR": "Não foi possível atualizar a imagem do agente.",
-      "AVATAR_DELETE_SUCCESS": "Imagem do agente removida.",
-      "AVATAR_DELETE_ERROR": "Não foi possível remover a imagem do agente.",
       "INSTRUCTION_LABEL": "Instrução",
       "INSTRUCTION_PLACEHOLDER": "Escreva a instrução para o seu agente…",
       "MANUAL_WARNING": "Aqui escreve a instrução. Continuamos a aplicar proteções de segurança nos bastidores.",
@@ -266,10 +259,10 @@
         "PLAYFUL": "Descontraído"
       },
       "HANDOFF_STRATEGY": "Transferir para um humano",
-      "HANDOFF_HINT": "Use “Membro da caixa de entrada” para atribuir automaticamente a um atendente associado ao canal quando o agente encaminhar a conversa.",
       "HANDOFF_OPTIONS": {
-        "NONE": "Não atribuir automaticamente",
-        "INBOX_MEMBER": "Membro da caixa de entrada"
+        "LOW_CONFIDENCE": "Quando estiver em dúvida",
+        "ALWAYS_ASK": "Oferecer sempre um humano",
+        "NEVER": "Nunca"
       },
       "CONFIDENCE_THRESHOLD": "Limite de confiança",
       "SAVE": "Guardar alterações",

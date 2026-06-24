@@ -126,6 +126,12 @@ end
 
 json.provider resource.channel.try(:provider)
 
+if resource.channel_type == 'Channel::Email'
+  json.calendar_enabled resource.channel.try(:calendar_enabled?)
+  json.calendar_scope_granted resource.channel.try(:calendar_scope_granted?)
+  json.calendar_identity resource.channel.try(:calendar_organizer_email)
+end
+
 ## Telegram Attributes
 json.bot_name resource.channel.try(:bot_name) if resource.telegram?
 

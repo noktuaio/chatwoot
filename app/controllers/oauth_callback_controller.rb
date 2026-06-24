@@ -48,16 +48,31 @@ class OauthCallbackController < ApplicationController
   end
 
   def update_channel(channel_email)
-    channel_email.update!({
-                            imap_login: imap_login_identity, imap_address: imap_address,
-                            imap_port: '993', imap_enabled: true,
-                            provider: provider_name,
-                            provider_config: {
-                              access_token: parsed_body['access_token'],
-                              refresh_token: parsed_body['refresh_token'],
-                              expires_on: token_expires_on
-                            }
-                          })
+    existing_config = channel_email.provider_config.to_h.with_indifferent_access
+    refresh_token = parsed_body['refresh_token'].presence || existing_config[:refresh_token]
+
+    attributes = {
+      imap_login: imap_login_identity, imap_address: imap_address,
+      imap_port: '993', imap_enabled: true,
+      provider: provider_name,
+      provider_config: {
+        access_token: parsed_body['access_token'],
+        refresh_token: refresh_token,
+        expires_on: token_expires_on
+      }
+    }
+    if calendar_scope_granted?
+      attributes[:calendar_enabled] = true
+      attributes[:calendar_scope_granted] = true
+    end
+    channel_email.update!(attributes)
+  end
+
+  # The provider returns the granted scopes in the token response; if calendar
+  # access was granted, mark the mailbox calendar-capable so meetings can use it.
+  def calendar_scope_granted?
+    granted = parsed_body['scope'].to_s
+    granted.include?('/auth/calendar') || granted.include?('Calendars.ReadWrite')
   end
 
   # Identity used as the IMAP/SMTP login (SASL XOAUTH2 `user=` field). Defaults to the

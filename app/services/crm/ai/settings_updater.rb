@@ -18,12 +18,15 @@ module Crm
 
       def update_pipeline_metadata!
         metadata = (@pipeline.metadata || {}).deep_dup
-        ai = (metadata['ai'] || {}).merge(
-          'enabled' => cast_boolean(@params[:enabled], default: true),
-          'auto_move_enabled' => cast_boolean(@params[:auto_move_enabled], default: false),
-          'stale_hours' => (@params[:stale_hours].presence || Config::DEFAULT_STALE_HOURS).to_i
-        )
-        # Partial saves must not clobber an existing auto_followup config.
+        ai = metadata['ai'] || {}
+        # Merge PARCIAL por chave: só sobrescreve o que veio nos params. Permite que o atalho do
+        # calendário envie SÓ callback_enabled sem zerar enabled/auto_move/stale (o painel do funil
+        # segue mandando tudo, sem regressão). Espelha a salvaguarda que já existia p/ auto_followup.
+        ai['enabled'] = cast_boolean(@params[:enabled], default: true) if @params.key?(:enabled)
+        ai['auto_move_enabled'] = cast_boolean(@params[:auto_move_enabled], default: false) if @params.key?(:auto_move_enabled)
+        ai['callback_enabled'] = cast_boolean(@params[:callback_enabled], default: true) if @params.key?(:callback_enabled)
+        ai['callback_mode'] = normalize_callback_mode(@params[:callback_mode]) if @params.key?(:callback_mode)
+        ai['stale_hours'] = (@params[:stale_hours].presence || Config::DEFAULT_STALE_HOURS).to_i if @params.key?(:stale_hours)
         ai['auto_followup'] = normalize_auto_followup(@params[:auto_followup]) if @params.key?(:auto_followup)
         metadata['ai'] = ai
         @pipeline.update!(metadata: metadata)
@@ -81,6 +84,11 @@ module Crm
         return default if value.nil?
 
         ActiveModel::Type::Boolean.new.cast(value)
+      end
+
+      def normalize_callback_mode(value)
+        mode = value.to_s
+        Config::CALLBACK_MODES.include?(mode) ? mode : 'reminder'
       end
     end
   end

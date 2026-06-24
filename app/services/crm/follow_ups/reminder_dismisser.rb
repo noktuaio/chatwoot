@@ -7,12 +7,14 @@ class Crm::FollowUps::ReminderDismisser
   end
 
   def perform
-    dismissed_by = (@follow_up.metadata || {}).to_h.stringify_keys[METADATA_KEY] || {}
-    dismissed_by = dismissed_by.merge(@user.id.to_s => Time.current.iso8601)
+    @follow_up.with_lock do
+      dismissed_by = (@follow_up.metadata || {}).to_h.stringify_keys[METADATA_KEY] || {}
+      dismissed_by = dismissed_by.merge(@user.id.to_s => Time.current.iso8601)
 
-    @follow_up.update!(
-      metadata: @follow_up.metadata.merge(METADATA_KEY => dismissed_by)
-    )
+      @follow_up.update!(
+        metadata: @follow_up.metadata.merge(METADATA_KEY => dismissed_by)
+      )
+    end
     @follow_up
   end
 

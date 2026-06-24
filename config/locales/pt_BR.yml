@@ -18,6 +18,9 @@
 #available at https://guides.rubyonrails.org/i18n.html.
 pt_BR:
   hello: 'Olá, mundo'
+  time:
+    formats:
+      long: '%d de %B de %Y, %H:%M'
   inbox:
     reauthorization:
       success: 'Canal reautenticado com sucesso'
@@ -515,6 +518,22 @@ pt_BR:
   automation:
     system_name: 'Sistema de Automação'
   crm:
+    providers:
+      teams: 'Microsoft Teams'
+      google_meet: 'Google Meet'
+    follow_up_reminder:
+      subject: 'Lembrete: %{title}'
+      push_title: 'Lembrete: %{title}'
+      greeting: 'Olá %{name},'
+      card: 'Negócio: %{card}'
+      due_at: 'Vence em: %{time}'
+      cta: 'Abrir CRM'
+    meetings:
+      reminder:
+        email_subject: 'Lembrete: %{title} às %{time}'
+        push_title: 'Reunião %{title} às %{time}'
+        starts_at: 'Horário da reunião: %{time}'
+        join_cta: 'Entrar na reunião'
     no_message: 'Nenhuma mensagem na conversa'
     attachment: '[Anexo: %{type}]'
     no_content: '[Sem conteúdo]'

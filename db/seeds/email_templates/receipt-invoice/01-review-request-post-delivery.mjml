@@ -2,17 +2,17 @@
   Template: Post-Purchase Review Request
   File: 04-review-request-post-delivery.mjml
   Category: receipt-invoice / post-purchase
-
+  
   Purpose:
   Request product/service review after confirmed delivery to boost social proof and customer engagement.
   Warm, gratitude-focused approach to maximize review submission rate.
-
+  
   When to send:
   - 7-10 days after delivery confirmation (allows time for product testing)
   - After "delivered" shipping status update
   - Post-purchase nurture sequence (email 2 or 3)
   - Only to customers who haven't left a review yet
-
+  
   Personalize:
   - {{first_name}}
   - {{product_name}} or {{product_category}} (e.g., "skincare products")
@@ -20,7 +20,7 @@
   - {{review_url}} for "Share Your Feedback" CTA
   - {{product_image}} - hero flatlay image
   - Brand colors (#ffe6a7 primary, #fdfcdc secondary, #3e2723 text)
-
+  
   Notes:
   - Marketing/transactional hybrid (review request after purchase)
   - Gratitude-first approach: "Thank you" before asking
@@ -30,7 +30,7 @@
   - Works best 7-14 days post-delivery (sweet spot for fresh experience)
   - Avoid sending too early (product not tested) or too late (forgotten)
   - Can be automated via Shopify/WooCommerce + email platform
-
+  
   Best practices:
   - Keep tone warm, never demanding or transactional
   - Make CTA obvious but not aggressive
@@ -57,7 +57,7 @@
         </mj-text>
       </mj-column>
     </mj-section>
-
+    
     <!-- Main Feedback CTA Section -->
     <mj-section background-color="#fdfcdc" padding="20px 20px">
       <mj-column width="100%" background-color="transparent" padding="20px 15px">
@@ -72,7 +72,7 @@
         </mj-button>
       </mj-column>
     </mj-section>
-
+    
     <!-- Benefits/Social Proof Section -->
     <mj-section background-color="#ffffff" padding="15px 15px">
       <mj-column width="100%" background-color="transparent" padding="20px 15px">
@@ -89,7 +89,7 @@
         </mj-text>
       </mj-column>
     </mj-section>
-
+    
     <!-- Aftercare & Community Section -->
     <mj-section background-color="#ffe6a7" padding="15px 15px">
       <mj-column background-color="transparent" padding="20px 15px" width="50%">
@@ -102,7 +102,7 @@
         </mj-text>
       </mj-column>
     </mj-section>
-
+    
     <!-- Social Section -->
     <mj-section background-color="#fdfcdc" padding="10px 0px">
       <mj-column width="100%" background-color="transparent" padding="20px 15px">
@@ -120,7 +120,7 @@
         </mj-social>
       </mj-column>
     </mj-section>
-
+    
     <!-- Footer -->
     <mj-section background-color="#ffe6a7" padding="10px 15px">
       <mj-column width="100%" background-color="transparent" padding="20px 15px">

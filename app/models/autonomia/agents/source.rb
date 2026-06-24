@@ -69,12 +69,50 @@ module Autonomia
         # Retriever (que exclui needs_review) deixaria o conteúdo re-embebido mas ainda-não-revalidado
         # entrar em Testar/Operar — violando "revisado ANTES de usar". Limpa também o parecer antigo
         # para o Construtor não ler um review_summary defasado. mark_reviewed! recoloca em 'accepted'.
+        # Guarda o PARECER ANTERIOR INTEIRO (não só o status) para poder RESTAURAR a geração anterior
+        # (entries já servidos) se este re-sync falhar por extração vazia — senão a fonte ficaria
+        # needs_review+failed (e mesmo restaurando só o status, sem review_summary o Retriever perderia
+        # a exclusão "fora do negócio" e o Construtor leria contexto em branco). Restaura tudo.
+        base = (metadata || {})
+        # CORRIDA: se a fonte JÁ estava `processing` (um re-sync anterior em curso), os campos de
+        # review já estão rebaixados/em branco — NÃO os capture (preservaria lixo). Mantém o
+        # prev_review verdadeiro do re-sync anterior. Só captura snapshot fresco quando não-processing.
+        prev_review = if processing?
+                        base['prev_review']
+                      else
+                        { 'review_status' => review_status, 'review_summary' => review_summary,
+                          'review_label' => review_label, 'review_reason' => review_reason,
+                          'quality_score' => quality_score, 'confidence' => confidence,
+                          'reviewed_at' => reviewed_at&.iso8601 }
+                      end
+        prev_metadata = base.merge('prev_review' => prev_review)
         update_columns(status: self.class.statuses[:processing], sync_token: token,
-                       error: nil, sync_status: nil,
+                       error: nil, sync_status: nil, metadata: prev_metadata,
                        review_status: 'needs_review', quality_score: nil, confidence: nil,
                        review_summary: nil, review_label: nil, review_reason: nil, reviewed_at: nil,
                        updated_at: Time.current)
         token
+      end
+
+      # Re-sync que extraiu VAZIO mas a fonte JÁ tinha conhecimento bom: volta EXATAMENTE ao parecer
+      # anterior (ready + review_status/summary/label/reason/score/confidence/reviewed_at) sem apagar
+      # nada, preservando a recuperabilidade E o isolamento "fora do negócio" (que o Retriever lê do
+      # review_summary). accepted continua accepted; needs_review continua excluído (sem promover).
+      # Token-guard. Usado pelo ProcessJob no EmptyExtraction quando há entries.
+      def restore_previous_generation!(token)
+        prev = (metadata || {})['prev_review'] || {}
+        status_value = prev['review_status']
+        # SEGURANÇA "revisado antes de usar": só 'accepted' volta a ser SERVÍVEL. nil/ausente/qualquer
+        # valor inesperado -> needs_review (NÃO-recuperável): nunca auto-serve conteúdo nunca-revisado
+        # (ex.: entries criados por um job superseded antes do review). needs_resend/needs_review seguem
+        # excluídos (fiel). NOTA: uma fonte legada genuína (review_status nil, servida via legado) que
+        # der re-sync vazio passa a needs_review — tradeoff seguro e raro (re-revisar reativa).
+        status_value = 'needs_review' unless REVIEW_STATUSES.include?(status_value)
+        guarded_update(token, status: self.class.statuses[:ready], review_status: status_value,
+                              review_summary: prev['review_summary'], review_label: prev['review_label'],
+                              review_reason: prev['review_reason'], quality_score: prev['quality_score'],
+                              confidence: prev['confidence'], reviewed_at: prev['reviewed_at'],
+                              error: nil, sync_status: nil, synced_at: Time.current)
       end
 
       # GAP (A) — mídia de ENVIO: caminho NOVO, sem ingestão. NÃO embeda, NÃO chama a revisora; só

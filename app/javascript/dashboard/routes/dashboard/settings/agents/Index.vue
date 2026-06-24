@@ -14,6 +14,8 @@ import AddAgent from './AddAgent.vue';
 import EditAgent from './EditAgent.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
+import CrmScheduleEditor from 'dashboard/routes/dashboard/crm/components/sla/CrmScheduleEditor.vue';
+import CrmServiceSchedulesAPI from 'dashboard/api/crmServiceSchedules';
 import Button from 'dashboard/components-next/button/Button.vue';
 
 const getters = useStoreGetters();
@@ -119,6 +121,32 @@ const openEditPopup = agent => {
 };
 const hideEditPopup = () => {
   showEditPopup.value = false;
+};
+
+// SLA service-hours calendar editor (CRM SLA v2): aberto AQUI no pai, como irmão, depois que o modal
+// de agente fecha — senão o overlay do woot-modal (z-9990) cobriria o editor (z-100). O fetch do
+// calendário trata erro: se falhar, alerta e NÃO abre (evita salvar defaults por cima do real).
+const showScheduleEditor = ref(false);
+const scheduleOwner = ref({ id: null, name: '', schedule: null });
+
+const openScheduleEditor = async ({ id, name }) => {
+  hideAddPopup();
+  hideEditPopup();
+  try {
+    const response = await CrmServiceSchedulesAPI.get();
+    const schedule =
+      (response.data.payload || []).find(
+        item => item.owner_type === 'User' && item.owner_id === id
+      ) ?? null;
+    scheduleOwner.value = { id, name, schedule };
+    showScheduleEditor.value = true;
+  } catch (error) {
+    useAlert(t('CRM_SLA.SCHEDULES.EDITOR.API.LOAD_ERROR'));
+  }
+};
+
+const onScheduleSaved = () => {
+  showScheduleEditor.value = false;
 };
 
 const openDeletePopup = agent => {
@@ -278,7 +306,7 @@ const confirmDeletion = () => {
     </template>
 
     <woot-modal v-model:show="showAddPopup" :on-close="hideAddPopup">
-      <AddAgent @close="hideAddPopup" />
+      <AddAgent @close="hideAddPopup" @open-schedule="openScheduleEditor" />
     </woot-modal>
 
     <woot-modal v-model:show="showEditPopup" :on-close="hideEditPopup">
@@ -292,8 +320,19 @@ const confirmDeletion = () => {
         :availability="currentAgent.availability_status"
         :custom-role-id="currentAgent.custom_role_id"
         @close="hideEditPopup"
+        @open-schedule="openScheduleEditor"
       />
     </woot-modal>
+
+    <CrmScheduleEditor
+      v-if="showScheduleEditor"
+      owner-type="User"
+      :owner-id="scheduleOwner.id"
+      :owner-name="scheduleOwner.name"
+      :schedule="scheduleOwner.schedule"
+      @saved="onScheduleSaved"
+      @close="showScheduleEditor = false"
+    />
 
     <woot-delete-modal
       v-model:show="showDeletePopup"

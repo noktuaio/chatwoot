@@ -1,21 +1,57 @@
 <script setup>
+import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// V2.1 — emits the chosen starting point PLUS two screen-level choices:
+// `actuation` (external|internal) and `withKnowledge` (boolean). Defaults
+// reproduce today's behavior exactly (external + with knowledge), so a user who
+// ignores the toggles creates the same agent as before. `both` is an advanced
+// value set later in the agent's settings, not on this screen.
 const emit = defineEmits(['select']);
 
 const { t } = useI18n();
 
-// Seven starting points. `value` is the backend enum
-// (Autonomia::Agents::Agent::AGENT_TYPES = support sdr reception onboarding
-// scheduler reactivation custom) — the wire value MUST match it so the chosen
-// preset is a valid, persistable seed and never ships an unknown enum. `key`
-// drives the i18n label (kept distinct from the enum to preserve product copy
-// like "Receptionist" / "Post-sale" / "Start from scratch").
-//
+const actuation = ref('external');
+const withKnowledge = ref(true);
+
+const ACTUATION_OPTIONS = [
+  {
+    value: 'external',
+    icon: 'i-lucide-globe',
+    label: 'AGENTS.TYPES.ACTUATION.EXTERNAL',
+  },
+  {
+    value: 'internal',
+    icon: 'i-lucide-headset',
+    label: 'AGENTS.TYPES.ACTUATION.INTERNAL',
+  },
+];
+const KNOWLEDGE_OPTIONS = [
+  {
+    value: true,
+    icon: 'i-lucide-book-open',
+    label: 'AGENTS.TYPES.KNOWLEDGE.WITH',
+  },
+  {
+    value: false,
+    icon: 'i-lucide-sparkles',
+    label: 'AGENTS.TYPES.KNOWLEDGE.WITHOUT',
+  },
+];
+
+const actuationHint = computed(() =>
+  actuation.value === 'internal'
+    ? 'AGENTS.TYPES.ACTUATION.INTERNAL_HINT'
+    : 'AGENTS.TYPES.ACTUATION.EXTERNAL_HINT'
+);
+const knowledgeHint = computed(() =>
+  withKnowledge.value
+    ? 'AGENTS.TYPES.KNOWLEDGE.WITH_HINT'
+    : 'AGENTS.TYPES.KNOWLEDGE.WITHOUT_HINT'
+);
+
 // `style` paints the icon badge and the hover/selected border per type. Classes
-// are STATIC (the JIT cannot generate `bg-n-${x}-3`), so the full class strings
-// live in the map. `custom` is rendered apart (full-width, dashed) — it has no
-// ready skeleton on the backend and means "build from scratch".
+// are STATIC (the JIT cannot generate `bg-n-${x}-3`), so the full strings live here.
 const TYPE_STYLE = {
   support: {
     badge: 'bg-n-teal-3 text-n-teal-11',
@@ -61,11 +97,16 @@ const CUSTOM_TYPE = {
 
 const styleFor = value => TYPE_STYLE[value] || TYPE_STYLE.custom;
 
-const onSelect = type => emit('select', type);
+const onSelect = type =>
+  emit('select', {
+    type,
+    actuation: actuation.value,
+    withKnowledge: withKnowledge.value,
+  });
 </script>
 
 <template>
-  <section class="flex flex-col w-full max-w-4xl gap-6 mx-auto">
+  <section class="flex flex-col w-full gap-6 mx-auto max-w-4xl">
     <header class="flex flex-col gap-1 text-center">
       <h2 class="text-xl font-semibold text-n-slate-12">
         {{ t('AGENTS.TYPES.PICK_TITLE') }}
@@ -75,20 +116,86 @@ const onSelect = type => emit('select', type);
       </p>
     </header>
 
+    <div class="flex flex-wrap justify-center gap-x-10 gap-y-4">
+      <div class="flex flex-col items-center gap-1.5">
+        <span class="text-xs font-medium text-n-slate-11">
+          {{ t('AGENTS.TYPES.ACTUATION.LABEL') }}
+        </span>
+        <div
+          role="radiogroup"
+          :aria-label="t('AGENTS.TYPES.ACTUATION.LABEL')"
+          class="inline-flex gap-1 p-1 rounded-xl bg-n-alpha-black2"
+        >
+          <button
+            v-for="opt in ACTUATION_OPTIONS"
+            :key="opt.value"
+            type="button"
+            role="radio"
+            :aria-checked="actuation === opt.value"
+            class="flex items-center gap-2 px-3.5 py-2 text-sm transition-colors rounded-lg outline-1 outline-transparent focus-visible:outline-n-brand"
+            :class="
+              actuation === opt.value
+                ? 'bg-n-solid-1 text-n-slate-12 font-medium shadow-sm'
+                : 'text-n-slate-11 hover:text-n-slate-12'
+            "
+            @click="actuation = opt.value"
+          >
+            <span :class="opt.icon" class="size-4" />
+            {{ t(opt.label) }}
+          </button>
+        </div>
+        <span class="text-xs text-center text-n-slate-10 max-w-[15rem]">
+          {{ t(actuationHint) }}
+        </span>
+      </div>
+
+      <div class="flex flex-col items-center gap-1.5">
+        <span class="text-xs font-medium text-n-slate-11">
+          {{ t('AGENTS.TYPES.KNOWLEDGE.LABEL') }}
+        </span>
+        <div
+          role="radiogroup"
+          :aria-label="t('AGENTS.TYPES.KNOWLEDGE.LABEL')"
+          class="inline-flex gap-1 p-1 rounded-xl bg-n-alpha-black2"
+        >
+          <button
+            v-for="opt in KNOWLEDGE_OPTIONS"
+            :key="String(opt.value)"
+            type="button"
+            role="radio"
+            :aria-checked="withKnowledge === opt.value"
+            class="flex items-center gap-2 px-3.5 py-2 text-sm transition-colors rounded-lg outline-1 outline-transparent focus-visible:outline-n-brand"
+            :class="
+              withKnowledge === opt.value
+                ? 'bg-n-solid-1 text-n-slate-12 font-medium shadow-sm'
+                : 'text-n-slate-11 hover:text-n-slate-12'
+            "
+            @click="withKnowledge = opt.value"
+          >
+            <span :class="opt.icon" class="size-4" />
+            {{ t(opt.label) }}
+          </button>
+        </div>
+        <span class="text-xs text-center text-n-slate-10 max-w-[15rem]">
+          {{ t(knowledgeHint) }}
+        </span>
+      </div>
+    </div>
+
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <button
         v-for="agentType in AGENT_TYPES"
         :key="agentType.key"
         type="button"
-        class="flex flex-col gap-3 p-5 text-left transition-all duration-150 border group rounded-xl border-n-weak bg-n-solid-1 hover:-translate-y-0.5 hover:shadow-sm outline-1 outline-transparent focus-visible:outline-n-brand"
+        class="flex flex-col gap-3 p-6 text-left transition-all duration-150 border group rounded-xl border-n-weak bg-n-solid-1 hover:-translate-y-0.5 hover:shadow-sm outline-1 outline-transparent focus-visible:outline-n-brand min-h-[8.5rem]"
         :class="styleFor(agentType.value).border"
         @click="onSelect(agentType.value)"
       >
         <span
-          class="flex items-center justify-center rounded-lg size-10 shrink-0"
+          class="flex items-center justify-center rounded-lg size-12 shrink-0"
           :class="styleFor(agentType.value).badge"
         >
-          <span :class="agentType.icon" class="size-5" />
+          <span :class="agentType.icon" class="size-6" />
         </span>
         <span class="flex flex-col gap-1 min-w-0">
           <span class="text-sm font-medium text-n-slate-12">
@@ -101,19 +208,18 @@ const onSelect = type => emit('select', type);
       </button>
     </div>
 
-    <!-- "Outros" / custom: no ready skeleton, build from a blank page. Set apart
-         below the grid, full width, dashed border. -->
+    <!-- "Outros" / custom: no ready skeleton, build from a blank page. -->
     <button
       type="button"
-      class="flex items-center w-full gap-3 p-5 text-left transition-all duration-150 border border-dashed group rounded-xl border-n-weak bg-n-solid-1 hover:-translate-y-0.5 hover:shadow-sm outline-1 outline-transparent focus-visible:outline-n-brand"
+      class="flex items-center w-full gap-3 p-6 text-left transition-all duration-150 border border-dashed group rounded-xl border-n-weak bg-n-solid-1 hover:-translate-y-0.5 hover:shadow-sm outline-1 outline-transparent focus-visible:outline-n-brand"
       :class="styleFor(CUSTOM_TYPE.value).border"
       @click="onSelect(CUSTOM_TYPE.value)"
     >
       <span
-        class="flex items-center justify-center rounded-lg size-10 shrink-0"
+        class="flex items-center justify-center rounded-lg size-12 shrink-0"
         :class="styleFor(CUSTOM_TYPE.value).badge"
       >
-        <span :class="CUSTOM_TYPE.icon" class="size-5" />
+        <span :class="CUSTOM_TYPE.icon" class="size-6" />
       </span>
       <span class="flex flex-col gap-1 min-w-0">
         <span class="text-sm font-medium text-n-slate-12">

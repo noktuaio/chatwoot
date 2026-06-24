@@ -1,11 +1,13 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useEmitter } from 'dashboard/composables/emitter';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { defaultFilters } from 'dashboard/store/modules/crmKanban';
 import { useCrmPermissions } from '../composables/useCrmPermissions';
+import crmMeetingsAPI from 'dashboard/api/crmMeetings';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import Draggable from 'vuedraggable';
 
@@ -18,11 +20,15 @@ import CrmKanbanCard from '../components/CrmKanbanCard.vue';
 import CrmCardDrawer from '../components/CrmCardDrawer.vue';
 import CrmPipelineDrawer from '../components/CrmPipelineDrawer.vue';
 import CrmInboxSettingsDrawer from '../components/CrmInboxSettingsDrawer.vue';
+import CrmBookingProfilesDrawer from '../components/CrmBookingProfilesDrawer.vue';
 import CrmCardsTable from '../components/list/CrmCardsTable.vue';
 import CrmTableColumnSettings from '../components/list/CrmTableColumnSettings.vue';
 import CrmSavedViews from '../components/list/CrmSavedViews.vue';
 import CrmBulkActionBar from '../components/list/CrmBulkActionBar.vue';
 import CrmCalendar from '../components/calendar/CrmCalendar.vue';
+import CrmCalendarQuickAdd from '../components/calendar/CrmCalendarQuickAdd.vue';
+import CrmCalendarMeetingScheduler from '../components/calendar/CrmCalendarMeetingScheduler.vue';
+import CrmMeetingDetail from '../components/calendar/CrmMeetingDetail.vue';
 import {
   buildCrmCardColumns,
   DEFAULT_COLUMN_ORDER,
@@ -47,22 +53,39 @@ const listGroupBy = useMapGetter('crmKanban/getListGroupBy');
 const listSelection = useMapGetter('crmKanban/getListSelection');
 const savedViews = useMapGetter('crmKanban/getSavedViews');
 const currentUser = useMapGetter('getCurrentUser');
+const currentAccountId = useMapGetter('getCurrentAccountId');
 const inboxes = useMapGetter('inboxes/getInboxes');
 const agents = useMapGetter('agents/getAgents');
 const teams = useMapGetter('teams/getTeams');
 const { canManageCards, canMoveCards, canManagePipelines, canManageAi } =
   useCrmPermissions();
 
+const CRM_CALENDAR_MEETINGS_FEATURE = 'CRM_CALENDAR_MEETINGS_ENABLED';
+
+const route = useRoute();
+// Calendar-only sub-page (route meta.calendarOnly): opens straight on the calendar
+// with the kanban/list/calendar switch and "New pipeline" button hidden.
+const isCalendarOnly = computed(() => route.meta?.calendarOnly === true);
+
 const currentPipelineId = ref('');
-const viewMode = ref('kanban');
+const viewMode = ref(isCalendarOnly.value ? 'calendar' : 'kanban');
+// The two CRM routes share this component, so the instance is reused on navigation:
+// keep viewMode in sync with the route (force calendar on the calendar-only page).
+watch(isCalendarOnly, only => {
+  viewMode.value = only ? 'calendar' : 'kanban';
+});
 const filters = ref({ ...storedFilters.value });
 const drawerMode = ref('create');
 const selectedCard = ref(null);
 const showDrawer = ref(false);
+// Which tab the card drawer lands on when opened ('followups' from the calendar
+// quick-add "Continuar"; null → default summary).
+const drawerInitialTab = ref(null);
 const pipelineDrawerMode = ref('create');
 const showPipelineDrawer = ref(false);
 const pipelineInboxes = ref([]);
 const showInboxSettingsDrawer = ref(false);
+const showBookingProfilesDrawer = ref(false);
 const inboxSettings = ref([]);
 const inboxSettingStagesByPipeline = ref({});
 const dragSnapshot = ref(null);
@@ -365,8 +388,10 @@ const loadCurrentCalendar = async () => {
   try {
     // Owner scope (mine/all) is applied client-side by the orchestrator via
     // filterByOwner, so the fetch always pulls the full pipeline window.
+    // Completed/canceled follow-ups are hidden unless the "Histórico" toggle is on.
     await store.dispatch('crmKanban/fetchCalendarEvents', {
       pipeline_id: currentPipelineId.value,
+      include_completed: store.getters['crmKanban/getCalendarIncludeCompleted'],
       ...range,
     });
   } catch {
@@ -586,6 +611,14 @@ const closeInboxSettingsDrawer = () => {
   showInboxSettingsDrawer.value = false;
 };
 
+const openBookingProfilesDrawer = () => {
+  showBookingProfilesDrawer.value = true;
+};
+
+const closeBookingProfilesDrawer = () => {
+  showBookingProfilesDrawer.value = false;
+};
+
 const saveInboxSetting = async payload => {
   try {
     if (payload.default_pipeline_id) {
@@ -648,11 +681,13 @@ const deleteStage = async stage => {
 
 const openCreateDrawer = () => {
   selectedCard.value = null;
+  drawerInitialTab.value = null;
   drawerMode.value = 'create';
   showDrawer.value = true;
 };
 
-const openCardDrawer = async card => {
+const openCardDrawer = async (card, { initialTab = null } = {}) => {
+  drawerInitialTab.value = initialTab;
   selectedCard.value = card;
   drawerMode.value = 'edit';
   showDrawer.value = true;
@@ -713,6 +748,13 @@ const saveCard = async payload => {
 
 const cardDrawerRef = ref(null);
 
+// Follow-up CRUD from the card drawer mutates the calendar's data source, so
+// keep the calendar in sync when it's the active view (it reads a separate
+// calendarEvents array, not the drawer's follow-up list).
+const syncCalendarIfActive = async () => {
+  if (viewMode.value === 'calendar') await loadCurrentCalendar();
+};
+
 const createFollowUp = async payload => {
   try {
     await store.dispatch('crmKanban/createFollowUp', payload);
@@ -721,6 +763,7 @@ const createFollowUp = async payload => {
     });
     cardDrawerRef.value?.resetFollowUpForm?.();
     useAlert(t('CRM_KANBAN.ALERTS.FOLLOW_UP_CREATED'));
+    await syncCalendarIfActive();
   } catch (error) {
     const apiMessage = error?.response?.data?.message;
     useAlert(apiMessage || t('CRM_KANBAN.ALERTS.FOLLOW_UP_SAVE_ERROR'));
@@ -731,6 +774,7 @@ const completeFollowUp = async followUp => {
   try {
     await store.dispatch('crmKanban/completeFollowUp', followUp.id);
     useAlert(t('CRM_KANBAN.ALERTS.FOLLOW_UP_COMPLETED'));
+    await syncCalendarIfActive();
   } catch {
     useAlert(t('CRM_KANBAN.ALERTS.FOLLOW_UP_SAVE_ERROR'));
   }
@@ -740,6 +784,7 @@ const cancelFollowUp = async followUp => {
   try {
     await store.dispatch('crmKanban/cancelFollowUp', followUp.id);
     useAlert(t('CRM_KANBAN.ALERTS.FOLLOW_UP_CANCELED'));
+    await syncCalendarIfActive();
   } catch {
     useAlert(t('CRM_KANBAN.ALERTS.FOLLOW_UP_SAVE_ERROR'));
   }
@@ -1032,8 +1077,11 @@ const onBulkClear = () => store.dispatch('crmKanban/setListSelection', []);
 /* Calendar (v2) wiring                                                       */
 /* -------------------------------------------------------------------------- */
 // The calendar emits the visible window; persist it then refetch that range.
-const onCalendarRangeChange = async ({ from, to }) => {
+const onCalendarRangeChange = async ({ from, to, includeCompleted }) => {
   store.dispatch('crmKanban/setCalendarRange', { from, to });
+  if (includeCompleted !== undefined) {
+    store.dispatch('crmKanban/setCalendarIncludeCompleted', includeCompleted);
+  }
   await loadCurrentCalendar();
 };
 
@@ -1041,15 +1089,201 @@ const onCalendarViewChange = view => {
   store.dispatch('crmKanban/setCalendarView', view);
 };
 
+const showMeetingDetail = ref(false);
+const selectedMeetingEvent = ref(null);
+const isMeetingEvent = event => event?.event_type === 'meeting';
+
 // Open the existing card drawer from a calendar event (reuses openCardDrawer).
+// Land on the tab that matches the event: follow-up/reminder events open on the
+// Follow-ups tab; expected-close (Previsão) events on Resumo, where that field lives.
 const onCalendarOpenEvent = event => {
+  if (isMeetingEvent(event)) {
+    selectedMeetingEvent.value = event;
+    showMeetingDetail.value = true;
+    return;
+  }
+
   if (!event?.card_id) return;
-  openCardDrawer({ id: event.card_id });
+  const initialTab = String(event.event_type || '').startsWith('follow_up')
+    ? 'followups'
+    : 'summary';
+  openCardDrawer({ id: event.card_id }, { initialTab });
 };
 
-// Quick-add: open the create-card drawer (full follow-up authoring lives there).
-const onCalendarQuickAdd = () => {
-  openCreateDrawer();
+// Quick-add: clicking a day (or "+ Novo") opens the lightweight reminder popover,
+// pre-filled with that date. Creating a deal still lives in the full drawer
+// ("Mais opções" / the Kanban "+ Novo card").
+const showQuickAdd = ref(false);
+const quickAddDate = ref(new Date());
+const quickAddType = ref('reminder');
+const showMeetingScheduler = ref(false);
+const meetingSchedulerCard = ref(null);
+const meetingSchedulerDate = ref(new Date());
+// When set, the scheduler mounts in reschedule mode prefilled from this meeting.
+const meetingSchedulerMeeting = ref(null);
+
+// Install-level flag (exposed in window.globalConfig, like CRM_KANBAN_ENABLED).
+// Meetings are available to every account when this flag is on; each account
+// schedules through its own connected Google/Microsoft calendar mailbox
+// (Crm::Config.calendar_meetings_enabled? is ENV-only).
+const isMeetingFeatureEnabled = computed(
+  () => window.globalConfig?.[CRM_CALENDAR_MEETINGS_FEATURE] === 'true'
+);
+const userTimezone = computed(
+  () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+);
+
+const openMeetingScheduler = async ({ card, cardId, date } = {}) => {
+  if (!isMeetingFeatureEnabled.value) return;
+
+  showQuickAdd.value = false;
+  const id = card?.id || cardId || selectedCard.value?.id;
+  if (!id) {
+    openCreateDrawer();
+    return;
+  }
+
+  meetingSchedulerCard.value = card || { id };
+  meetingSchedulerDate.value = date || new Date();
+
+  try {
+    const detailedCard =
+      card?.title && card?.contact
+        ? card
+        : await store.dispatch('crmKanban/fetchCard', id);
+    if (
+      detailedCard?.id === Number(id) ||
+      String(detailedCard?.id) === String(id)
+    ) {
+      meetingSchedulerCard.value = detailedCard;
+    }
+  } catch {
+    useAlert(t('CRM_KANBAN.ALERTS.CARD_LOAD_ERROR'));
+  }
+
+  showMeetingScheduler.value = true;
+};
+
+const closeMeetingScheduler = () => {
+  showMeetingScheduler.value = false;
+  meetingSchedulerMeeting.value = null;
+};
+
+const closeMeetingDetail = () => {
+  showMeetingDetail.value = false;
+  selectedMeetingEvent.value = null;
+};
+
+const scheduleMeeting = async () => {
+  closeMeetingScheduler();
+  useAlert(t('CRM_KANBAN.CALENDAR.MEETING_SCHEDULER.SUCCESS'));
+  await refreshSelectedCard();
+  await syncCalendarIfActive();
+};
+
+// Reschedule success (scheduler @updated): refresh the card + calendar in
+// realtime (like cal12) and close any open meeting detail drawer.
+const onMeetingRescheduled = async () => {
+  closeMeetingScheduler();
+  closeMeetingDetail();
+  useAlert(t('CRM_KANBAN.CALENDAR.MEETING_DETAIL.RESCHEDULED_TOAST'));
+  await refreshSelectedCard();
+  await syncCalendarIfActive();
+};
+
+// Opens the scheduler in reschedule mode for a meeting. Fetches the full meeting
+// (guests/inbox/times) when we only have the lightweight calendar event. An
+// optional date prefills a new day/time from a calendar drag (always confirmed).
+const openMeetingReschedule = async (meetingLike, date) => {
+  if (!isMeetingFeatureEnabled.value) return;
+
+  const rawId = String(
+    meetingLike?.meeting_id || meetingLike?.id || ''
+  ).replace(/^meeting_/, '');
+  if (!rawId) return;
+
+  let meeting = meetingLike;
+  try {
+    const { data } = await crmMeetingsAPI.show(currentAccountId.value, rawId);
+    meeting = data?.payload || meetingLike;
+  } catch {
+    useAlert(t('CRM_KANBAN.CALENDAR.MEETING_DETAIL.ERRORS.LOAD_FAILED'));
+    return;
+  }
+
+  if (date) {
+    const next = date instanceof Date ? date : new Date(date);
+    if (!Number.isNaN(next.getTime())) {
+      const start = new Date(meeting.starts_at || next);
+      const end = new Date(meeting.ends_at || next);
+      const durationMs = end > start ? end - start : 30 * 60 * 1000;
+      meeting = {
+        ...meeting,
+        starts_at: next.toISOString(),
+        ends_at: new Date(next.getTime() + durationMs).toISOString(),
+      };
+    }
+  }
+
+  meetingSchedulerMeeting.value = meeting;
+  meetingSchedulerCard.value = { id: meeting.card_id };
+  meetingSchedulerDate.value = meeting.starts_at
+    ? new Date(meeting.starts_at)
+    : new Date();
+  showMeetingScheduler.value = true;
+};
+
+const onCalendarQuickAdd = (payload = {}) => {
+  quickAddDate.value = payload.date ? new Date(payload.date) : new Date();
+  quickAddType.value = payload.type || 'reminder';
+  showQuickAdd.value = true;
+};
+
+const onQuickAddCreate = async ({ cardId, title, dueAt }) => {
+  try {
+    await store.dispatch('crmKanban/createFollowUp', {
+      card_id: cardId,
+      title,
+      follow_up_type: 'task',
+      automation_mode: 'reminder_only',
+      due_at: dueAt,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    });
+    showQuickAdd.value = false;
+    useAlert(t('CRM_KANBAN.ALERTS.FOLLOW_UP_CREATED'));
+    await loadCurrentCalendar();
+  } catch (error) {
+    const apiMessage = error?.response?.data?.message;
+    useAlert(apiMessage || t('CRM_KANBAN.ALERTS.FOLLOW_UP_SAVE_ERROR'));
+  }
+};
+
+const onQuickAddScheduleMeeting = ({ cardId, date } = {}) => {
+  showQuickAdd.value = false;
+  openMeetingScheduler({ cardId, date: date || quickAddDate.value });
+};
+
+const onDrawerScheduleMeeting = ({ cardId } = {}) => {
+  openMeetingScheduler({ card: selectedCard.value, cardId, date: new Date() });
+};
+
+// "Continuar" (WhatsApp/Previsão) and "Mais opções": when a deal is already
+// picked, open THAT card's drawer on the relevant tab (WhatsApp → Follow-ups;
+// Previsão → Resumo, where the expected-close field lives). Reunião opens the
+// standalone scheduler. With no deal chosen, fall back to a fresh card.
+const onQuickAddMoreOptions = ({ cardId, type } = {}) => {
+  showQuickAdd.value = false;
+  if (type === 'meeting') {
+    onQuickAddScheduleMeeting({ cardId, date: quickAddDate.value });
+    return;
+  }
+
+  if (cardId) {
+    const initialTab = type === 'closeDate' ? 'summary' : 'followups';
+    openCardDrawer({ id: cardId }, { initialTab });
+  } else {
+    openCreateDrawer();
+  }
 };
 
 const SNOOZE_PRESET_MS = {
@@ -1062,6 +1296,21 @@ const SNOOZE_PRESET_MS = {
 // (PATCH card); follow-up events go through the reschedule action (WhatsApp
 // past-guard server-side). `date` may be a Date, ISO string, or snooze preset.
 const onCalendarReschedule = async ({ event, date }) => {
+  if (isMeetingEvent(event)) {
+    // Never silently PATCH a meeting on drag — open the scheduler in reschedule
+    // mode with the dragged-to date/time prefilled so the user confirms.
+    let nextDate;
+    if (date instanceof Date) {
+      nextDate = date;
+    } else if (SNOOZE_PRESET_MS[date]) {
+      nextDate = new Date(Date.now() + SNOOZE_PRESET_MS[date]);
+    } else if (date) {
+      nextDate = new Date(date);
+    }
+    await openMeetingReschedule(event, nextDate);
+    return;
+  }
+
   try {
     const isCloseDate = event.event_type === 'expected_close';
     let nextIso;
@@ -1089,6 +1338,30 @@ const onCalendarReschedule = async ({ event, date }) => {
   } catch {
     useAlert(t('CRM_KANBAN.CALENDAR.RESCHEDULE_ERROR'));
   }
+};
+
+const onMeetingOpenCard = meeting => {
+  closeMeetingDetail();
+  if (meeting?.card_id) openCardDrawer({ id: meeting.card_id });
+};
+
+const onMeetingReschedule = async meeting => {
+  const target = meeting || selectedMeetingEvent.value;
+  closeMeetingDetail();
+  await openMeetingReschedule(target);
+};
+
+const onMeetingCanceled = async () => {
+  closeMeetingDetail();
+  await refreshSelectedCard();
+  await syncCalendarIfActive();
+};
+
+// After an outcome (held/no-show) is recorded, keep the detail open but refresh
+// the card + calendar so the change is reflected without an F5 (cal12 pattern).
+const onMeetingUpdated = async () => {
+  await refreshSelectedCard();
+  await syncCalendarIfActive();
 };
 
 watch(currentPipelineId, async (newPipelineId, oldPipelineId) => {
@@ -1128,18 +1401,26 @@ onMounted(async () => {
 <template>
   <main class="flex h-full min-w-0 flex-col overflow-hidden bg-n-background">
     <header
-      class="flex flex-col gap-4 border-b border-n-weak px-8 py-6 lg:flex-row lg:items-start lg:justify-between"
+      class="flex flex-col gap-3 border-b border-n-weak px-8 py-5 lg:flex-row lg:items-start lg:justify-between"
     >
       <div class="min-w-0">
         <h1 class="mb-1 text-2xl font-medium text-n-slate-12">
-          {{ t('CRM_KANBAN.TITLE') }}
+          {{
+            isCalendarOnly ? t('SIDEBAR.CRM_CALENDAR') : t('CRM_KANBAN.TITLE')
+          }}
         </h1>
-        <p class="mb-0 max-w-3xl text-sm leading-5 text-n-slate-11">
+        <p
+          v-if="!isCalendarOnly"
+          class="mb-0 max-w-3xl text-sm leading-5 text-n-slate-11"
+        >
           {{ t('CRM_KANBAN.SUBTITLE') }}
         </p>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <div class="flex items-center rounded-lg bg-n-alpha-black2 p-1">
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
+        <div
+          v-if="!isCalendarOnly"
+          class="flex items-center rounded-lg bg-n-alpha-black2 p-1"
+        >
           <button
             v-for="mode in viewModeOptions"
             :key="mode.id"
@@ -1174,7 +1455,16 @@ onMounted(async () => {
           @click="openInboxSettingsDrawer"
         />
         <Button
-          v-if="canManagePipelines"
+          v-if="canManagePipelines && isMeetingFeatureEnabled"
+          :label="t('CRM_KANBAN.BOOKING.ADMIN.ACTION')"
+          icon="i-lucide-calendar-clock"
+          slate
+          faded
+          :disabled="isLoading"
+          @click="openBookingProfilesDrawer"
+        />
+        <Button
+          v-if="canManagePipelines && !isCalendarOnly"
           :label="t('CRM_KANBAN.ACTIONS.NEW_PIPELINE')"
           icon="i-lucide-kanban"
           slate
@@ -1183,7 +1473,7 @@ onMounted(async () => {
           @click="openCreatePipelineDrawer"
         />
         <Button
-          v-if="canManageCards"
+          v-if="canManageCards && viewMode !== 'calendar'"
           :label="t('CRM_KANBAN.ACTIONS.NEW_CARD')"
           icon="i-lucide-plus"
           :disabled="!hasPipelines || isLoading"
@@ -1192,7 +1482,10 @@ onMounted(async () => {
       </div>
     </header>
 
-    <section class="flex flex-col gap-3 border-b border-n-weak px-8 py-4">
+    <section
+      v-if="viewMode !== 'calendar'"
+      class="flex flex-col gap-3 border-b border-n-weak px-8 py-4"
+    >
       <!-- Compact toolbar: pipeline + 3 high-frequency controls inline + Filters popover -->
       <div class="flex flex-wrap items-end gap-3">
         <label class="grid gap-1">
@@ -1214,7 +1507,7 @@ onMounted(async () => {
           </select>
         </label>
 
-        <div class="min-w-[12rem] flex-1">
+        <div v-if="viewMode !== 'calendar'" class="min-w-[12rem] flex-1">
           <Input
             v-model="filters.search"
             :placeholder="t('CRM_KANBAN.FILTERS.SEARCH_PLACEHOLDER')"
@@ -1223,7 +1516,7 @@ onMounted(async () => {
           />
         </div>
 
-        <label class="grid gap-1">
+        <label v-if="viewMode !== 'calendar'" class="grid gap-1">
           <span class="text-xs font-medium text-n-slate-11">
             {{ t('CRM_KANBAN.FILTERS.PRIORITY') }}
           </span>
@@ -1243,7 +1536,7 @@ onMounted(async () => {
           </select>
         </label>
 
-        <label class="grid gap-1">
+        <label v-if="viewMode !== 'calendar'" class="grid gap-1">
           <span class="text-xs font-medium text-n-slate-11">
             {{ t('CRM_KANBAN.FILTERS.FOLLOW_UP') }}
           </span>
@@ -1263,7 +1556,11 @@ onMounted(async () => {
           </select>
         </label>
 
-        <Popover ref="filtersPopover" align="start">
+        <Popover
+          v-if="viewMode !== 'calendar'"
+          ref="filtersPopover"
+          align="start"
+        >
           <template #default>
             <span class="relative inline-flex">
               <Button
@@ -1509,7 +1806,7 @@ onMounted(async () => {
         </Popover>
 
         <Button
-          v-if="activeFilterCount"
+          v-if="activeFilterCount && viewMode !== 'calendar'"
           icon="i-lucide-x"
           slate
           ghost
@@ -1519,7 +1816,10 @@ onMounted(async () => {
       </div>
 
       <!-- Active-filter chips -->
-      <div v-if="activeFilterChips.length" class="flex flex-wrap gap-2">
+      <div
+        v-if="activeFilterChips.length && viewMode !== 'calendar'"
+        class="flex flex-wrap gap-2"
+      >
         <button
           v-for="chip in activeFilterChips"
           :key="chip.key"
@@ -1534,7 +1834,7 @@ onMounted(async () => {
     </section>
 
     <section
-      v-if="selectedPipeline"
+      v-if="selectedPipeline && viewMode !== 'calendar'"
       class="flex items-center justify-between gap-4 border-b border-n-weak px-8 py-3 text-sm"
     >
       <div class="min-w-0">
@@ -1790,7 +2090,7 @@ onMounted(async () => {
 
     <section
       v-else-if="viewMode === 'calendar'"
-      class="flex min-h-0 flex-1 flex-col px-8 py-5"
+      class="flex min-h-0 flex-1 flex-col px-8 pb-4 pt-1"
     >
       <CrmCalendar
         :events="calendarEvents"
@@ -1798,6 +2098,15 @@ onMounted(async () => {
         :error="!!loadError"
         :owners="agents"
         :current-user-id="currentUser?.id"
+        :pipeline-id="currentPipelineId"
+        :pipelines="pipelineOptions"
+        :paused="
+          showDrawer ||
+          showPipelineDrawer ||
+          showInboxSettingsDrawer ||
+          showBookingProfilesDrawer
+        "
+        @update:pipeline-id="currentPipelineId = $event"
         @range-change="onCalendarRangeChange"
         @view-change="onCalendarViewChange"
         @open-event="onCalendarOpenEvent"
@@ -1807,11 +2116,52 @@ onMounted(async () => {
       />
     </section>
 
+    <CrmCalendarQuickAdd
+      :show="showQuickAdd"
+      :date="quickAddDate"
+      :pipeline-id="currentPipelineId"
+      :default-type="quickAddType"
+      :meetings-enabled="isMeetingFeatureEnabled"
+      @create="onQuickAddCreate"
+      @more-options="onQuickAddMoreOptions"
+      @schedule-meeting="onQuickAddScheduleMeeting"
+      @close="showQuickAdd = false"
+    />
+
+    <CrmCalendarMeetingScheduler
+      v-if="isMeetingFeatureEnabled"
+      v-model:show="showMeetingScheduler"
+      :account-id="currentAccountId"
+      :card-id="meetingSchedulerCard?.id"
+      :deal-title="meetingSchedulerCard?.title"
+      :date="meetingSchedulerDate"
+      :available-inboxes="inboxes"
+      :card-contact-email="meetingSchedulerCard?.contact?.email"
+      :card-contact-name="meetingSchedulerCard?.contact?.name"
+      :meeting="meetingSchedulerMeeting"
+      @create="scheduleMeeting"
+      @updated="onMeetingRescheduled"
+      @close="closeMeetingScheduler"
+    />
+
+    <CrmMeetingDetail
+      :show="showMeetingDetail"
+      :event="selectedMeetingEvent"
+      :account-id="currentAccountId"
+      :timezone="userTimezone"
+      @close="closeMeetingDetail"
+      @open-card="onMeetingOpenCard"
+      @reschedule="onMeetingReschedule"
+      @canceled="onMeetingCanceled"
+      @updated="onMeetingUpdated"
+    />
+
     <CrmCardDrawer
       ref="cardDrawerRef"
       :show="showDrawer"
       :mode="drawerMode"
       :card="selectedCard"
+      :initial-tab="drawerInitialTab"
       :stages="stages"
       :pipeline-id="currentPipelineId"
       :agents="agents"
@@ -1824,7 +2174,9 @@ onMounted(async () => {
       :is-archiving="uiFlags.isArchivingCard"
       :is-fetching-follow-ups="uiFlags.isFetchingFollowUps"
       :is-saving-follow-up="uiFlags.isSavingFollowUp"
+      :meetings-enabled="isMeetingFeatureEnabled"
       @save="saveCard"
+      @schedule-meeting="onDrawerScheduleMeeting"
       @archive="archiveCard"
       @close-deal="closeCardDeal"
       @create-follow-up="createFollowUp"
@@ -1868,6 +2220,14 @@ onMounted(async () => {
       @save="saveInboxSetting"
       @load-pipeline-stages="loadPipelineStagesForSettings"
       @close="closeInboxSettingsDrawer"
+    />
+
+    <CrmBookingProfilesDrawer
+      :show="showBookingProfilesDrawer"
+      :inboxes="inboxes"
+      :pipelines="pipelines"
+      :agents="agents"
+      @close="closeBookingProfilesDrawer"
     />
 
     <ConfirmModal

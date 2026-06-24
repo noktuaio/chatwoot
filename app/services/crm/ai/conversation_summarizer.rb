@@ -89,7 +89,7 @@ module Crm
           instructions: instructions,
           input: user_input(context),
           schema: SUMMARY_SCHEMA,
-          reasoning_effort: 'low'
+          reasoning_effort: Config::SUMMARY_REASONING_EFFORT
         )
         JSON.parse(response[:text])['summary'].to_s.strip
       end

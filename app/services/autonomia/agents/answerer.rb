@@ -6,8 +6,7 @@ module Autonomia
     # confiança e aplica o portão. NÃO executa reassignment (Fase D). Em sandbox não há conversa real.
     #
     # SEGURANÇA: o prompt montado (scaffold + instruction) vai direto ao ResponsesClient via
-    # `instructions` e nunca entra em log. No modo Testar ele volta no AnswerResult como
-    # auditoria visual do sandbox; os fluxos de operação/suggest continuam sem expor esse dado.
+    # `instructions` e é descartado. NUNCA entra no AnswerResult nem em log.
     class Answerer
       # Recusa "não tenho/não encontrei informação" (pt/en). Determinístico, p/ rebaixar confiança (P2.1).
       # NÃO casa recusa de injeção/fora-de-escopo (texto próprio) nem negação factual firme ("não, a X não faz").
@@ -36,29 +35,54 @@ module Autonomia
         /\b[A-Z]{2,}-\d{2,}\b/                   # SKU/código tipo ST-045
       ].freeze
 
-      INTERNAL_GUIDANCE_PATTERNS = [
-        /quando\s+n[ãa]o\s+tiver\s+seguran[çc]a\s+para\s+responder/i,
-        /explique\s+brevemente\s+e\s+encaminhe/i,
-        /sem\s+repetir\s+uma\s+frase\s+fixa/i,
-        /use\s+esta\s+mensagem\s+apenas\s+como\s+refer[êe]ncia/i,
-        /orienta[çc][ãa]o\s+de\s+encaminhamento/i
-      ].freeze
-
-      def initialize(agent:, query:, history: [], images: [])
+      def initialize(agent:, query:, history: [], images: [], allow_web_search: true, trust_instruction: false,
+                     audience: :customer)
         @agent = agent
         @query = query.to_s
         @history = history
         @images = Array(images)
-        @debug_prompt = nil
+        # AUDIÊNCIA (Onda 1 v2): :customer (operate/cliente) | :attendant (copiloto) | :system (Guia).
+        # A superfície decide; repassado ao PromptBuilder (que força :system p/ agente com system_key).
+        @audience = audience
+        # Guia da Plataforma desliga o web search: deve responder SÓ da base (KB), nunca de fonte
+        # externa. Default true preserva o comportamento dos demais agentes.
+        @allow_web_search = allow_web_search
+        # MODO INSTRUÇÃO-DIRIGIDO (operate/atendimento ao cliente): devolve a resposta do modelo COMO
+        # VEIO, sem portão de confiança / handoff de sistema / sanitização / anti-improviso — a
+        # INSTRUÇÃO manda (decisão do PO). Default false preserva o Guia e o copiloto, que mantêm o portão.
+        @trust_instruction = trust_instruction
       end
 
       # -> Autonomia::Agents::AnswerResult
       def answer
         snippets = retrieve_snippets
         parsed = generate(snippets)
+        return trust_instruction_result(parsed, snippets) if @trust_instruction
         return safe_handoff if parsed.nil?
 
         build_result(parsed, snippets)
+      rescue Autonomia::Agents::Retriever::RetrievalError
+        # #14 — falha de INFRA no retrieval (banco/pgvector). Só chega aqui no fluxo GATEADO
+        # (Guia/copiloto): retrieve_snippets só re-levanta quando NÃO é trust_instruction. Handoff
+        # seguro com motivo distinto (não "sem KB" nem resposta ungrounded). Operate degrada p/ [].
+        safe_handoff('retrieval_unavailable')
+      end
+
+      # Operate: a resposta do modelo passa direto (a instrução decide tudo, inclusive escalar e o sinal
+      # de silêncio `conversation_closed_for_now`). NUNCA aplica portão/handoff de sistema. Falha de IA
+      # (parsed nil) -> reply nil -> o Responder fica em SILÊNCIO (sem fallback de sistema).
+      def trust_instruction_result(parsed, snippets)
+        return AnswerResult.new(reply: nil, confidence: 0.0, handoff: { should: false, reason: nil },
+                                used_knowledge: [], answered_from_knowledge: false, raw_reply: nil,
+                                error: 'ai_unavailable') if parsed.nil?
+
+        AnswerResult.new(
+          reply: parsed['reply'], confidence: clamp(parsed['confidence'].to_f),
+          handoff: { should: false, reason: nil },
+          used_knowledge: used_knowledge(parsed['used_snippet_ids'], snippets, parsed),
+          answered_from_knowledge: parsed['answered_from_knowledge'] == true,
+          raw_reply: parsed['reply']
+        )
       end
 
       private
@@ -69,26 +93,31 @@ module Autonomia
       # generate segue com snippets=[] e o agente responde pela instrução ou pede handoff.
       def retrieve_snippets
         Retriever.new(agent: @agent).retrieve(@query, top_k: Config::ANSWER_TOP_K)
+      rescue Autonomia::Agents::Retriever::RetrievalError
+        # #14 — falha de INFRA. Operate (instrução-dirigido): NÃO silencia o bot — degrada p/ [] e
+        # segue pela instrução. Fluxo GATEADO (Guia/copiloto): re-levanta → `answer` faz handoff seguro.
+        raise unless @trust_instruction
+        []
       rescue StandardError => e
         Rails.logger.warn("[autonomia][answerer] retrieve degraded agent=#{@agent.id} #{e.class}")
         []
       end
 
-      # Roda o LLM (síncrono, schema, gpt-5.4) e devolve o hash parseado, ou nil em qualquer
+      # Roda o LLM (síncrono, schema, gpt-5.5) e devolve o hash parseado, ou nil em qualquer
       # falha de IA (credencial vazia, erro do cliente, timeout, JSON inválido) -> handoff seguro.
       def generate(snippets)
         credential = Crm::Ai::CredentialResolver.new(account: @agent.account).resolve
         return nil if credential.blank?
 
-        pb = PromptBuilder.new(agent: @agent, query: @query, history: @history, snippets: snippets, images: @images)
-        @debug_prompt = build_debug_prompt(pb)
+        pb = PromptBuilder.new(agent: @agent, query: @query, history: @history, snippets: snippets,
+                               images: @images, audience: @audience)
         raw = Crm::Ai::ResponsesClient.new(credential: credential).create(
           model: Config::ANSWERER_MODEL,
           instructions: pb.instructions,
           input: pb.input,
           schema: PromptBuilder::ANSWER_SCHEMA,
           reasoning_effort: Config::ANSWERER_REASONING_EFFORT,
-          tools: Crm::Ai::WebSearch.tools
+          tools: @allow_web_search ? Crm::Ai::WebSearch.tools : nil
         )
         parsed = JSON.parse(raw[:text])
         parsed.is_a?(Hash) ? parsed : nil # JSON não-objeto (ex.: "[]") -> handoff seguro, nunca 500.
@@ -118,12 +147,6 @@ module Autonomia
         confidence = anchored_confidence(self_conf, parsed, snippets, used, reply_present, grounded_by_instruction)
         # P2.2(b): sem fonte real e sem âncora, remover a frase de grounding ("nosso material") da reply.
         reply = sanitize_grounding_phrase(parsed['reply'], used, grounded_by_instruction)
-        if internal_guidance_reply?(reply)
-          reply = nil
-          reply_present = false
-          answered = false
-          confidence = 0.0
-        end
 
         if handoff?(parsed, confidence, answered, snippets, reply_present, grounded_by_instruction)
           handoff_result(parsed, confidence, used)
@@ -132,7 +155,7 @@ module Autonomia
             reply: reply, confidence: confidence,
             handoff: { should: false, reason: nil },
             used_knowledge: used, answered_from_knowledge: answered,
-            raw_reply: parsed['reply'], debug_prompt: @debug_prompt
+            raw_reply: parsed['reply']
           )
         end
       end
@@ -235,32 +258,12 @@ module Autonomia
       # Encaminhou ao humano, logo nenhuma resposta foi entregue a partir da base.
       def handoff_result(parsed, confidence, used)
         AnswerResult.new(
-          reply: handoff_reply(parsed),
+          reply: @agent.fallback_message.presence,
           confidence: confidence,
           handoff: { should: true, reason: parsed['handoff_reason'].presence || 'low_confidence' },
           used_knowledge: used, answered_from_knowledge: false,
-          raw_reply: parsed['reply'], # melhor esforço preservado p/ o Copilot
-          debug_prompt: @debug_prompt
+          raw_reply: parsed['reply'] # melhor esforço preservado p/ o Copilot
         )
-      end
-
-      def handoff_reply(parsed)
-        reply = parsed['reply'].to_s.strip
-        return if reply.blank?
-        return if internal_guidance_reply?(reply)
-
-        # Quando o próprio modelo pediu handoff, ou quando a resposta é uma recusa de "não sei",
-        # a frase gerada é segura e tende a variar por contexto. Nos demais gates determinísticos
-        # (ex.: resposta específica demais sem base forte), não entregamos a resposta bloqueada.
-        return sanitize_grounding_phrase(reply, [], false) if parsed['should_handoff'] == true || refusal_no_info?(parsed)
-      end
-
-      def internal_guidance_reply?(reply)
-        text = reply.to_s.strip
-        return false if text.blank?
-
-        fallback = @agent.fallback_message.to_s.strip
-        text == fallback || INTERNAL_GUIDANCE_PATTERNS.any? { |re| text.match?(re) }
       end
 
       # used_snippet_ids ∩ ids dos snippets -> { id, content, source: label } (conteúdo do usuário, ok expor).
@@ -297,27 +300,17 @@ module Autonomia
         value.to_f.clamp(0.0, 1.0)
       end
 
-      # Handoff seguro quando a IA está indisponível: nunca crash, nunca eco do prompt.
-      def safe_handoff
+      # Handoff seguro quando a IA está indisponível OU o retrieval falhou por infra (#14): nunca
+      # crash, nunca eco do prompt. `reason` vira o código curto do handoff/erro ('ai_unavailable'
+      # default; 'retrieval_unavailable' quando o banco/pgvector falhou).
+      def safe_handoff(reason = 'ai_unavailable')
         AnswerResult.new(
-          reply: nil,
+          reply: @agent.fallback_message.presence,
           confidence: 0.0,
-          handoff: { should: true, reason: 'ai_unavailable' },
+          handoff: { should: true, reason: reason },
           used_knowledge: [], answered_from_knowledge: false,
-          raw_reply: nil, error: 'ai_unavailable',
-          debug_prompt: @debug_prompt
+          raw_reply: nil, error: reason
         )
-      end
-
-      def build_debug_prompt(prompt_builder)
-        {
-          model: Config::ANSWERER_MODEL,
-          reasoning_effort: Config::ANSWERER_REASONING_EFFORT,
-          instructions: prompt_builder.instructions,
-          input: prompt_builder.input,
-          tools: Crm::Ai::WebSearch.tools,
-          schema: PromptBuilder::ANSWER_SCHEMA
-        }
       end
     end
   end

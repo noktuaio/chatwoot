@@ -286,13 +286,22 @@ class Conversation < ApplicationRecord
 
     return handle_campaign_status if campaign.present?
 
-    # TODO: make this an inbox config instead of assuming bot conversations should start as pending
-    self.status = :pending if inbox.active_bot?
+    # PO: conversas nascem `open` nas caixas com bot WEBHOOK (n8n e o operador Autonom.ia nativo, que
+    # usa um AgentBot-espelho webhook). O disparo do webhook é independente de status, e o operate
+    # nativo atende conversa SEM responsável em qualquer status — então não força mais `pending` nessas
+    # caixas. Bots NÃO-webhook (ex.: Captain/Dialogflow, que exigem pending) seguem nascendo pending.
+    self.status = :pending if inbox.active_bot? && !webhook_bot_inbox?
   end
 
   def handle_campaign_status
-    # If campaign has no sender (bot-initiated) and inbox has active bot, let bot handle it
-    self.status = :pending if campaign.sender_id.nil? && inbox.active_bot?
+    # If campaign has no sender (bot-initiated) and inbox has a NON-webhook active bot, let it handle pending.
+    self.status = :pending if campaign.sender_id.nil? && inbox.active_bot? && !webhook_bot_inbox?
+  end
+
+  # A caixa tem um AgentBot WEBHOOK ATIVO? (n8n / espelho do operador Autonom.ia). Só essas nascem open.
+  # Exige o vínculo AgentBotInbox ATIVO (não só um agent_bot stale) — robustez sugerida na revisão.
+  def webhook_bot_inbox?
+    inbox.agent_bot_inbox&.active? && inbox.agent_bot&.webhook? || false
   end
 
   def notify_conversation_creation

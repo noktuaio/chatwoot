@@ -12,6 +12,7 @@ import { useTrack } from 'dashboard/composables';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import CrmKanbanAPI from 'dashboard/api/crmKanban';
 import CrmConversationStageBadge from './CrmConversationStageBadge.vue';
+import CrmCopilotPanel from 'dashboard/routes/dashboard/crm/components/CrmCopilotPanel.vue';
 import { useCrmPermissions } from 'dashboard/routes/dashboard/crm/composables/useCrmPermissions';
 
 export default {
@@ -21,6 +22,7 @@ export default {
     ConversationLabels,
     NextButton,
     CrmConversationStageBadge,
+    CrmCopilotPanel,
   },
   props: {
     conversationId: {
@@ -392,6 +394,10 @@ export default {
         @select="onClickAssignPriority"
       />
     </div>
+    <CrmCopilotPanel
+      v-if="crmKanbanEnabled && currentChat && currentChat.id"
+      :conversation-id="currentChat.id"
+    />
     <section
       v-if="crmKanbanEnabled"
       class="my-3 rounded-lg border border-n-weak bg-n-alpha-black2 p-3"

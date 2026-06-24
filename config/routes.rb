@@ -42,6 +42,14 @@ Rails.application.routes.draw do
       resources :responses, only: [:show]
     end
     resource :slack_uploads, only: [:show]
+
+    # Public, unauthenticated Calendly-style booking page (CRM S6). The opaque
+    # slug is the only identifier; the Vue app fetches data over the
+    # Public::Api::V1 JSON endpoints below. The /confirm variant renders the same
+    # page; the Vue app detects the /confirm path + token query and confirms the
+    # email-verified booking.
+    get '/book/:slug', to: 'public_booking/pages#show', as: :public_booking_page
+    get '/book/:slug/confirm', to: 'public_booking/pages#show', as: :public_booking_confirm_page
   end
 
   get '/health', to: 'health#show'
@@ -197,6 +205,17 @@ Rails.application.routes.draw do
                 post :reschedule
               end
             end
+            resources :meetings, only: [:index, :create, :show, :update, :destroy] do
+              member do
+                post :sync
+                post :record_outcome
+                post :summarize
+              end
+              collection do
+                post :suggest_times
+                post :draft_invite
+              end
+            end
             resources :service_schedules, only: [:index, :create, :update, :destroy]
             get 'conversations/card_stages', to: 'cards#card_stages'
             get 'conversations/:conversation_id/card', to: 'cards#by_conversation'
@@ -209,8 +228,10 @@ Rails.application.routes.draw do
               get :throughput, action: :throughput, as: :crm_report_throughput
               get :follow_ups, action: :follow_ups, as: :crm_report_follow_ups
               get :workload, action: :workload, as: :crm_report_workload
+              get :meetings, action: :meetings, as: :crm_report_meetings
             end
             get 'calendar/events', to: 'calendar#events'
+            get 'calendar/available_slots', to: 'calendar#available_slots'
             get :inbox_settings, to: 'inbox_settings#index'
             patch 'inbox_settings/:inbox_id', to: 'inbox_settings#update'
             resources :integration_tokens, only: [:index, :create, :destroy] do
@@ -219,6 +240,13 @@ Rails.application.routes.draw do
               end
             end
             resources :saved_views, only: [:index, :create, :update, :destroy]
+            resources :booking_profiles, only: [:index, :create, :update, :destroy] do
+              member do
+                get :agent_links
+                post :agent_links, action: :upsert_agent_link
+                delete 'agent_links/:link_id', action: :destroy_agent_link
+              end
+            end
           end
           namespace :autonomia do
             resources :agents, only: [:index, :show, :create, :update, :destroy] do
@@ -241,6 +269,13 @@ Rails.application.routes.draw do
             # MULTIMODAL (Construtor/Ajustar): upload de imagem do builder (image-only, retorna signed_id;
             # não cria conhecimento). O turno referencia o signed_id; o Builder a lê inline no job.
             post 'builder_images', to: 'agents/builder_images#create'
+            # Agent-facing copilot for a live conversation (V1, gated by the kanban key).
+            post 'conversations/:conversation_id/copilot', to: 'conversation_copilot#create'
+            # Guia da Plataforma — onboarding/suporte read-only, global/auto-on por conta elegível.
+            post 'guide/chat', to: 'guide#chat'
+            # V2.3 — "Copiloto Autonom.ia" chat widget: list selectable internal/both agents + chat.
+            get  'conversations/:conversation_id/copilot/agents', to: 'conversation_copilot#agents'
+            post 'conversations/:conversation_id/copilot/chat',   to: 'conversation_copilot#chat'
           end
           namespace :email_campaigns do
             resources :sender_identities, only: [:index, :create, :show, :destroy] do
@@ -749,6 +784,14 @@ Rails.application.routes.draw do
         end
 
         resources :csat_survey, only: [:show, :update]
+
+        # Public booking (CRM S6) — unauthenticated. Authorized purely by the
+        # opaque slug. slots=availability (declared first, more specific),
+        # show=profile, create=book.
+        get 'booking/:slug/slots', to: 'booking#slots'
+        post 'booking/:slug/confirm', to: 'booking#confirm'
+        get 'booking/:slug', to: 'booking#show'
+        post 'booking/:slug', to: 'booking#create'
       end
     end
   end
@@ -779,6 +822,9 @@ Rails.application.routes.draw do
   mount Facebook::Messenger::Server, at: 'bot'
   get 'webhooks/twitter', to: 'api/v1/webhooks#twitter_crc'
   post 'webhooks/twitter', to: 'api/v1/webhooks#twitter_events'
+  # CRM 2-way calendar sync (S7-B) push receivers.
+  post 'webhooks/crm_calendar/google', to: 'webhooks/crm_calendar#google'
+  post 'webhooks/crm_calendar/microsoft', to: 'webhooks/crm_calendar#microsoft'
   post 'webhooks/line/:line_channel_id', to: 'webhooks/line#process_payload'
   post 'webhooks/telegram/:bot_token', to: 'webhooks/telegram#process_payload'
   post 'webhooks/sms/:phone_number', to: 'webhooks/sms#process_payload'

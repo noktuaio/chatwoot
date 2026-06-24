@@ -103,6 +103,7 @@ export const state = {
   savedViews: [],
   calendarView: 'month', // 'month'|'week'|'day'|'agenda'
   calendarRange: { from: null, to: null },
+  calendarIncludeCompleted: false, // "Histórico": show done/canceled follow-ups
   calendarOverlays: { reminders: true, whatsapp: true, closeDates: true },
   calendarOwnerScope: 'all', // 'mine'|'all'
   uiFlags: {
@@ -194,6 +195,9 @@ export const getters = {
   },
   getCalendarRange($state) {
     return $state.calendarRange;
+  },
+  getCalendarIncludeCompleted($state) {
+    return $state.calendarIncludeCompleted;
   },
   getCalendarOverlays($state) {
     return $state.calendarOverlays;
@@ -632,6 +636,36 @@ export const actions = {
     }
   },
 
+  // Public booking profiles (S6) — admin only.
+  fetchBookingProfiles: async () => {
+    const response = await CrmKanbanAPI.getBookingProfiles();
+    return response.data.payload || [];
+  },
+
+  createBookingProfile: async (_store, payload) => {
+    const response = await CrmKanbanAPI.createBookingProfile(payload);
+    return response.data.payload;
+  },
+
+  updateBookingProfile: async (_store, { id, ...payload }) => {
+    const response = await CrmKanbanAPI.updateBookingProfile(id, payload);
+    return response.data.payload;
+  },
+
+  deleteBookingProfile: async (_store, id) => {
+    await CrmKanbanAPI.deleteBookingProfile(id);
+  },
+
+  fetchBookingAgentLinks: async (_store, id) => {
+    const response = await CrmKanbanAPI.getBookingAgentLinks(id);
+    return response.data.payload || [];
+  },
+
+  upsertBookingAgentLink: async (_store, { id, ...payload }) => {
+    const response = await CrmKanbanAPI.upsertBookingAgentLink(id, payload);
+    return response.data.payload;
+  },
+
   fetchPipelineStages: async ({ commit }, pipelineId) => {
     commit(types.SET_CRM_KANBAN_UI_FLAG, { isFetchingPipelineStages: true });
     try {
@@ -935,6 +969,10 @@ export const actions = {
     commit(types.SET_CRM_CALENDAR_RANGE, range || { from: null, to: null });
   },
 
+  setCalendarIncludeCompleted: ({ commit }, value) => {
+    commit(types.SET_CRM_CALENDAR_INCLUDE_COMPLETED, value === true);
+  },
+
   setCalendarOverlays: ({ commit }, overlays) => {
     commit(types.SET_CRM_CALENDAR_OVERLAYS, overlays);
   },
@@ -1167,6 +1205,9 @@ export const mutations = {
   },
   [types.SET_CRM_CALENDAR_RANGE]($state, range) {
     $state.calendarRange = range || { from: null, to: null };
+  },
+  [types.SET_CRM_CALENDAR_INCLUDE_COMPLETED]($state, value) {
+    $state.calendarIncludeCompleted = value === true;
   },
   [types.SET_CRM_CALENDAR_OVERLAYS]($state, overlays) {
     $state.calendarOverlays = { ...$state.calendarOverlays, ...overlays };

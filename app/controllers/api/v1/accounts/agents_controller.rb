@@ -84,9 +84,9 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
   end
 
   def agents
-    # Source from Account#agents (role: :agent + integration: false) so the hidden
-    # AccountUsers backing Crm::IntegrationToken never leak into the agent list,
-    # @mentions picker, dropdowns, or seat/usage counts (B-T4).
+    # Source from Account#agents (integration: false) = roster humano (agentes + administradores),
+    # excluindo só os AccountUsers de integração (Crm::IntegrationToken), que nunca devem vazar para a
+    # lista, picker de @menções, dropdowns ou contagem de assento (B-T4). Admins SÃO membros do roster.
     @agents ||= Current.account.agents.order_by_full_name.includes(:account_users, { avatar_attachment: [:blob] })
   end
 

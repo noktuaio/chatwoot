@@ -1,7 +1,9 @@
 json.id agent.id
 json.name agent.name
-json.avatar_url agent.avatar_url
 json.agent_type agent.agent_type
+# V2.1 — onde o agente atua (external/internal/both) + se declarou ter base de conhecimento.
+json.actuation agent.actuation
+json.with_knowledge agent.with_knowledge != false
 json.status agent.status
 json.mode agent.mode
 json.human_card agent.human_card

@@ -29,6 +29,12 @@ const aiVsHuman = ref(null);
 const throughput = ref(null);
 const followUps = ref(null);
 const workload = ref(null);
+const meetings = ref(null);
+
+// Install-level flag (exposed in window.globalConfig, like CRM_KANBAN_ENABLED).
+const isMeetingsEnabled = computed(
+  () => window.globalConfig?.CRM_CALENDAR_MEETINGS_ENABLED === 'true'
+);
 
 const isLoading = ref(true);
 const loadError = ref(false);
@@ -151,6 +157,7 @@ const fetchReports = async () => {
       throughputRes,
       followUpsRes,
       workloadRes,
+      meetingsRes,
     ] = await Promise.all([
       CrmKanbanAPI.getReportSummary(params),
       CrmKanbanAPI.getReportFunnel(params),
@@ -158,6 +165,9 @@ const fetchReports = async () => {
       CrmKanbanAPI.getReportThroughput(params),
       CrmKanbanAPI.getReportFollowUps(params),
       CrmKanbanAPI.getReportWorkload(params),
+      isMeetingsEnabled.value
+        ? CrmKanbanAPI.getReportMeetings(params)
+        : Promise.resolve(null),
     ]);
     summary.value = summaryRes.data.payload;
     funnel.value = funnelRes.data.payload;
@@ -165,6 +175,7 @@ const fetchReports = async () => {
     throughput.value = throughputRes.data.payload;
     followUps.value = followUpsRes.data.payload;
     workload.value = workloadRes.data.payload;
+    meetings.value = meetingsRes?.data?.payload || null;
   } catch (error) {
     loadError.value = true;
   } finally {
@@ -381,6 +392,36 @@ onMounted(async () => {
           </p>
         </div>
       </div>
+
+      <!-- Meetings (no-show) — gated by the meetings install flag -->
+      <section
+        v-if="isMeetingsEnabled"
+        class="p-5 border rounded-xl border-n-weak bg-n-solid-1"
+      >
+        <h3 class="mb-4 text-sm font-medium text-n-slate-12">
+          {{ t('CRM_KANBAN.DASHBOARD.MEETINGS.TITLE') }}
+        </h3>
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div class="p-4 border rounded-xl border-n-weak bg-n-solid-1">
+            <ReportMetricCard
+              :label="t('CRM_KANBAN.DASHBOARD.MEETINGS.HELD')"
+              :value="formatNumber(meetings?.held)"
+            />
+          </div>
+          <div class="p-4 border rounded-xl border-n-weak bg-n-solid-1">
+            <ReportMetricCard
+              :label="t('CRM_KANBAN.DASHBOARD.MEETINGS.NO_SHOW')"
+              :value="formatNumber(meetings?.no_show)"
+            />
+          </div>
+          <div class="p-4 border rounded-xl border-n-weak bg-n-solid-1">
+            <ReportMetricCard
+              :label="t('CRM_KANBAN.DASHBOARD.MEETINGS.NO_SHOW_RATE')"
+              :value="formatPercent(meetings?.no_show_rate)"
+            />
+          </div>
+        </div>
+      </section>
 
       <!-- Funnel -->
       <section class="p-5 border rounded-xl border-n-weak bg-n-solid-1">

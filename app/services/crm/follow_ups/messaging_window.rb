@@ -24,6 +24,10 @@ class Crm::FollowUps::MessagingWindow
 
   def can_send_session_message?
     return false unless whatsapp_capable?
+    # WAHA/Evolution (WhatsApp não-oficial) NÃO tem a janela de 24h da Meta nem templates aprovados:
+    # pode mandar mensagem livre a qualquer momento. Então a IA SEMPRE gera o texto (free_form) — vale
+    # para o auto-followup E para o callback. Os canais oficiais seguem a regra da janela abaixo.
+    return true if waha_unrestricted?
 
     window = effective_window
     return true if window.blank?
@@ -32,6 +36,15 @@ class Crm::FollowUps::MessagingWindow
     return false if last_incoming.blank?
 
     @at < last_incoming.created_at + window
+  end
+
+  # WhatsApp não-oficial via WAHA (Channel::Api provider 'waha'): sem janela/template.
+  def waha_unrestricted?
+    channel = @conversation.inbox&.channel
+    return false unless channel.is_a?(Channel::Api)
+
+    (channel.respond_to?(:waha_provider?) && channel.waha_provider?) ||
+      channel.additional_attributes.to_h['whatsapp_api_provider'] == 'waha'
   end
 
   def requires_template?

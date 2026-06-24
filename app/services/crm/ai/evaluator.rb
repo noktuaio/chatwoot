@@ -19,6 +19,7 @@ module Crm
         classification = classify_stage
         result = apply_classification(classification)
         run_handoff(classification)
+        run_callback(classification)
         result
       rescue ResponsesClient::Error => e
         Result.new(status: :failed, error: e.message)
@@ -51,7 +52,7 @@ module Crm
         client = ResponsesClient.new(credential: credential_resolver.resolve)
         context = ContextBuilder.new(card: @card).perform
         model = auto_move_allowed? ? Config::MODEL_AUTO_MOVE : Config::MODEL_CLASSIFY
-        effort = auto_move_allowed? ? 'medium' : 'low'
+        effort = Config::CLASSIFY_REASONING_EFFORT
 
         StageClassifier.new(
           card: @card,
@@ -85,6 +86,18 @@ module Crm
         HandoffExecutor.new(card: @card, handoff: classification[:handoff], trigger: @trigger).perform
       rescue StandardError => e
         Rails.logger.error("[CRM AI handoff] #{e.class}: #{e.message}")
+      end
+
+      # Cria/atualiza um lembrete quando a IA detectou um pedido de retorno com data concreta.
+      # Best-effort: o CallbackScheduler já engole erros, mas guardamos aqui também por simetria —
+      # nunca deixa a detecção de retorno quebrar a avaliação do card.
+      def run_callback(classification)
+        return unless Config.callback_detection_enabled?
+        return unless Config.pipeline_callback_enabled?(@card.pipeline)
+
+        Crm::FollowUps::CallbackScheduler.new(card: @card, callback: classification[:callback_request]).perform
+      rescue StandardError => e
+        Rails.logger.error("[CRM AI callback] #{e.class}: #{e.message}")
       end
 
       def apply_classification(classification)

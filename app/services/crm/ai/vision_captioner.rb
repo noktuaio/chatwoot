@@ -28,7 +28,7 @@ module Crm
               ]
             }
           ],
-          reasoning_effort: 'low'
+          reasoning_effort: Config::VISION_REASONING_EFFORT
         )
         response[:text].to_s.strip
       end

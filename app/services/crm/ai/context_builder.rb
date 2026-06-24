@@ -14,11 +14,25 @@ module Crm
           current_stage: {
             id: @card.stage_id,
             name: @card.stage&.name
-          }
+          },
+          temporal: temporal_context
         }
       end
 
       private
+
+      # Âncora temporal para a IA resolver datas relativas ("amanhã", "terça que vem") em data real.
+      # Fuso resolvido como nos follow-ups (contato → account.reporting_timezone → UTC).
+      def temporal_context
+        tz = Config.resolved_timezone(account: @card.account, contact: @card.try(:contact))
+        now_local = Time.current.in_time_zone(tz)
+        {
+          timezone: tz,
+          now_local: now_local.strftime('%Y-%m-%dT%H:%M'),
+          weekday: now_local.strftime('%A'),
+          default_hour: Config::CALLBACK_DEFAULT_HOUR
+        }
+      end
 
       def ai_metadata
         (@card.metadata || {}).fetch('ai', {}).to_h

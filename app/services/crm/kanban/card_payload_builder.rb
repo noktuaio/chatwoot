@@ -129,7 +129,6 @@ class Crm::Kanban::CardPayloadBuilder
   # Kanban and List views agree. Gated on the account 'sla' feature.
   def applied_sla_payload(conversation)
     return unless @card.account.feature_enabled?('sla')
-    return unless conversation.class.reflect_on_association(:applied_sla)
 
     conversation.applied_sla&.push_event_data
   end

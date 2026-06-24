@@ -43,6 +43,15 @@ export const routes = [
     component: CrmKanbanPage,
   },
   {
+    // Calendar-only sub-page: reuses CrmKanbanPage but opens straight on the
+    // calendar with the kanban/list/calendar switch + "New pipeline" hidden.
+    path: frontendURL('accounts/:accountId/crm/calendar'),
+    name: 'crm_calendar_index',
+    meta: { ...meta, calendarOnly: true },
+    beforeEnter: ensureCrmEnabled,
+    component: CrmKanbanPage,
+  },
+  {
     path: frontendURL('accounts/:accountId/crm/dashboard'),
     name: 'crm_dashboard_index',
     meta: reportsMeta,

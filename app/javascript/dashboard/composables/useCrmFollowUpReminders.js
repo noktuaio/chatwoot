@@ -30,7 +30,10 @@ export function useCrmFollowUpReminders() {
   };
 
   const dequeueReminder = () => {
-    queue.value.shift();
+    const removed = queue.value.shift();
+    if (removed?.id !== undefined) {
+      seenIds.delete(removed.id);
+    }
   };
 
   const fetchMissedReminders = async () => {

@@ -6,5 +6,6 @@ module Microsoft
   module Scopes
     IMAP = 'openid profile email offline_access https://outlook.office.com/IMAP.AccessAsUser.All'.freeze
     GRAPH = 'https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/Mail.ReadWrite offline_access'.freeze
+    GRAPH_WITH_CALENDAR = "#{GRAPH} https://graph.microsoft.com/Calendars.ReadWrite".freeze
   end
 end

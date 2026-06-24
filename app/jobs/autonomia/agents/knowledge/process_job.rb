@@ -23,6 +23,10 @@ module Autonomia
           # Outra ingestão (re-sync) venceu o token enquanto extraíamos: este job vira no-op e NÃO
           # toca o conhecimento (que já pertence à geração nova). Nada a marcar.
           nil
+        rescue Ingestor::EmptyExtraction => e
+          # Re-sync extraiu vazio: se a fonte JÁ tinha conhecimento bom, PRESERVA a geração anterior
+          # (não apaga, restaura o estado/recuperabilidade); só marca failed se nunca houve entries.
+          handle_empty_extraction(source, token, e.message)
         rescue Processors::Base::UnsupportedFormat => e
           mark_failed(source, token, "unsupported_format: #{e.message}")
         rescue Processors::Base::ExtractionError,
@@ -43,6 +47,20 @@ module Autonomia
           return if source.blank?
 
           source.mark_failed!(token, message)
+        end
+
+        def handle_empty_extraction(source, token, message)
+          return if source.blank?
+
+          if Autonomia::Agents::KnowledgeEntry.where(source_id: source.id).exists?
+            Rails.logger.warn(
+              "[Autonomia::Agents::Knowledge::ProcessJob] empty re-ingest source=#{source.id} " \
+              "(#{message}) — preserving previous generation, KB kept retrievable"
+            )
+            source.restore_previous_generation!(token)
+          else
+            mark_failed(source, token, message)
+          end
         end
       end
     end

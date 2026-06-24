@@ -32,6 +32,15 @@ class Api::V1::Accounts::Crm::ReportsController < Api::V1::Accounts::Crm::BaseCo
     render_report(::Crm::Reports::Workload)
   end
 
+  def meetings
+    unless Crm::Config.calendar_meetings_enabled?(Current.account)
+      payload = ::Crm::Reports::Meetings.new(account: Current.account, params: report_params).empty_payload
+      return render json: { payload: payload }
+    end
+
+    render_report(::Crm::Reports::Meetings)
+  end
+
   private
 
   def authorize_reports

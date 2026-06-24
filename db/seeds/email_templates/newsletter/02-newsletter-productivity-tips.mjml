@@ -42,7 +42,7 @@ Design Notes:
         </mj-text>
       </mj-column>
     </mj-section>
-
+    
     <!-- Productivity Tip/Strategy Section -->
     <mj-section background-color="#FFFFFF" padding="25px 0">
       <mj-column width="100%" background-color="transparent" padding="20px 15px">
@@ -66,7 +66,7 @@ Design Notes:
         </mj-text>
       </mj-column>
     </mj-section>
-
+    
     <!-- Success Story / Testimonial Section -->
     <mj-section background-color="#EDEEF7" padding="25px 0">
       <mj-column width="35%" background-color="transparent" padding="20px 15px">
@@ -83,7 +83,7 @@ Design Notes:
         </mj-text>
       </mj-column>
     </mj-section>
-
+    
     <!-- Tools & Resources Section -->
     <mj-section background-color="#F5EEFD" padding="30px 0">
       <mj-column width="100%" background-color="transparent" padding="20px 15px">
@@ -105,7 +105,7 @@ Design Notes:
         </mj-button>
       </mj-column>
     </mj-section>
-
+    
     <!-- CTA & Share Section -->
     <mj-section background-color="#FFFFFF" padding="30px 0">
       <mj-column width="100%" background-color="transparent" padding="20px 15px">
@@ -118,7 +118,7 @@ Design Notes:
         </mj-text>
       </mj-column>
     </mj-section>
-
+    
     <!-- Footer & Social Media -->
     <mj-section background-color="#513484" padding="20px 0">
       <mj-column width="100%" background-color="transparent" padding="20px 15px">

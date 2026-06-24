@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
@@ -12,7 +12,6 @@ import PanelKnowledge from '../components/panel/PanelKnowledge.vue';
 import PanelChannels from '../components/panel/PanelChannels.vue';
 import PanelPerformance from '../components/panel/PanelPerformance.vue';
 import PanelTune from '../components/panel/PanelTune.vue';
-import PanelPublish from '../components/panel/PanelPublish.vue';
 
 const props = defineProps({
   agentId: {
@@ -46,17 +45,7 @@ const TAB_ICONS = {
   knowledge: 'i-lucide-book-open',
   channels: 'i-lucide-radio',
   performance: 'i-lucide-bar-chart-3',
-  publish: 'i-lucide-rocket',
   tune: 'i-lucide-sliders-horizontal',
-};
-
-const TAB_LABELS = {
-  test: () => t('AGENTS.PANEL.TABS.TEST'),
-  knowledge: () => t('AGENTS.PANEL.TABS.KNOWLEDGE'),
-  channels: () => t('AGENTS.PANEL.TABS.CHANNELS'),
-  performance: () => t('AGENTS.PANEL.TABS.PERFORMANCE'),
-  publish: () => t('AGENTS.PANEL.TABS.PUBLISH'),
-  tune: () => t('AGENTS.PANEL.TABS.TUNE'),
 };
 
 // The first four sit in the segmented group; "Ajustar" (tune) is pulled out to
@@ -65,14 +54,22 @@ const MAIN_TAB_KEYS = ['test', 'knowledge', 'channels', 'performance'];
 
 const buildTab = key => ({
   key,
-  label: TAB_LABELS[key]?.() || key,
+  label: t(`AGENTS.PANEL.TABS.${key.toUpperCase()}`),
   icon: TAB_ICONS[key],
 });
 
-const mainTabs = computed(() => MAIN_TAB_KEYS.map(buildTab));
-const publishTab = computed(() => buildTab('publish'));
+// V2.2 — an internal agent has no channels by design, so the "Canais" tab is
+// hidden for it. external/both keep it. `both` is still connectable.
+const isInternal = computed(() => agent.value?.actuation === 'internal');
+
+const visibleTabKeys = computed(() =>
+  isInternal.value
+    ? MAIN_TAB_KEYS.filter(key => key !== 'channels')
+    : MAIN_TAB_KEYS
+);
+
+const mainTabs = computed(() => visibleTabKeys.value.map(buildTab));
 const tuneTab = computed(() => buildTab('tune'));
-const isDraft = computed(() => agent.value?.status === 'draft');
 
 // Active/inactive pill styling. Active reads as an elevated chip on the subtle
 // segmented background; inactive is muted with a hover lift. Tokens only.
@@ -89,8 +86,6 @@ const activeComponent = computed(() => {
       return PanelChannels;
     case 'performance':
       return PanelPerformance;
-    case 'publish':
-      return isDraft.value ? PanelPublish : PanelTest;
     case 'tune':
       return PanelTune;
     default:
@@ -100,9 +95,7 @@ const activeComponent = computed(() => {
 
 const statusLabel = computed(() => {
   const status = agent.value?.status || 'draft';
-  if (status === 'active') return t('AGENTS.HUB.STATUS.ACTIVE');
-  if (status === 'paused') return t('AGENTS.HUB.STATUS.PAUSED');
-  return t('AGENTS.HUB.STATUS.DRAFT');
+  return t(`AGENTS.HUB.STATUS.${status.toUpperCase()}`);
 });
 
 const statusClass = computed(() => {
@@ -123,6 +116,22 @@ const onTabChanged = key => {
     params: { agentId: props.agentId, tab: key },
   });
 };
+
+// Deep-linking straight to /channels for an internal agent (hidden tab) would
+// render PanelChannels with no tab to return to. Bounce it back to the default
+// tab once the agent record is known.
+watch(
+  [isInternal, () => props.tab],
+  ([internal, tab]) => {
+    if (internal && tab === 'channels') {
+      router.replace({
+        name: 'autonomia_agent_panel',
+        params: { agentId: props.agentId, tab: 'test' },
+      });
+    }
+  },
+  { immediate: true }
+);
 
 onMounted(() => {
   store.dispatch('autonomiaAgents/show', Number(props.agentId));
@@ -169,18 +178,6 @@ onMounted(() => {
           {{ item.label }}
         </button>
         <span class="w-px h-5 mx-1 bg-n-weak" aria-hidden="true" />
-        <button
-          v-if="isDraft"
-          type="button"
-          role="tab"
-          :aria-selected="tab === publishTab.key"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
-          :class="pillClass(publishTab.key)"
-          @click="onTabChanged(publishTab.key)"
-        >
-          <i :class="publishTab.icon" class="size-4" />
-          {{ publishTab.label }}
-        </button>
         <button
           type="button"
           role="tab"

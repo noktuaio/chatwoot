@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core';
 import {
@@ -55,6 +55,23 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  // Funil ativo — usado pelo atalho do toggle "Lembrete de retorno por IA" no header.
+  pipelineId: {
+    type: [String, Number],
+    default: null,
+  },
+  // Suspende os atalhos de teclado enquanto um drawer/modal está aberto sobre o
+  // calendário (evita navegar o mês ou abrir "novo" por trás do drawer).
+  paused: {
+    type: Boolean,
+    default: false,
+  },
+  // Funis disponíveis ({ value, label }) — o seletor mora no header do calendário
+  // (a faixa de filtros/funil do board fica oculta no modo Calendário).
+  pipelines: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 // Emit names are camelCase (Vue convention); parents listen via kebab-case
@@ -66,6 +83,7 @@ const emit = defineEmits([
   'quickAdd',
   'reschedule',
   'retry',
+  'update:pipelineId',
 ]);
 
 const { t } = useI18n();
@@ -75,8 +93,17 @@ const { t } = useI18n();
 /* -------------------------------------------------------------------------- */
 const view = ref('month');
 const cursorDate = ref(new Date());
-const overlays = ref({ reminders: true, whatsapp: true, closeDates: true });
+const overlays = ref({
+  reminders: true,
+  whatsapp: true,
+  closeDates: true,
+  meetings: true,
+  external: true,
+});
 const ownerScope = ref('all');
+// "Histórico": completed/canceled follow-ups are hidden by default (they crowd
+// the grid); toggling this refetches with include_completed=true.
+const showCompleted = ref(false);
 
 /* Below md, force agenda (the mobile-friendly view) regardless of selection. */
 const breakpoints = useBreakpoints(breakpointsTailwind);
@@ -105,11 +132,16 @@ const emitRangeChange = () => {
   emit('rangeChange', {
     from: from.toISOString(),
     to: to.toISOString(),
+    includeCompleted: showCompleted.value,
   });
 };
 
-// Emit on mount and whenever the visible window changes.
-watch(visibleRange, () => emitRangeChange(), { immediate: true, deep: false });
+// Emit on mount and whenever the visible window OR the history toggle changes
+// (both drive the parent refetch).
+watch([visibleRange, showCompleted], () => emitRangeChange(), {
+  immediate: true,
+  deep: false,
+});
 
 /* -------------------------------------------------------------------------- */
 /* Event pipeline: overlay toggles + owner scope (client-side)                */
@@ -175,6 +207,10 @@ const onUpdateOwnerScope = next => {
   ownerScope.value = next;
 };
 
+const onUpdateShowCompleted = next => {
+  showCompleted.value = next === true;
+};
+
 /* -------------------------------------------------------------------------- */
 /* Grid actions                                                               */
 /* -------------------------------------------------------------------------- */
@@ -210,16 +246,59 @@ watch(view, next => {
   if (next === 'week')
     cursorDate.value = startOfWeek(cursorDate.value, { weekStartsOn: 0 });
 });
+
+/* -------------------------------------------------------------------------- */
+/* Keyboard shortcuts — the industry-canonical map (Google Calendar):         */
+/* T today · C new · ←/→ prev/next period. Ignored while typing in a field.   */
+/* -------------------------------------------------------------------------- */
+const isTypingTarget = el =>
+  !!el &&
+  (el.tagName === 'INPUT' ||
+    el.tagName === 'TEXTAREA' ||
+    el.tagName === 'SELECT' ||
+    el.isContentEditable);
+
+const onKeydown = e => {
+  if (props.paused) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (isTypingTarget(e.target)) return;
+  switch (e.key) {
+    case 't':
+    case 'T':
+      goToday();
+      break;
+    case 'c':
+    case 'C':
+      onQuickAddNew();
+      break;
+    case 'ArrowLeft':
+      goPrev();
+      break;
+    case 'ArrowRight':
+      goNext();
+      break;
+    default:
+      return;
+  }
+  e.preventDefault();
+};
+
+onMounted(() => window.addEventListener('keydown', onKeydown));
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col gap-4">
+  <div class="flex min-h-0 flex-1 flex-col gap-2">
     <CrmCalendarHeader
       :view="effectiveView"
       :cursor-date="cursorDate"
       :overlays="overlays"
       :owner-scope="ownerScope"
+      :show-completed="showCompleted"
       :overdue-count="overdue"
+      :pipeline-id="pipelineId"
+      :pipelines="pipelines"
+      @update:pipeline-id="emit('update:pipelineId', $event)"
       @prev="goPrev"
       @next="goNext"
       @today="goToday"
@@ -227,6 +306,7 @@ watch(view, next => {
       @update:cursor-date="onUpdateCursor"
       @update:overlays="onUpdateOverlays"
       @update:owner-scope="onUpdateOwnerScope"
+      @update:show-completed="onUpdateShowCompleted"
       @quick-add="onQuickAddNew"
     />
 
@@ -297,6 +377,8 @@ watch(view, next => {
         :events="visibleEvents"
         :overlays="overlays"
         @event-click="onEventClick"
+        @quick-add="onQuickAddNew"
+        @retry="emit('retry')"
       />
 
       <!-- Empty overlay keeps the grid visible behind a contextual hint -->

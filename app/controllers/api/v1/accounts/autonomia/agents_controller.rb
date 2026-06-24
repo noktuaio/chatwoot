@@ -1,5 +1,5 @@
 class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autonomia::BaseController
-  before_action :fetch_agent, only: [:show, :update, :destroy, :avatar]
+  before_action :fetch_agent, only: [:show, :update, :destroy]
 
   # Andaime mínimo aplicado pelo backend em modo manual (IP oculto) — embrulha a instrução do
   # usuário com guardrails de segurança/formato/handoff. Nunca vem do params nem é exposto.
@@ -12,7 +12,7 @@ class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autono
   SCAFFOLD
 
   def index
-    @agents = agents_scope.with_attached_avatar.order(created_at: :desc)
+    @agents = agents_scope.order(created_at: :desc)
   end
 
   def show; end
@@ -25,9 +25,20 @@ class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autono
     render :show, status: :created
   end
 
+  # Onda 6 (P2) — chaves COMPUTADAS do jsonb `config` que o usuário NÃO define pela API: são geradas
+  # pelo Revisor/Construtor. `assign_attributes(config:)` substituía o blob inteiro e as apagava (perda
+  # silenciosa de topic_map/knowledge_* num save do PanelTune). O update agora MESCLA (preserva o resto).
+  PROTECTED_CONFIG_KEYS = %w[
+    topic_map knowledge_confidence knowledge_summary knowledge_refresh_token
+    with_knowledge system_key builder_active_thread_id
+  ].freeze
+
   def update
     discard_generated_instruction_on_manual_switch
-    @agent.assign_attributes(agent_params)
+    attrs = agent_params
+    @agent.assign_attributes(attrs.except(:config))
+    merge_config!(attrs[:config]) if attrs.key?(:config)
+    return if reject_internal_with_channels
     apply_manual_scaffold
     @agent.save!
     render :show
@@ -36,19 +47,6 @@ class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autono
   def destroy
     @agent.destroy!
     head :no_content
-  end
-
-  def avatar
-    if request.delete?
-      @agent.avatar.purge if @agent.avatar.attached?
-    else
-      return render_unprocessable('avatar_required') if params[:avatar].blank?
-
-      @agent.avatar.attach(params[:avatar])
-      @agent.save!
-    end
-
-    render :show
   end
 
   private
@@ -74,11 +72,32 @@ class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autono
 
   # Campos visíveis permitidos. `instruction` só é aceita em modo manual (texto do próprio
   # usuário, visível). `scaffold` JAMAIS vem do params. Em guiado, instruction também é ignorada.
+  # Chaves de SISTEMA que o usuário NUNCA pode setar via API: forjar `system_key` tornaria um agente
+  # invisível/imutável (agents_scope o esconde) e permitiria se passar pelo Guia da Plataforma.
+  RESERVED_CONFIG_KEYS = %w[system_key hidden_from_hub].freeze
+
   def agent_params
     permitted = %i[name agent_type mode tone greeting fallback_message handoff_rule human_card
-                   enabled status]
+                   enabled status actuation]
     permitted << :instruction if manual_mode?
-    params.require(:agent).permit(*permitted, starter_questions: [], config: {})
+    attrs = params.require(:agent).permit(*permitted, starter_questions: [], config: {})
+    attrs[:config] = sanitized_config(attrs[:config]) if attrs[:config].present?
+    attrs
+  end
+
+  # Strip every system-managed config key the user must never set: the reserved keys AND any
+  # `guide_*` key (e.g. guide_kb_version) — otherwise a forged row could fake the Guia's freshness
+  # marker and skip the self-healing canonicalize/purge.
+  def sanitized_config(config)
+    config.to_h.reject { |key, _| RESERVED_CONFIG_KEYS.include?(key.to_s) || key.to_s.start_with?('guide_') }
+  end
+
+  # Onda 6 (P2) — MESCLA o config recebido (já sanitizado de system/guide_) sobre o salvo, removendo
+  # ainda as chaves COMPUTADAS (topic_map/knowledge_*/with_knowledge) que o usuário não define pela API.
+  # Antes o update SUBSTITUÍA o jsonb inteiro e apagava o que o Revisor/Construtor gerou.
+  def merge_config!(incoming)
+    safe = (incoming || {}).to_h.except(*PROTECTED_CONFIG_KEYS)
+    @agent.config = @agent.config.to_h.merge(safe)
   end
 
   def manual_mode?
@@ -86,5 +105,17 @@ class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autono
     return requested == 'manual' if requested.present?
 
     @agent&.manual? || false
+  end
+
+  # V2.1 — não deixa um agente ficar INTERNO enquanto tem canais conectados (deixaria um vínculo
+  # órfão; um interno não atende cliente). Roda APÓS o assign_attributes para checar o valor JÁ
+  # normalizado pelo enum (imune a entrada string OU inteiro, ex.: actuation:1). Não persiste (não
+  # chamamos save!). external/both e qualquer update sem canais seguem livres.
+  def reject_internal_with_channels
+    return false unless @agent.actuation_internal? && @agent.agent_inboxes.exists?
+
+    render_unprocessable(I18n.t('autonomia.agents.actuation.internal_with_channels',
+                                default: 'Disconnect all channels before making this agent internal.'))
+    true
   end
 end

@@ -20,13 +20,6 @@ import BuilderKnowledgePanel from '../components/builder/BuilderKnowledgePanel.v
 import BuilderReview from '../components/builder/BuilderReview.vue';
 import AgentTypePicker from '../components/AgentTypePicker.vue';
 
-const props = defineProps({
-  targetAgentId: {
-    type: [String, Number],
-    default: null,
-  },
-});
-
 // CONSTRUTOR — the conversational wizard, run as a SINGLE page with internal
 // steps (`conversa | revisao`) rather than separate routes, because the
 // thread/draft lives in the store and a route change would drop the session.
@@ -49,14 +42,11 @@ const store = useStore();
 // it. While it is null we show the type picker as STEP 0 — this is the single
 // entry point, reached both from the Hub's "create" button and the sidebar
 // "Agent builder" link (which routes straight here without a type).
-const editingAgentId = computed(
-  () => props.targetAgentId || route.params.agentId
-);
-const isEditingAgent = computed(() => !!editingAgentId.value);
-const agentType = ref(
-  isEditingAgent.value ? 'custom' : route.query.type || null
-);
-const showPicker = computed(() => !isEditingAgent.value && !agentType.value);
+const agentType = ref(route.query.type || null);
+// V2.1 — screen-level choices from the type picker; defaults reproduce today's behavior.
+const actuation = ref('external');
+const withKnowledge = ref(true);
+const showPicker = computed(() => !agentType.value);
 
 const thread = useMapGetter('autonomiaBuildThreads/getThread');
 const messages = useMapGetter('autonomiaBuildThreads/getMessages');
@@ -65,7 +55,6 @@ const phase = useMapGetter('autonomiaBuildThreads/getPhase');
 const buildError = useMapGetter('autonomiaBuildThreads/getError');
 const generatedAgent = useMapGetter('autonomiaBuildThreads/getAgent');
 const uiFlags = useMapGetter('autonomiaBuildThreads/getUIFlags');
-const agentFlags = useMapGetter('autonomiaAgents/getUIFlags');
 
 const eligibleInboxes = useMapGetter('autonomiaChannels/getEligible');
 const channelFlags = useMapGetter('autonomiaChannels/getUIFlags');
@@ -76,9 +65,6 @@ const sourceFlags = useMapGetter('autonomiaSources/getUIFlags');
 // alongside the conversation in the conversa step.
 const wizardStep = ref('conversa');
 const isSavingGreeting = ref(false);
-const isActivatingAgent = computed(
-  () => !!agentFlags.value?.updatingItem || !!channelFlags.value?.connecting
-);
 
 // Step headings, focused on each transition for keyboard/screen-reader users.
 const conversaHeadingRef = ref(null);
@@ -140,16 +126,6 @@ const canAdvance = computed(
 );
 
 const currentStep = computed(() => wizardStep.value);
-const builderTitle = computed(() =>
-  isEditingAgent.value
-    ? t('AGENTS.BUILDER.EDIT_TITLE')
-    : t('AGENTS.BUILDER.TITLE')
-);
-const builderIntro = computed(() =>
-  isEditingAgent.value
-    ? t('AGENTS.BUILDER.EDIT_INTRO')
-    : t('AGENTS.BUILDER.INTRO')
-);
 
 const approvedCount = computed(
   () =>
@@ -166,14 +142,23 @@ const confidencePct = computed(() =>
 // branch, because the thread already exists by the time the user types.
 const startThread = () =>
   store.dispatch('autonomiaBuildThreads/start', {
-    agentId: editingAgentId.value,
     type: agentType.value,
+    actuation: actuation.value,
+    with_knowledge: withKnowledge.value,
   });
 
-// STEP 0 -> conversation: the user picked a type. Persist it and open the thread
-// WITHOUT a user message so the Construtor speaks first (IA-fala-primeiro).
-const onPickType = type => {
+// STEP 0 -> conversation: the user picked a type plus the actuation/knowledge
+// choices. Persist them and open the thread WITHOUT a user message so the
+// Construtor speaks first (IA-fala-primeiro).
+const onPickType = ({
+  type,
+  actuation: pickedActuation,
+  withKnowledge: pickedKnowledge,
+}) => {
   agentType.value = type;
+  if (pickedActuation) actuation.value = pickedActuation;
+  if (typeof pickedKnowledge === 'boolean')
+    withKnowledge.value = pickedKnowledge;
   startThread();
 };
 
@@ -197,6 +182,8 @@ const handleSend = async ({ content, images = [] }) => {
     if (!threadId.value) {
       await store.dispatch('autonomiaBuildThreads/start', {
         type: agentType.value,
+        actuation: actuation.value,
+        with_knowledge: withKnowledge.value,
         message: content,
         image_signed_ids: imageSignedIds,
       });
@@ -325,11 +312,6 @@ const testAgent = () => {
 const connectInbox = async inboxId => {
   if (!agentId.value || !inboxId) return;
   try {
-    await store.dispatch('autonomiaAgents/update', {
-      id: agentId.value,
-      enabled: true,
-      status: 'active',
-    });
     await store.dispatch('autonomiaChannels/connect', {
       agentId: agentId.value,
       inboxId,
@@ -481,7 +463,7 @@ onBeforeUnmount(() => {
       <div class="flex items-center gap-2 shrink-0">
         <i class="i-lucide-sparkles size-5 text-n-iris-10" />
         <h1 class="text-base font-medium text-n-slate-12">
-          {{ builderTitle }}
+          {{ t('AGENTS.BUILDER.TITLE') }}
         </h1>
       </div>
       <BuilderStepBar :current="currentStep" class="flex-1 min-w-0" />
@@ -545,10 +527,10 @@ onBeforeUnmount(() => {
                 tabindex="-1"
                 class="text-base font-medium outline-none text-n-slate-12"
               >
-                {{ builderTitle }}
+                {{ t('AGENTS.BUILDER.TITLE') }}
               </h2>
               <p class="max-w-md text-sm leading-relaxed text-n-slate-11">
-                {{ builderIntro }}
+                {{ t('AGENTS.BUILDER.INTRO') }}
               </p>
             </div>
 
@@ -626,7 +608,7 @@ onBeforeUnmount(() => {
             :approved-count="approvedCount"
             :confidence-pct="confidencePct"
             :is-saving-greeting="isSavingGreeting"
-            :is-connecting="isActivatingAgent"
+            :is-connecting="channelFlags?.connecting"
             @save-greeting="saveGreeting"
             @test="testAgent"
             @connect="connectInbox"

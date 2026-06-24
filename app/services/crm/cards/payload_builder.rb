@@ -118,7 +118,14 @@ class Crm::Cards::PayloadBuilder
       id: @card.contact.id,
       name: @card.contact.name,
       phone_number: @card.contact.phone_number,
-      email: @card.contact.email
+      email: @card.contact.email,
+      # Surfaced so the card drawer can show/edit richer contact data (company,
+      # address, city/country, job title…). additional_attributes holds Chatwoot
+      # standard keys; custom_attributes holds the non-native ones. Both are merged
+      # server-side on update, so the drawer only sends what changed.
+      location: @card.contact.location,
+      additional_attributes: @card.contact.additional_attributes || {},
+      custom_attributes: @card.contact.custom_attributes || {}
     }
   end
 
@@ -189,7 +196,6 @@ class Crm::Cards::PayloadBuilder
   # native push_event_data shape that SLACardLabel/evaluateSLAStatus consume.
   def applied_sla_payload
     return unless @card.account.feature_enabled?('sla')
-    return unless primary_conversation.class.reflect_on_association(:applied_sla)
 
     primary_conversation.applied_sla&.push_event_data
   end

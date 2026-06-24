@@ -41,7 +41,12 @@ const props = defineProps({
   },
   overlays: {
     type: Object,
-    default: () => ({ reminders: true, whatsapp: true, closeDates: true }),
+    default: () => ({
+      reminders: true,
+      whatsapp: true,
+      closeDates: true,
+      meetings: true,
+    }),
   },
   // eslint-disable-next-line vue/no-unused-properties
   timezone: {
@@ -81,10 +86,12 @@ const shownEvents = computed(() =>
   filterByOverlays(props.events, props.overlays)
 );
 
-// A WhatsApp auto-send is always a precise instant → timed block.
+// WhatsApp sends and meetings are precise instants → timed blocks.
 // Reminders / forecasts render in the all-day row (task-like milestones).
 const isTimedEvent = event =>
-  EVENT_TYPE_GROUP(event.event_type) === OVERLAY_GROUP.WHATSAPP;
+  [OVERLAY_GROUP.WHATSAPP, OVERLAY_GROUP.MEETING].includes(
+    EVENT_TYPE_GROUP(event.event_type)
+  );
 
 const allDayEventsForDay = day =>
   eventsForDay(shownEvents.value, day).filter(e => !isTimedEvent(e));
@@ -106,8 +113,22 @@ const topForEvent = event => {
   return ((getHours(start) * 60 + getMinutes(start)) / 60) * HOUR_HEIGHT;
 };
 
-// WhatsApp sends are zero-duration → fixed small block, NO resize handle.
-const heightForEvent = () => (WHATSAPP_BLOCK_MINUTES / 60) * HOUR_HEIGHT;
+const heightForEvent = event => {
+  if (EVENT_TYPE_GROUP(event.event_type) === OVERLAY_GROUP.WHATSAPP) {
+    return (WHATSAPP_BLOCK_MINUTES / 60) * HOUR_HEIGHT;
+  }
+
+  const start = eventStart(event);
+  const end = event?.ends_at ? new Date(event.ends_at) : null;
+  const minutes =
+    start && end && !Number.isNaN(end.getTime())
+      ? Math.max(
+          (end.getTime() - start.getTime()) / 60000,
+          WHATSAPP_BLOCK_MINUTES
+        )
+      : WHATSAPP_BLOCK_MINUTES;
+  return (minutes / 60) * HOUR_HEIGHT;
+};
 
 const eventBlockStyle = event => ({
   top: `${topForEvent(event)}px`,

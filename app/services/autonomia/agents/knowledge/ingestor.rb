@@ -9,6 +9,9 @@ module Autonomia
         # Levantada quando, na hora de gravar, outra ingestão (re-sync) já venceu o sync_token: o job
         # antigo NÃO pode tocar o conhecimento da geração nova.
         class Superseded < StandardError; end
+        # Extração/embeddings vazios: NÃO é falha comum — o ProcessJob preserva a geração anterior
+        # (não apaga, não rebaixa) em vez de marcar failed e perder o KB bom da recuperação.
+        class EmptyExtraction < StandardError; end
 
         def initialize(source:, token:)
           @source = source
@@ -20,10 +23,17 @@ module Autonomia
         def perform
           text = Processors.for(@source).extract
           chunks = Chunker.new(text).chunks
-          return replace_knowledge([], []) if chunks.empty?
+          # DATA-LOSS GUARD: extração vazia (PDF escaneado, página em branco, só espaços, tudo abaixo
+          # do MIN_CHUNK) NÃO pode virar replace_knowledge([],[]) — isso apagaria o conhecimento bom
+          # anterior num re-sync ruim/transitório. Levanta ANTES de qualquer delete → o job marca a
+          # fonte como `failed` e os KnowledgeEntry antigos ficam INTACTOS.
+          raise EmptyExtraction, 'empty_extraction' if chunks.empty?
 
           vectors = Autonomia::Agents::EmbeddingService.new(account: @account).embed_batch(chunks)
-          replace_knowledge(chunks, vectors)
+          pairs = chunks.zip(vectors).select { |_, vector| vector.present? }
+          raise EmptyExtraction, 'empty_embeddings' if pairs.empty?
+
+          replace_knowledge(pairs.map(&:first), pairs.map(&:last))
         end
 
         private

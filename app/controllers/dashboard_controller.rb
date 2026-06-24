@@ -80,6 +80,8 @@ class DashboardController < ActionController::Base
       CAMPAIGN_IMPORT_ENABLED: ActiveModel::Type::Boolean.new.cast(ENV.fetch('CAMPAIGN_IMPORT_ENABLED', false)).to_s,
       WHATSAPP_API_CAMPAIGNS_ENABLED: ActiveModel::Type::Boolean.new.cast(ENV.fetch('WHATSAPP_API_CAMPAIGNS_ENABLED', false)).to_s,
       CRM_KANBAN_ENABLED: ActiveModel::Type::Boolean.new.cast(ENV.fetch('CRM_KANBAN_ENABLED', false)).to_s,
+      CRM_COPILOT_ENABLED: ActiveModel::Type::Boolean.new.cast(ENV.fetch('CRM_COPILOT_ENABLED', false)).to_s,
+      CRM_CALENDAR_MEETINGS_ENABLED: ActiveModel::Type::Boolean.new.cast(ENV.fetch('CRM_CALENDAR_MEETINGS_ENABLED', false)).to_s,
       CRM_AI_ENABLED: ActiveModel::Type::Boolean.new.cast(ENV.fetch('CRM_AI_ENABLED', false)).to_s,
       AUTONOMIA_AGENTS_ENABLED: ActiveModel::Type::Boolean.new.cast(ENV.fetch('AUTONOMIA_AGENTS_ENABLED', false)).to_s,
       EMAIL_CAMPAIGN_ENABLED: ActiveModel::Type::Boolean.new.cast(ENV.fetch('EMAIL_CAMPAIGN_ENABLED', false)).to_s,

@@ -17,21 +17,26 @@
       },
       "CHANNELS_COUNT": "Nenhum canal | 1 canal | {count} canais",
       "NO_METRICS": "—",
-      "OPEN": "Abrir agente",
-      "EDIT_AI": "Alterar IA",
-      "DELETE": "Excluir",
-      "DELETE_ERROR": "Não foi possível excluir este agente. Tente novamente.",
-      "DELETE_DIALOG": {
-        "TITLE": "Excluir agente",
-        "DESCRIPTION": "Tem certeza que deseja excluir {name}? Esta ação remove o agente, seus canais e conhecimentos vinculados.",
-        "CONFIRM": "Excluir agente",
-        "CANCEL": "Cancelar"
-      }
+      "OPEN": "Abrir agente"
     },
     "TYPES": {
       "PICK_TITLE": "O que seu agente deve fazer?",
       "PICK_SUBTITLE": "Escolha um ponto de partida. Você pode ajustar tudo depois.",
       "SETUP_TIME": "Cerca de 3 min para montar",
+      "ACTUATION": {
+        "LABEL": "Onde o agente atua",
+        "EXTERNAL": "Externo",
+        "EXTERNAL_HINT": "Atende clientes no WhatsApp/Instagram/chat.",
+        "INTERNAL": "Interno",
+        "INTERNAL_HINT": "Nunca fala com cliente — só ajuda o atendente."
+      },
+      "KNOWLEDGE": {
+        "LABEL": "Base de conhecimento",
+        "WITH": "Com base",
+        "WITH_HINT": "Você sobe PDFs/FAQs e o agente aprende.",
+        "WITHOUT": "Sem base",
+        "WITHOUT_HINT": "Sem documentos — orienta por regras e encaminha."
+      },
       "SUPPORT": {
         "TITLE": "Suporte",
         "SUBTITLE": "Responde dúvidas e resolve solicitações comuns."
@@ -63,11 +68,9 @@
     },
     "BUILDER": {
       "TITLE": "Construtor de agentes",
-      "EDIT_TITLE": "Ajustar agente com IA",
       "BUILDER_NAME": "Construtor",
       "YOU": "Você",
       "INTRO": "Conte o que este agente deve fazer — descreva seu negócio e como ele deve ajudar. Vamos fazer algumas perguntas e montar para você.",
-      "EDIT_INTRO": "Conte o que deseja alterar neste agente. A IA mantém a configuração atual e ajusta apenas o que você pedir.",
       "FAILED": "Algo deu errado ao montar seu agente. Envie outra mensagem para tentar de novo.",
       "TIMEOUT": "Isto está demorando mais do que o esperado. Envie sua mensagem novamente.",
       "PLACEHOLDER": "Digite sua resposta…",
@@ -144,6 +147,8 @@
       "APPROVED_SUMMARY": "{count} materiais aprovados · confiança {pct}%",
       "TEST_FIRST": "Testar antes",
       "CONNECT_TITLE": "Conectar a uma caixa",
+      "INTERNAL_TITLE": "Agente interno (copiloto da equipe)",
+      "INTERNAL_HINT": "Este agente ajuda sua equipe dentro das conversas e nunca fala com o cliente, então não há caixa para conectar.",
       "SELECT_INBOX": "Escolha uma caixa de entrada",
       "CONNECT_ACTIVATE": "Conectar e ativar",
       "BACK": "Voltar"
@@ -156,7 +161,6 @@
         "KNOWLEDGE": "Conhecimento",
         "CHANNELS": "Canais",
         "PERFORMANCE": "Desempenho",
-        "PUBLISH": "Publicar",
         "TUNE": "Ajustar"
       }
     },
@@ -170,10 +174,6 @@
       "CONFIDENCE": "Confiança",
       "HANDOFF_NOTICE": "Transferiria para um humano: {reason}",
       "KNOWLEDGE_USED": "Conhecimento utilizado ({count})",
-      "PROMPT_USED": "Prompt utilizado",
-      "PROMPT_INSTRUCTIONS": "Instruções",
-      "PROMPT_INPUT": "Entrada",
-      "PROMPT_REQUEST": "Configuração da chamada",
       "SOURCE": "Fonte: {source}",
       "CONVERSATION": "Conversa de teste",
       "NOT_FINALIZED": "Este agente ainda não foi finalizado. Conclua a construção para o teste refletir o comportamento real."
@@ -267,7 +267,9 @@
       "OCCUPIED": "Já usado por outro agente",
       "ONE_PER_INBOX": "Cada caixa de entrada pode ter apenas 1 agente.",
       "CONNECT_ERROR": "Não foi possível conectar esse canal. Tente novamente.",
-      "DISCONNECT_ERROR": "Não foi possível desconectar esse canal. Tente novamente."
+      "DISCONNECT_ERROR": "Não foi possível desconectar esse canal. Tente novamente.",
+      "INTERNAL_TITLE": "Este agente é interno",
+      "INTERNAL_BODY": "Um agente interno é um copiloto da equipe e não conecta a caixas."
     },
     "TUNE": {
       "MODE_TITLE": "Como você edita",
@@ -279,13 +281,6 @@
       "RECONVERSE_CLOSE": "Concluído",
       "CURRENT_CARD": "O que seu agente faz hoje",
       "NO_CARD": "Nenhum resumo disponível ainda.",
-      "IDENTITY_TITLE": "Imagem do agente",
-      "IDENTITY_HINT": "Use uma foto ou marca para identificar este agente nos cards e painéis.",
-      "AVATAR_UPDATING": "Atualizando imagem…",
-      "AVATAR_UPLOAD_SUCCESS": "Imagem do agente atualizada.",
-      "AVATAR_UPLOAD_ERROR": "Não foi possível atualizar a imagem do agente.",
-      "AVATAR_DELETE_SUCCESS": "Imagem do agente removida.",
-      "AVATAR_DELETE_ERROR": "Não foi possível remover a imagem do agente.",
       "INSTRUCTION_LABEL": "Instrução",
       "INSTRUCTION_PLACEHOLDER": "Escreva a instrução para o seu agente…",
       "MANUAL_WARNING": "Aqui você escreve a instrução. Ainda aplicamos proteções de segurança nos bastidores.",
@@ -304,15 +299,22 @@
         "PLAYFUL": "Descontraído"
       },
       "HANDOFF_STRATEGY": "Transferir para um humano",
-      "HANDOFF_HINT": "Use “Membro da caixa de entrada” para atribuir automaticamente a um atendente vinculado ao canal quando o agente encaminhar a conversa.",
       "HANDOFF_OPTIONS": {
-        "NONE": "Não atribuir automaticamente",
-        "INBOX_MEMBER": "Membro da caixa de entrada"
+        "LOW_CONFIDENCE": "Quando estiver em dúvida",
+        "ALWAYS_ASK": "Sempre oferecer um humano",
+        "NEVER": "Nunca"
       },
       "CONFIDENCE_THRESHOLD": "Limite de confiança",
       "SAVE": "Salvar alterações",
       "SAVE_SUCCESS": "Alterações salvas.",
-      "SAVE_ERROR": "Não foi possível salvar suas alterações. Tente novamente."
+      "SAVE_ERROR": "Não foi possível salvar suas alterações. Tente novamente.",
+      "ACTUATION_LABEL": "Atuação",
+      "ACTUATION_HINT": "Onde o agente atua: externo atende clientes, interno é copiloto da equipe, ambos faz os dois.",
+      "ACTUATION_OPTIONS": {
+        "EXTERNAL": "Externo (atende clientes)",
+        "INTERNAL": "Interno (copiloto da equipe)",
+        "BOTH": "Ambos"
+      }
     },
     "PERFORMANCE": {
       "RANGE": {
@@ -354,6 +356,12 @@
       "EMPTY": "Nenhuma atividade ainda. Assim que seu agente começar a responder, as métricas aparecerão aqui.",
       "ERROR": "Não foi possível carregar os dados de desempenho.",
       "RETRY": "Tentar novamente"
+    },
+    "CARD": {
+      "ACTUATION_EXTERNAL": "Externo",
+      "ACTUATION_INTERNAL": "Interno",
+      "ACTUATION_BOTH": "Ambos",
+      "INTERNAL_COPILOT": "Copiloto interno"
     }
   }
 }

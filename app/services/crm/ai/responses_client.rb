@@ -6,29 +6,14 @@ module Crm
     class ResponsesClient
       class Error < StandardError; end
 
-      BLOCKED_HOSTS = %w[localhost localhost.localdomain].freeze
-      BLOCKED_IP_RANGES = [
-        IPAddr.new('0.0.0.0/8'),
-        IPAddr.new('10.0.0.0/8'),
-        IPAddr.new('100.64.0.0/10'),
-        IPAddr.new('127.0.0.0/8'),
-        IPAddr.new('169.254.0.0/16'),
-        IPAddr.new('172.16.0.0/12'),
-        IPAddr.new('192.168.0.0/16'),
-        IPAddr.new('::/128'),
-        IPAddr.new('::1/128'),
-        IPAddr.new('fc00::/7'),
-        IPAddr.new('fe80::/10')
-      ].freeze
-
       def initialize(credential:)
         @credential = credential
       end
 
-      def create(model:, instructions:, input:, schema: nil, reasoning_effort: 'low', tools: nil)
+      def create(model:, instructions:, input:, schema: nil, reasoning_effort: 'low', tools: nil, timeout: 120)
         body = base_body(model, instructions, input, schema, reasoning_effort, tools).merge(store: false)
         started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        response = post_responses(body, timeout: 120)
+        response = post_responses(body, timeout: timeout)
         parse_response(response, model: model, requested_tools: tools, started_at: started_at)
       end
 
@@ -119,52 +104,12 @@ module Crm
         base
       end
 
+      # Delega ao guard SSRF compartilhado (fonte única; usado também pelo EmbeddingService).
+      # Preserva o contrato externo: levanta Crm::Ai::ResponsesClient::Error 'invalid_api_base'.
       def validate_api_base!(base)
-        uri = URI.parse(base)
-        raise Error, 'invalid_api_base' unless uri.is_a?(URI::HTTPS)
-        raise Error, 'invalid_api_base' if uri.host.blank? || uri.userinfo.present? || uri.query.present? || uri.fragment.present?
-        raise Error, 'invalid_api_base' if blocked_api_host?(uri.host)
-        raise Error, 'invalid_api_base' if blocked_resolved_api_host?(uri.host)
-      rescue URI::InvalidURIError
+        ::Crm::Ai::ApiBaseGuard.validate!(base)
+      rescue ::Crm::Ai::ApiBaseGuard::BlockedError
         raise Error, 'invalid_api_base'
-      end
-
-      def blocked_api_host?(host)
-        normalized_host = normalize_api_host(host)
-        return true if BLOCKED_HOSTS.include?(normalized_host) || normalized_host.end_with?('.localhost')
-
-        blocked_ip_address?(normalized_host)
-      end
-
-      def blocked_resolved_api_host?(host)
-        normalized_host = normalize_api_host(host)
-        return false if ip_address?(normalized_host)
-
-        addresses = Resolv.getaddresses(normalized_host)
-        return true if addresses.empty?
-
-        addresses.any? { |address| blocked_ip_address?(address, reject_invalid: true) }
-      rescue Resolv::ResolvError, ArgumentError
-        true
-      end
-
-      def normalize_api_host(host)
-        host.to_s.downcase.delete_suffix('.')
-      end
-
-      def ip_address?(address)
-        IPAddr.new(address)
-        true
-      rescue IPAddr::InvalidAddressError
-        false
-      end
-
-      def blocked_ip_address?(address, reject_invalid: false)
-        ip = IPAddr.new(address)
-        ip = ip.native if ip.respond_to?(:ipv4_mapped?) && ip.ipv4_mapped?
-        BLOCKED_IP_RANGES.any? { |range| range.include?(ip) }
-      rescue IPAddr::InvalidAddressError
-        reject_invalid
       end
 
       def structured_text_format(schema)

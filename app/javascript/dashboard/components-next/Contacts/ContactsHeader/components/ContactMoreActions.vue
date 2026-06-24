@@ -52,8 +52,7 @@ const contactMenuItems = computed(() => [
         },
       ]
     : []),
-  ...(props.campaignImportEnabled &&
-  checkPermissions(['administrator', 'contact_manage'])
+  ...(props.campaignImportEnabled
     ? [
         {
           label: t('CAMPAIGN_IMPORT.ACTIONS.IMPORT_BASE'),

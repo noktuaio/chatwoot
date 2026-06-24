@@ -29,9 +29,21 @@ module Crm
               },
               required: %w[should_handoff reason suggested_agent],
               additionalProperties: false
+            },
+            callback_request: {
+              type: %w[object null],
+              description: 'Preencha SOMENTE quando o cliente pedir um retorno/contato numa DATA ou HORA concreta. null caso contrário.',
+              properties: {
+                detected: { type: 'boolean', description: 'true se há pedido de retorno com data/hora concreta.' },
+                requested_at: { type: %w[string null], description: 'Data/hora LOCAL resolvida no formato "YYYY-MM-DDTHH:MM" (sem fuso). null se não der para resolver uma data concreta.' },
+                requested_at_text: { type: %w[string null], description: 'Trecho original do pedido (ex.: "me liga terça que vem de tarde").' },
+                confidence: { type: 'number', minimum: 0, maximum: 1, description: 'Confiança de que há um pedido de retorno com data concreta.' }
+              },
+              required: %w[detected requested_at requested_at_text confidence],
+              additionalProperties: false
             }
           },
-          required: %w[suggested_stage_id confidence reasoning value handoff],
+          required: %w[suggested_stage_id confidence reasoning value handoff callback_request],
           additionalProperties: false
         }
       }.freeze
@@ -75,7 +87,22 @@ module Crm
           Confiança 0.0 a 1.0. Seja conservador em mover para "Perdido".
           Se a conversa mencionar explicitamente um valor de negócio/proposta/contrato, preencha "value" (amount_cents em centavos e currency ISO). Se nenhum valor for citado, retorne "value": null. Não invente valores.
           #{handoff_instructions}
+          #{callback_instructions}
         PROMPT
+      end
+
+      # Detecção de pedido de RETORNO com data ("me liga terça", "retorna dia 15 às 10h").
+      def callback_instructions
+        t = @context[:temporal] || {}
+        <<~CB.strip
+          RETORNO COM DATA: avalie se o cliente pediu para ser contatado/retornado numa DATA ou HORA concreta.
+          AGORA é #{t[:now_local]} (#{t[:weekday]}), fuso #{t[:timezone]}. Resolva expressões relativas a partir de AGORA:
+          "amanhã", "semana que vem", "depois do feriado", "dia 15", "terça às 10h" → uma data LOCAL futura concreta.
+          Regras de hora: "de manhã"→09:00, "de tarde"→14:00, "de noite"→19:00; sem hora/período → #{t[:default_hour] || 9}:00.
+          Preencha "callback_request" com detected=true, requested_at no formato "YYYY-MM-DDTHH:MM" (hora LOCAL, sem fuso),
+          requested_at_text (trecho original) e confidence. Se o pedido for VAGO ("me liga depois", "qualquer hora", sem
+          data resolvível) ou NÃO houver pedido de retorno, retorne "callback_request": null. NUNCA invente uma data.
+        CB
       end
 
       def handoff_instructions
@@ -101,7 +128,9 @@ module Crm
           conversation_summary: @context[:summary],
           recent_messages: @context[:recent_messages],
           handoff_enabled: @handoff_enabled,
-          eligible_agents: @eligible_agents
+          eligible_agents: @eligible_agents,
+          now_local: @context.dig(:temporal, :now_local),
+          timezone: @context.dig(:temporal, :timezone)
         }.to_json
       end
 

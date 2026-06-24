@@ -2,17 +2,17 @@
   Template: New Product Launch - Simple Hero
   File: 01-new-flavor-simple.mjml
   Category: product-launch / new-arrival
-
+  
   Purpose:
   Announce a new product flavor/variant to existing customers with clean, visual-first design.
   Focus on product imagery and sensory description to drive immediate trial.
-
+  
   When to send:
   - Day 1 of new product launch
   - New flavor/variant release announcement
   - Seasonal product introduction
   - Limited edition drops
-
+  
   Personalize:
   - {{first_name}} (optional, works without)
   - {{product_name}} (e.g., "Cherry Cacao")
@@ -20,10 +20,10 @@
   - {{product_url}} for "Try the new flavor" CTA
   - {{flavor_description}} - tasting notes
   - Brand colors (#b22234 primary, #111111 footer)
-
+  
   Tested on:
   Gmail (web/mobile), Outlook, Apple Mail, iOS Mail
-
+  
   Notes:
   - Marketing email (unsubscribe required - included in footer)
   - Visual-first approach: large product image + minimal copy
@@ -33,18 +33,18 @@
   - Color psychology: red (#b22234) = excitement, appetite, urgency
   - Works best for F&B, beverage, CPG brands
   - No discount = maintains premium positioning for launch
-
+  
   Design notes:
   - Product bottle at 180px = mobile-optimized size
   - Serif font (Georgia) for flavor description = sophistication
   - Black footer grounds the bold red design
   - 7 social icons = omnichannel presence for new followers
-
+  
   A/B test suggestions:
   - Subject line: "Meet Cherry Cacao" vs. "New flavor alert 🍒"
   - Add urgency: "Limited batch" or countdown timer
   - Include social proof: "Loved by 10K+ tea fans"
-
+  
   Conversion goal:
   Primary: Drive first purchases of new product (target 5-10% CTR)
   Secondary: Build awareness for future retargeting
@@ -70,7 +70,7 @@
         <mj-text align="center" font-size="30px" font-weight="bold" color="#fff5ec" padding="10px 0 12px 0" line-height="1.15" letter-spacing="1px">
           Meet the newest member<br/>of our family,<br/>Cherry Cacao.
         </mj-text>
-        <mj-text align="center" font-size="18px" color="#ffe3d9" font-family="Georgia,serif" line-height="1.55" padding="0 0 7px 0">
+        <mj-text align="center" font-size="18px" color="#ffe3d9" font-family="Georgia,serif" line-height="1.55" padding="0 0 7px 0"> 
           A nostalgic summer taste, using perfectly brewed Fair Trade green tea. Bright notes of cherry and hibiscus on the front, with a lingering finish of cacao.
         </mj-text>
         <mj-text align="center" font-size="16px" color="#ffc3bb" line-height="1.6" font-style="italic" padding="0 0 18px 0">

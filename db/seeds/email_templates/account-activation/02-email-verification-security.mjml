@@ -2,26 +2,26 @@
   Template: Welcome & Email Verification (Security-Focused)
   File: 05-welcome-security-verification.mjml
   Category: welcome / onboarding
-
+  
   Purpose:
   Prompt new users to verify email address with emphasis on security and trust-building.
   Specifically designed for financial services, fintech, banking, or high-security SaaS.
-
+  
   When to send:
   - Immediately after account creation (within 1-2 minutes)
   - After financial account signup (banking, investment, crypto)
   - High-security platforms requiring verified email
   - B2B SaaS with sensitive data handling
-
+  
   Personalize:
   - {{first_name}} or {{firstName}} (e.g., "Clara")
   - {{verification_url}} or {{activationLink}} - unique email verification link
   - {{company_name}} (e.g., "SecureFunds")
   - Brand colors (#233654 primary dark blue, #f3f6fb light background)
-
+  
   Tested on:
   Gmail (web/mobile), Outlook, Apple Mail, iOS Mail
-
+  
   Notes:
   - Transactional email (email verification = no unsubscribe required)
   - Security-first messaging: emphasizes protection, encryption, compliance
@@ -39,12 +39,12 @@
         <mj-text align="center" font-size="24px" color="#ffffff" font-weight="bold" padding="20px 0">
           Verify Your SecureFunds Account
         </mj-text>
-        <mj-image
-          src="https://res.cloudinary.com/dk79hhqvp/image/upload/v1748807535/uploaded-by-ai/an-illustration-of-a-security-verification-symbol-featuring-.jpg"
-          alt="Security Verification Icon"
-          width="220px"
-          padding="10px 0 10px 0"
-          align="center"
+        <mj-image 
+          src="https://res.cloudinary.com/dk79hhqvp/image/upload/v1748807535/uploaded-by-ai/an-illustration-of-a-security-verification-symbol-featuring-.jpg" 
+          alt="Security Verification Icon" 
+          width="220px" 
+          padding="10px 0 10px 0" 
+          align="center" 
           border-radius="18px"
         />
         <mj-text align="center" font-size="17px" color="#cde5ff" padding="5px 0 15px 0">

@@ -15,6 +15,8 @@ class Crm::FollowUps::DueProcessor
 
       if follow_up.auto_send_message? && ai_followup?(follow_up)
         process_ai_followup(follow_up)
+      elsif follow_up.auto_send_message? && ai_callback?(follow_up)
+        process_ai_callback(follow_up)
       elsif follow_up.auto_send_message?
         process_auto_send(follow_up)
       else
@@ -25,6 +27,31 @@ class Crm::FollowUps::DueProcessor
 
   def ai_followup?(follow_up)
     follow_up.metadata.to_h['source'] == 'ai_followup'
+  end
+
+  def ai_callback?(follow_up)
+    follow_up.metadata.to_h['source'] == 'ai_callback'
+  end
+
+  # Retorno por data (one-shot). O CallbackRunner ENVIA (free_form/template) ou devolve :fallback
+  # quando não dá (sem template / encerramento / canal) — aí vira LEMBRETE pro humano (popup).
+  def process_ai_callback(follow_up)
+    result = Crm::FollowUps::CallbackRunner.new(follow_up: follow_up, now: @now).perform
+
+    case result.status
+    when :sent
+      follow_up.update!(status: :done, completed_at: @now)
+      log_message_sent(follow_up, follow_up.conversation&.messages&.find_by(id: follow_up.metadata.to_h['sent_message_id']))
+      finalize_follow_up(follow_up)
+    when :fallback
+      follow_up.update!(automation_mode: Crm::FollowUp.automation_modes[:reminder_only],
+                        metadata: follow_up.metadata.merge('callback_fallback' => result.error.to_s))
+      process_overdue(follow_up) # status overdue + reopen + notify popup + finalize
+    when :failed
+      follow_up.update!(due_at: result.retry_at, metadata: follow_up.metadata.merge('send_error' => result.error.to_s))
+      log_message_failed(follow_up, result.error)
+      finalize_follow_up(follow_up)
+    end
   end
 
   # Isolated branch for AI auto-follow-up touches. Delegates the whole per-touch
@@ -85,6 +112,7 @@ class Crm::FollowUps::DueProcessor
         metadata: follow_up.metadata.merge('send_error' => result.error.to_s)
       )
       log_message_failed(follow_up, result.error)
+      notify_auto_send_failed(follow_up)
     end
 
     finalize_follow_up(follow_up)
@@ -107,6 +135,33 @@ class Crm::FollowUps::DueProcessor
 
   def notify_reminder_due(follow_up)
     Crm::FollowUps::Broadcaster.broadcast_due(follow_up)
+    Crm::FollowUps::ReminderNotifier.new(follow_up).perform
+  end
+
+  def notify_auto_send_failed(follow_up)
+    user = follow_up.assignee
+    return if user.blank? || user.pubsub_token.blank?
+
+    ActionCableBroadcastJob.perform_later(
+      [user.pubsub_token],
+      Events::Types::CRM_FOLLOW_UP_DUE,
+      auto_send_failed_payload(follow_up)
+    )
+  end
+
+  def auto_send_failed_payload(follow_up)
+    card = follow_up.card
+    {
+      account_id: follow_up.account_id,
+      id: follow_up.id,
+      title: follow_up.title,
+      automation_mode: follow_up.automation_mode,
+      due_at: follow_up.due_at&.iso8601,
+      card_id: card&.id,
+      card: card.present? ? { id: card.id, title: card.title, pipeline_id: card.pipeline_id } : nil,
+      assignee_id: follow_up.assignee_id,
+      auto_send_failed: true
+    }
   end
 
   def finalize_follow_up(follow_up)

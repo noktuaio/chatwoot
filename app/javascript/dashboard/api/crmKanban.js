@@ -48,6 +48,44 @@ class CrmKanbanAPI extends ApiClient {
     });
   }
 
+  // Public booking profiles (S6) — admin only.
+  getBookingProfiles() {
+    return axios.get(`${this.url}/booking_profiles`);
+  }
+
+  createBookingProfile(payload) {
+    return axios.post(`${this.url}/booking_profiles`, {
+      booking_profile: payload,
+    });
+  }
+
+  updateBookingProfile(id, payload) {
+    return axios.patch(`${this.url}/booking_profiles/${id}`, {
+      booking_profile: payload,
+    });
+  }
+
+  deleteBookingProfile(id) {
+    return axios.delete(`${this.url}/booking_profiles/${id}`);
+  }
+
+  // Per-agent booking links (per_agent mode).
+  getBookingAgentLinks(id) {
+    return axios.get(`${this.url}/booking_profiles/${id}/agent_links`);
+  }
+
+  upsertBookingAgentLink(id, payload) {
+    return axios.post(`${this.url}/booking_profiles/${id}/agent_links`, {
+      agent_link: payload,
+    });
+  }
+
+  deleteBookingAgentLink(id, linkId) {
+    return axios.delete(
+      `${this.url}/booking_profiles/${id}/agent_links/${linkId}`
+    );
+  }
+
   getStages(pipelineId) {
     return axios.get(`${this.url}/pipelines/${pipelineId}/stages`);
   }
@@ -303,6 +341,10 @@ class CrmKanbanAPI extends ApiClient {
 
   getReportWorkload(params) {
     return axios.get(`${this.url}/reports/workload`, { params });
+  }
+
+  getReportMeetings(params) {
+    return axios.get(`${this.url}/reports/meetings`, { params });
   }
 }
 

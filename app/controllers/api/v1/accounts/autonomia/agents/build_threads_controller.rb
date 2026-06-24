@@ -10,9 +10,10 @@ class Api::V1::Accounts::Autonomia::Agents::BuildThreadsController < Api::V1::Ac
   def create
     @thread = build_threads_scope.new(thread_params)
     @thread.created_by = Current.user
-    @thread.persist_agent_type!(params[:type])
+    @thread.persist_start_options!(type: params[:type], actuation: params[:actuation], with_knowledge: params[:with_knowledge])
     @thread.save!
-    @thread.append_message!('user', params[:message], image_signed_ids: image_signed_ids_param) if params[:message].present?
+    @thread.append_message!('user', params[:message], image_signed_ids: image_signed_ids_param,
+                                                       client_message_id: params[:client_message_id]) if params[:message].present?
     persist_no_materials_flag
     persist_force_close_flag
     enqueue_build
@@ -25,7 +26,8 @@ class Api::V1::Accounts::Autonomia::Agents::BuildThreadsController < Api::V1::Ac
   def messages
     return render_unprocessable(I18n.t('autonomia.build_thread.message_blank')) if params[:message].blank?
 
-    @thread.append_message!('user', params[:message], image_signed_ids: image_signed_ids_param)
+    @thread.append_message!('user', params[:message], image_signed_ids: image_signed_ids_param,
+                                                       client_message_id: params[:client_message_id])
     persist_no_materials_flag
     persist_force_close_flag
     enqueue_build
@@ -67,6 +69,9 @@ class Api::V1::Accounts::Autonomia::Agents::BuildThreadsController < Api::V1::Ac
   end
 
   def enqueue_build
+    # #18 — o supersede de ajustes concorrentes é decidido no fechamento (apply_builder_config!), pelo
+    # id monotônico da thread: uma sessão de ajuste mais nova (id maior) vence a mais antiga. Sem
+    # marcação aqui (deadlock-free).
     token = @thread.begin_build!
     Autonomia::Agents::Builder::SubmitJob.perform_later(@thread.id, token)
   end

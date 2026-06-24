@@ -11,8 +11,9 @@ import {
   isOverdue,
   isDraggable,
   isValidDrop,
-  filterByOverlays,
   formatTime,
+  EVENT_TYPE_GROUP,
+  EVENT_TYPE_META,
   ptBR,
 } from './calendarEvents.js';
 
@@ -27,7 +28,13 @@ const props = defineProps({
   },
   overlays: {
     type: Object,
-    default: () => ({ reminders: true, whatsapp: true, closeDates: true }),
+    default: () => ({
+      reminders: true,
+      whatsapp: true,
+      closeDates: true,
+      meetings: true,
+      external: true,
+    }),
   },
 });
 
@@ -36,13 +43,43 @@ const emit = defineEmits(['dayClick', 'eventClick', 'slotClick', 'eventDrop']);
 const { t } = useI18n();
 
 const MAX_VISIBLE = 2;
+const MEETING_GROUP = 'meeting';
+const MEETING_META = {
+  group: MEETING_GROUP,
+  icon: 'i-logos-google-meet',
+  dotClass: 'bg-n-iris-9',
+  textClass: 'text-n-iris-11',
+  pillClass: 'bg-n-iris-9/10 text-n-iris-12',
+  overlayKey: 'meetings',
+};
 
 const weeks = computed(() => monthMatrix(props.cursorDate));
 const weekdays = computed(() => weekdayLabels('EEEEEE'));
 
 // Defensively respect the overlay toggles even though the parent pre-filters.
+const isMeetingEvent = event => event?.event_type === 'meeting';
+// External events are READ-ONLY availability context (the agent's own calendar):
+// rendered muted/dashed, never clickable into a card/detail, never draggable.
+const isExternalEvent = event => event?.event_type === 'external';
+
+const meetingIconClass = event =>
+  event?.provider === 'microsoft' || event?.online_meeting_type === 'teams'
+    ? 'i-logos-microsoft-teams'
+    : 'i-logos-google-meet';
+
+const groupForEvent = event =>
+  isMeetingEvent(event) ? MEETING_GROUP : EVENT_TYPE_GROUP(event.event_type);
+
+const metaForGroup = group =>
+  group === MEETING_GROUP ? MEETING_META : EVENT_TYPE_META[group];
+
+const metaForEvent = event => metaForGroup(groupForEvent(event));
+
+const filterEventsByOverlays = (events = [], overlays = {}) =>
+  events.filter(event => overlays[metaForEvent(event).overlayKey] !== false);
+
 const shownEvents = computed(() =>
-  filterByOverlays(props.events, props.overlays)
+  filterEventsByOverlays(props.events, props.overlays)
 );
 
 const dayKey = day => format(day, 'yyyy-MM-dd');
@@ -54,8 +91,8 @@ const dayLabel = day => format(day, 'd', { locale: ptBR });
 const fullDayLabel = day => format(day, "EEEE, d 'de' MMMM", { locale: ptBR });
 
 // Memoize the per-day event list once per render (keyed by yyyy-MM-dd) so the
-// three consumers below — visibleEvents, overflowCount and the overflow popover
-// — share a single eventsForDay pass instead of recomputing it each.
+// consumers below — dayCount, isDense, dayGroups and the dense-day popover —
+// share a single eventsForDay pass instead of recomputing it each.
 const eventsByDayKey = computed(() => {
   const map = {};
   weeks.value.forEach(week => {
@@ -67,14 +104,65 @@ const eventsByDayKey = computed(() => {
 });
 
 const dayEvents = day => eventsByDayKey.value[dayKey(day)] || [];
-const visibleEvents = day => dayEvents(day).slice(0, MAX_VISIBLE);
-const overflowCount = day => Math.max(0, dayEvents(day).length - MAX_VISIBLE);
+const dayCount = day => dayEvents(day).length;
 
-const eventDotClass = event => eventColorClass(event);
+// Light days list their events; dense days collapse into per-type count chips
+// (kills the "+154 more" dead-end — the day reads as its shape, not a wall).
+const DENSE_THRESHOLD = MAX_VISIBLE + 1;
+const isDense = day => dayCount(day) > DENSE_THRESHOLD;
+const aggregateEventsByGroup = (events = []) => {
+  const counts = {};
+  events.forEach(event => {
+    const group = groupForEvent(event);
+    counts[group] = (counts[group] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .map(([group, count]) => ({
+      group,
+      count,
+      meta: metaForGroup(group),
+    }))
+    .sort((a, b) => b.count - a.count);
+};
+
+const dayGroups = day => aggregateEventsByGroup(dayEvents(day));
+
+// Subtle heatmap tint so busy days surface at a glance (neutral, never clashes
+// with the type chips). Two intensity steps + nothing for quiet days.
+const densityClass = day => {
+  const n = dayCount(day);
+  if (n >= 20) return 'bg-n-alpha-2';
+  if (n >= DENSE_THRESHOLD + 1) return 'bg-n-alpha-1';
+  return '';
+};
+
+const eventDotClass = event =>
+  isMeetingEvent(event) ? MEETING_META.dotClass : eventColorClass(event);
 const eventTitle = event => event.title || '';
 
-const eventLabelClass = event =>
-  isOverdue(event) ? 'text-n-ruby-11' : 'text-n-slate-12';
+// Hover tooltip — external events surface the read-only context copy so the
+// muted styling reads as "your calendar", not a broken/clickable CRM event.
+const eventTooltip = event =>
+  isExternalEvent(event)
+    ? `${eventTitle(event) || t('CRM_KANBAN.CALENDAR.EXTERNAL_EVENT')} · ${t('CRM_KANBAN.CALENDAR.EXTERNAL_TOOLTIP')}`
+    : eventTitle(event);
+
+const eventLabelClass = event => {
+  if (isExternalEvent(event)) return 'text-n-slate-10 italic';
+  if (isOverdue(event)) return 'text-n-ruby-11';
+  if (isMeetingEvent(event)) return 'text-n-iris-12';
+  return 'text-n-slate-12';
+};
+
+const eventButtonClass = event => {
+  if (isExternalEvent(event))
+    return 'bg-n-alpha-1 outline-dashed outline-1 outline-n-slate-6 cursor-default hover:bg-n-alpha-2';
+  if (isMeetingEvent(event)) return 'bg-n-iris-9/10 hover:bg-n-iris-9/20';
+  return '';
+};
+
+const eventIsDraggable = event =>
+  !isMeetingEvent(event) && !isExternalEvent(event) && isDraggable(event);
 
 /* -------------------------------------------------------------------------- */
 /* Drag-to-reschedule (native HTML5)                                          */
@@ -84,7 +172,7 @@ const draggingEvent = ref(null);
 const dragOverKey = ref(null);
 
 const onDragStart = (event, nativeEvent) => {
-  if (!isDraggable(event)) {
+  if (!eventIsDraggable(event)) {
     nativeEvent.preventDefault();
     return;
   }
@@ -144,6 +232,9 @@ const onDayNumberClick = day => {
 };
 
 const onEventClick = event => {
+  // External events are read-only context — clicking does nothing (the title
+  // tooltip is the only affordance). Never open a card/detail/scheduler.
+  if (isExternalEvent(event)) return;
   emit('eventClick', event);
 };
 </script>
@@ -169,7 +260,9 @@ const onEventClick = event => {
           :key="dayKey(day)"
           class="flex flex-col min-h-[7rem] gap-1 p-1 border-b border-r border-n-weak transition-colors"
           :class="[
-            isOutsideMonth(day) ? 'bg-n-alpha-black2' : 'bg-n-surface-1',
+            isOutsideMonth(day)
+              ? 'bg-n-alpha-black2'
+              : densityClass(day) || 'bg-n-surface-1',
             isDropTarget(day)
               ? 'ring-2 ring-inset ring-n-brand bg-n-brand/5'
               : '',
@@ -197,78 +290,141 @@ const onEventClick = event => {
             </button>
           </div>
 
-          <div class="flex flex-col gap-0.5">
-            <button
-              v-for="event in visibleEvents(day)"
-              :key="event.id"
-              type="button"
-              :draggable="isDraggable(event)"
-              class="flex items-center w-full gap-1 px-1 py-0.5 text-left rounded cursor-pointer hover:bg-n-alpha-2"
-              :class="{ 'cursor-grab': isDraggable(event) }"
-              @click.stop="onEventClick(event)"
-              @dragstart="onDragStart(event, $event)"
-              @dragend="onDragEnd"
-            >
-              <span
-                class="w-1.5 h-1.5 rounded-full shrink-0"
-                :class="eventDotClass(event)"
-              />
-              <span
-                v-if="formatTime(event.starts_at)"
-                class="text-[10px] tabular-nums shrink-0 text-n-slate-10"
+          <div class="flex flex-col gap-0.5 min-h-0">
+            <!-- Light day: list each event -->
+            <template v-if="!isDense(day)">
+              <button
+                v-for="event in dayEvents(day)"
+                :key="event.id"
+                type="button"
+                :draggable="eventIsDraggable(event)"
+                :title="eventTooltip(event)"
+                class="flex items-center w-full gap-1 px-1 py-0.5 text-left rounded cursor-pointer hover:bg-n-alpha-2"
+                :class="[
+                  eventButtonClass(event),
+                  { 'cursor-grab': eventIsDraggable(event) },
+                ]"
+                @click.stop="onEventClick(event)"
+                @dragstart="onDragStart(event, $event)"
+                @dragend="onDragEnd"
               >
-                {{ formatTime(event.starts_at) }}
-              </span>
-              <span class="text-xs truncate" :class="eventLabelClass(event)">
-                {{ eventTitle(event) }}
-              </span>
-            </button>
-
-            <Popover v-if="overflowCount(day) > 0" align="start" @click.stop>
-              <template #default>
-                <button
-                  type="button"
-                  class="w-full px-1 py-0.5 text-xs font-medium text-left rounded text-n-slate-10 hover:bg-n-alpha-2"
-                  @click.stop
+                <span
+                  class="w-1.5 h-1.5 rounded-full shrink-0"
+                  :class="eventDotClass(event)"
+                />
+                <span
+                  v-if="isMeetingEvent(event)"
+                  class="size-3.5 shrink-0"
+                  :class="meetingIconClass(event)"
+                  aria-hidden="true"
+                />
+                <span
+                  v-else-if="isExternalEvent(event)"
+                  class="i-lucide-calendar size-3.5 shrink-0 text-n-slate-9"
+                  aria-hidden="true"
+                />
+                <span
+                  v-if="formatTime(event.starts_at)"
+                  class="text-[10px] tabular-nums shrink-0 text-n-slate-10"
                 >
-                  {{ t('CRM_KANBAN.CALENDAR.MORE', { n: overflowCount(day) }) }}
-                </button>
-              </template>
-              <template #content="{ hide }">
-                <div class="flex flex-col w-64 gap-1 p-3">
-                  <div class="px-1 pb-1 text-xs font-medium text-n-slate-10">
-                    {{ fullDayLabel(day) }}
-                  </div>
+                  {{ formatTime(event.starts_at) }}
+                </span>
+                <span class="text-xs truncate" :class="eventLabelClass(event)">
+                  {{ eventTitle(event) }}
+                </span>
+              </button>
+            </template>
+
+            <!-- Dense day: per-type count chips → popover with full grouped list.
+                 Wrapper stops the click bubbling to the cell (slot-click) AFTER the
+                 Popover's own trigger toggles it open. -->
+            <div
+              v-else
+              class="w-full [&>span]:flex [&>span]:w-full"
+              @click.stop
+            >
+              <Popover align="start">
+                <template #default>
                   <button
-                    v-for="event in dayEvents(day)"
-                    :key="`more-${event.id}`"
                     type="button"
-                    class="flex items-center w-full gap-2 px-2 py-1.5 text-left rounded-md hover:bg-n-alpha-2"
-                    @click.stop="
-                      onEventClick(event);
-                      hide();
+                    class="flex flex-col w-full gap-0.5 text-left"
+                    :aria-label="
+                      t('CRM_KANBAN.CALENDAR.DENSE_SUMMARY', {
+                        n: dayCount(day),
+                      })
                     "
                   >
                     <span
-                      class="w-2 h-2 rounded-full shrink-0"
-                      :class="eventDotClass(event)"
-                    />
-                    <span
-                      v-if="formatTime(event.starts_at)"
-                      class="text-[11px] tabular-nums shrink-0 text-n-slate-10"
+                      v-for="g in dayGroups(day)"
+                      :key="g.group"
+                      class="flex items-center w-full gap-1.5 rounded px-1.5 py-0.5 text-xs font-medium tabular-nums"
+                      :class="g.meta.pillClass"
                     >
-                      {{ formatTime(event.starts_at) }}
-                    </span>
-                    <span
-                      class="text-sm truncate"
-                      :class="eventLabelClass(event)"
-                    >
-                      {{ eventTitle(event) }}
+                      <span class="size-3.5 shrink-0" :class="g.meta.icon" />
+                      {{ g.count }}
                     </span>
                   </button>
-                </div>
-              </template>
-            </Popover>
+                </template>
+                <template #content="{ hide }">
+                  <div
+                    class="flex flex-col gap-1 p-3 w-72 max-h-80 overflow-y-auto"
+                  >
+                    <div class="px-1 pb-1">
+                      <p class="mb-0 text-xs font-medium text-n-slate-11">
+                        {{ fullDayLabel(day) }}
+                      </p>
+                      <p class="mb-0 text-[11px] text-n-slate-10">
+                        {{
+                          t('CRM_KANBAN.CALENDAR.DENSE_SUMMARY', {
+                            n: dayCount(day),
+                          })
+                        }}
+                      </p>
+                    </div>
+                    <button
+                      v-for="event in dayEvents(day)"
+                      :key="`more-${event.id}`"
+                      type="button"
+                      :title="eventTooltip(event)"
+                      class="flex items-center w-full gap-2 px-2 py-1.5 text-left rounded-md hover:bg-n-alpha-2"
+                      :class="eventButtonClass(event)"
+                      @click.stop="
+                        onEventClick(event);
+                        hide();
+                      "
+                    >
+                      <span
+                        class="w-2 h-2 rounded-full shrink-0"
+                        :class="eventDotClass(event)"
+                      />
+                      <span
+                        v-if="isMeetingEvent(event)"
+                        class="size-3.5 shrink-0"
+                        :class="meetingIconClass(event)"
+                        aria-hidden="true"
+                      />
+                      <span
+                        v-else-if="isExternalEvent(event)"
+                        class="i-lucide-calendar size-3.5 shrink-0 text-n-slate-9"
+                        aria-hidden="true"
+                      />
+                      <span
+                        v-if="formatTime(event.starts_at)"
+                        class="text-[11px] tabular-nums shrink-0 text-n-slate-10"
+                      >
+                        {{ formatTime(event.starts_at) }}
+                      </span>
+                      <span
+                        class="text-sm truncate"
+                        :class="eventLabelClass(event)"
+                      >
+                        {{ eventTitle(event) }}
+                      </span>
+                    </button>
+                  </div>
+                </template>
+              </Popover>
+            </div>
           </div>
         </div>
       </template>

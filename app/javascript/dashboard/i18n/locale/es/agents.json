@@ -241,13 +241,6 @@
       "RECONVERSE_CLOSE": "Hecho",
       "CURRENT_CARD": "Lo que hace tu agente hoy",
       "NO_CARD": "Aún no hay un resumen disponible.",
-      "IDENTITY_TITLE": "Imagen del agente",
-      "IDENTITY_HINT": "Usa una foto o marca para identificar este agente en tarjetas y paneles.",
-      "AVATAR_UPDATING": "Actualizando imagen…",
-      "AVATAR_UPLOAD_SUCCESS": "Imagen del agente actualizada.",
-      "AVATAR_UPLOAD_ERROR": "No pudimos actualizar la imagen del agente.",
-      "AVATAR_DELETE_SUCCESS": "Imagen del agente eliminada.",
-      "AVATAR_DELETE_ERROR": "No pudimos eliminar la imagen del agente.",
       "INSTRUCTION_LABEL": "Instrucción",
       "INSTRUCTION_PLACEHOLDER": "Escribe la instrucción para tu agente…",
       "MANUAL_WARNING": "Aquí escribes la instrucción. Seguimos aplicando medidas de seguridad en segundo plano.",
@@ -266,10 +259,10 @@
         "PLAYFUL": "Desenfadado"
       },
       "HANDOFF_STRATEGY": "Transferir a una persona",
-      "HANDOFF_HINT": "Usa “Miembro de la bandeja” para asignar automáticamente la conversación a una persona conectada al canal cuando el agente la transfiera.",
       "HANDOFF_OPTIONS": {
-        "NONE": "No asignar automáticamente",
-        "INBOX_MEMBER": "Miembro de la bandeja"
+        "LOW_CONFIDENCE": "Cuando haya dudas",
+        "ALWAYS_ASK": "Ofrecer siempre una persona",
+        "NEVER": "Nunca"
       },
       "CONFIDENCE_THRESHOLD": "Umbral de confianza",
       "SAVE": "Guardar cambios",

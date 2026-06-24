@@ -44,6 +44,7 @@ class Crm::FollowUps::Rescheduler
 
     @follow_up.transaction do
       @follow_up.update!(due_at: @due_at)
+      @follow_up.update!(status: :pending) if @follow_up.overdue?
       Crm::FollowUps::SnoozeHandler.apply(@follow_up) if @follow_up.pending?
       Crm::FollowUps::CardNextDueUpdater.update(@follow_up.card)
       log_activity

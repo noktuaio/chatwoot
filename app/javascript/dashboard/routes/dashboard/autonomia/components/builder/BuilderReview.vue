@@ -47,6 +47,10 @@ const { t } = useI18n();
 // and never the raw instruction/scaffold (IP OCULTO). Use it directly.
 const summary = computed(() => props.agent?.human_card || '');
 
+// V2.1 — internal agents (team copilot) are never customer-facing: no inbox to
+// connect. The backend blocks the connect anyway; this hides the UI as a 2nd defense.
+const isInternal = computed(() => props.agent?.actuation === 'internal');
+
 // There is no `role` field on the agent. It carries `agent_type` (one of the
 // canonical enum values), which maps to a localized label, mirroring the type
 // picker's keys.
@@ -197,31 +201,46 @@ const onConnect = () => {
       class="flex flex-col gap-4 p-6 border rounded-xl border-n-weak bg-n-solid-1"
     >
       <h4 class="text-sm font-medium text-n-slate-12">
-        {{ t('AGENTS.REVIEW.CONNECT_TITLE') }}
+        {{
+          isInternal
+            ? t('AGENTS.REVIEW.INTERNAL_TITLE')
+            : t('AGENTS.REVIEW.CONNECT_TITLE')
+        }}
       </h4>
 
+      <!-- Internal agent: team copilot, no inbox to connect. -->
       <div
+        v-if="isInternal"
         class="flex items-start gap-2 px-3 py-2 text-xs rounded-lg bg-n-iris-3 text-n-iris-11"
       >
-        <i class="i-lucide-info size-4 mt-0.5 shrink-0" />
-        <span>{{ t('AGENTS.CHANNELS.ONE_PER_INBOX') }}</span>
+        <i class="i-lucide-headset size-4 mt-0.5 shrink-0" />
+        <span>{{ t('AGENTS.REVIEW.INTERNAL_HINT') }}</span>
       </div>
 
-      <div class="flex flex-col gap-2">
-        <label class="text-xs font-medium text-n-slate-11">
-          {{ t('AGENTS.REVIEW.SELECT_INBOX') }}
-        </label>
-        <Select
-          v-model="selectedInbox"
-          class="!w-full [&_select]:w-full"
-          :options="inboxOptions"
-          :placeholder="t('AGENTS.REVIEW.SELECT_INBOX')"
-          :disabled="!inboxOptions.length"
-        />
-        <p v-if="!inboxOptions.length" class="text-xs text-n-slate-10">
-          {{ t('AGENTS.CHANNELS.NO_ELIGIBLE') }}
-        </p>
-      </div>
+      <template v-else>
+        <div
+          class="flex items-start gap-2 px-3 py-2 text-xs rounded-lg bg-n-iris-3 text-n-iris-11"
+        >
+          <i class="i-lucide-info size-4 mt-0.5 shrink-0" />
+          <span>{{ t('AGENTS.CHANNELS.ONE_PER_INBOX') }}</span>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-medium text-n-slate-11">
+            {{ t('AGENTS.REVIEW.SELECT_INBOX') }}
+          </label>
+          <Select
+            v-model="selectedInbox"
+            class="!w-full [&_select]:w-full"
+            :options="inboxOptions"
+            :placeholder="t('AGENTS.REVIEW.SELECT_INBOX')"
+            :disabled="!inboxOptions.length"
+          />
+          <p v-if="!inboxOptions.length" class="text-xs text-n-slate-10">
+            {{ t('AGENTS.CHANNELS.NO_ELIGIBLE') }}
+          </p>
+        </div>
+      </template>
 
       <div
         class="flex flex-col gap-2 pt-2 border-t sm:flex-row sm:items-center sm:justify-between border-n-weak"
@@ -241,6 +260,7 @@ const onConnect = () => {
             @click="emit('back')"
           />
           <NextButton
+            v-if="!isInternal"
             solid
             blue
             icon="i-lucide-plug"

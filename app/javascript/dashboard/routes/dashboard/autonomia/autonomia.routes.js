@@ -51,18 +51,8 @@ export const routes = [
     component: AgentBuilderPage,
   },
   {
-    path: frontendURL('accounts/:accountId/agents/:agentId/edit-ai'),
-    name: 'autonomia_agents_builder_edit',
-    meta,
-    beforeEnter: ensureAutonomiaEnabled,
-    component: AgentBuilderPage,
-    props: route => ({
-      targetAgentId: route.params.agentId,
-    }),
-  },
-  {
     path: frontendURL(
-      'accounts/:accountId/agents/:agentId/:tab(test|knowledge|channels|performance|publish|tune)?'
+      'accounts/:accountId/agents/:agentId/:tab(test|knowledge|channels|performance|tune)?'
     ),
     name: 'autonomia_agent_panel',
     meta,

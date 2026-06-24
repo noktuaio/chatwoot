@@ -2,17 +2,17 @@
   Template: Webinar Thank You & Review Request
   File: 01-webinar-thank-you-review.mjml
   Category: event-follow-up / post-webinar
-
+  
   Purpose:
   Thank attendees after webinar/event and request feedback/review.
   Reinforce key takeaways while building community and gathering testimonials.
-
+  
   When to send:
   - 2-6 hours after webinar/event ends (same day, while fresh)
   - After virtual conference, workshop, training session
   - Post-live demo or product launch event
   - Educational webinar series (send after each session)
-
+  
   Personalize:
   - {{first_name}} or {{firstName}}
   - {{webinar_title}} (e.g., "Artificial Intelligence Webinar")
@@ -21,7 +21,7 @@
   - {{slides_url}} (optional - presentation download)
   - {{next_event_date}} (optional - promote next webinar)
   - Brand colors (#006d77 primary teal, #83c5be light teal, #edf6f9 background)
-
+  
   Notes:
   - Marketing/transactional hybrid (post-event follow-up)
   - Gratitude-first approach before asking for feedback
@@ -45,7 +45,7 @@
         <mj-text align="center" color="#edf6f9" font-size="26px" font-weight="bold" padding="20px 0 10px 0">
           Thank You for Joining Our Artificial Intelligence Webinar!
         </mj-text>
-        <mj-image
+        <mj-image 
           src="https://res.cloudinary.com/dk79hhqvp/image/upload/v1748615099/uploaded-by-ai/a-dynamic-scene-depicting-a-diverse-team-collaborating-on-ai.jpg"
           alt="AI Webinar Team Collaboration"
           width="500px"

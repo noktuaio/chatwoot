@@ -137,15 +137,9 @@ class Crm::Kanban::BoardPayloadBuilder
     cards = cards_scope.preload(
       :contact, :owner,
       { inbox: { agent_bot_inbox: :agent_bot } },
-      { primary_conversation: conversation_preloads }
+      { primary_conversation: [:conversation_participants, :assignee, { applied_sla: :sla_policy }, { inbox: { agent_bot_inbox: :agent_bot } }] }
     ).limit(limit_per_stage + 1).to_a
     [cards.first(limit_per_stage), cards.size > limit_per_stage]
-  end
-
-  def conversation_preloads
-    preloads = [:conversation_participants, :assignee, { inbox: { agent_bot_inbox: :agent_bot } }]
-    preloads << { applied_sla: :sla_policy } if Conversation.reflect_on_association(:applied_sla)
-    preloads
   end
 
   def cursor_for(stage)

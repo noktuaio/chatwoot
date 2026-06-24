@@ -1,4 +1,9 @@
 class Autonomia::Agents::Retriever
+  # #14 — Erro DISTINTO de infra/banco no retrieval (pgvector/conexão/statement inválido). Difere de
+  # "sem KB" (que é uma lista []): sinaliza ao Answerer que a RECUPERAÇÃO FALHOU (não que não há
+  # conhecimento) → handoff seguro no fluxo gateado (Guia/copiloto), em vez de responder ungrounded.
+  class RetrievalError < StandardError; end
+
   def initialize(agent:)
     @agent = agent
   end
@@ -25,11 +30,17 @@ class Autonomia::Agents::Retriever
     # (where.not rejected) — não reabre contaminação. Vetorial primeiro, dedup por id.
     result = merge_lexical(result, query, top_k) if reinforce_lexical?(result)
     result
+  rescue ActiveRecord::ActiveRecordError => e
+    # #14 — FALHA DE INFRA/BANCO (pgvector fora, conexão perdida, statement inválido): NÃO mascarar
+    # como "sem KB" (que faria o agente responder ungrounded ou dizer "não tenho material"). Levanta
+    # erro DISTINTO → o Answerer faz handoff seguro no caminho gateado (Guia/copiloto); no operate
+    # instrução-dirigido, degrada para [] (não silenciar o bot por uma falha transitória de banco).
+    Rails.logger.error("[autonomia][retriever] db_failure agent=#{@agent.id} #{e.class}")
+    raise RetrievalError, 'retrieval_unavailable'
   rescue Autonomia::Agents::EmbeddingService::EmbeddingError, StandardError => e
-    # RESILIÊNCIA (Testar): erro de embedding/credencial/provider NÃO pode quebrar o modo Testar.
-    # Degrada para [] → o Answerer responde pela personalidade ou faz handoff seguro (nunca 500).
-    # Rescue largo proposital: agente sem KB já retorna [] vizinhos; este rescue cobre o caminho
-    # em que o próprio embed levanta (provider fora, sem crédito, timeout).
+    # RESILIÊNCIA (Testar/operate): erro de embedding/credencial/provider/timeout NÃO pode quebrar o
+    # fluxo. Degrada para [] → o Answerer responde pela personalidade/instrução ou faz handoff seguro
+    # (nunca 500). Cobre o caminho em que o próprio embed levanta (provider fora, sem crédito, timeout).
     Rails.logger.warn("[autonomia][retriever] degraded agent=#{@agent.id} #{e.class}")
     []
   end

@@ -25,7 +25,6 @@ module Autonomia
         def perform(conversation_id, message_id, phase = 'trigger')
           conversation = Conversation.find_by(id: conversation_id)
           return if conversation.blank?
-          return if ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(conversation)
 
           # Gate POR CONTA: ENV master + feature da conta DONA da conversa. Job roda
           # fora de request (sem Current.account); a conta certa é conversation.account.
@@ -41,21 +40,11 @@ module Autonomia
 
         private
 
-        # Guards de estado (espelham sec.2/3 da spec): inbox vinculado a um AgentInbox de
-        # agente ATIVO, conversa PENDING (bot no comando) e UNASSIGNED (nenhum humano).
-        # Qualquer falha -> nil -> no-op. Não toca o core de mensagens.
+        # Contrato CANÔNICO de elegibilidade (sem responsável + agente ligado/ativo/não-interno/
+        # não-sistema + allowlist; status irrelevante) — fonte única em Operate.eligible_agent_inbox,
+        # reusada no momento de postar (Responder/ChunkedDelivery) para revalidar com estado fresco.
         def eligible_agent_inbox(conversation)
-          return if ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(conversation)
-          return unless conversation.pending?
-          return if conversation.assignee_id.present?
-
-          agent_inbox = ::Autonomia::Agents::AgentInbox.find_by(inbox_id: conversation.inbox_id)
-          return if agent_inbox.blank?
-          # kill-switch em runtime: `enabled` (boolean) é independente do `status` (enum).
-          # Se o admin desliga o agente com o inbox já vinculado, o bot PARA de responder.
-          return unless agent_inbox.agent&.enabled? && agent_inbox.agent&.active?
-
-          agent_inbox
+          ::Autonomia::Agents::Operate.eligible_agent_inbox(conversation)
         end
 
         # Fase 'trigger': grava o stamp (last-writer-wins) e agenda o settle. Cada incoming

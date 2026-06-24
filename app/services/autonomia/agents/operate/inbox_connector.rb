@@ -29,6 +29,9 @@ module Autonomia
         private
 
         def connect!
+          # V2.1 — agente INTERNO (copiloto da equipe) NUNCA atende cliente: bloqueia o vínculo de caixa
+          # (não cria AgentBot/AgentBotInbox/AgentInbox). Autoridade no backend; a UI esconde como 2ª defesa.
+          return Result.new(status: :error, error: :agent_internal_not_connectable) if @agent.actuation_internal?
           return Result.new(status: :error, error: :agent_not_active) unless agent_operable?
           return Result.new(status: :error, error: :inbox_has_webhook_bot) if webhook_bot_present?
           return Result.new(status: :error, error: :inbox_already_connected) if already_connected?

@@ -12,10 +12,20 @@ module Crm
 
       MODEL_SUMMARY = 'gpt-5.4-mini'.freeze
       MODEL_CLASSIFY = 'gpt-5.4-mini'.freeze
-      MODEL_AUTO_MOVE = 'gpt-5.4'.freeze
+      MODEL_AUTO_MOVE = 'gpt-5.5'.freeze
       MODEL_FOLLOWUP = 'gpt-5.4-mini'.freeze
       # E-mail builder copilot (multimodal generate). Full model — sees images/PDFs and writes MJML.
-      MODEL_EMAIL = 'gpt-5.4'.freeze
+      MODEL_EMAIL = 'gpt-5.5'.freeze
+
+      # REASONING EFFORT por tarefa (modelos seguem mini). Decisões que FALAM com o cliente
+      # (follow-up composer + envio do callback) usam 'xhigh' — mais segurança, baixa frequência.
+      # As de TODA mensagem (classifier/resumo/visão) usam 'high' — equilíbrio custo×latência.
+      # Suportados no gpt-5.4-mini: none/low/medium/high/xhigh (validado por probe no endpoint).
+      CLASSIFY_REASONING_EFFORT = 'high'.freeze
+      SUMMARY_REASONING_EFFORT = 'high'.freeze
+      VISION_REASONING_EFFORT = 'high'.freeze
+      FOLLOWUP_REASONING_EFFORT = 'xhigh'.freeze
+      CALLBACK_REASONING_EFFORT = 'xhigh'.freeze
       # Per-PDF byte cap and per-request PDF count cap for the e-mail copilot (guards download/base64
       # of attached PDFs before they become input_file content parts).
       PDF_BYTE_LIMIT = 32_000_000
@@ -35,11 +45,58 @@ module Crm
         'tone_instructions' => ''
       }.freeze
 
+      # DETECÇÃO DE RETORNO POR DATA ("me liga terça que vem") — o classificador (que já lê TODA
+      # mensagem) também extrai um pedido de retorno com data/hora; quando concreto e confiável, cria um
+      # LEMBRETE (Crm::FollowUp reminder_only, type=call) na data — que já aparece no calendário e no
+      # popup de lembrete. Só cria com confiança alta e data concreta futura (evita falso-positivo de
+      # frase vaga). KILL-SWITCH: ENV AI_CALLBACK_DETECTION (default ON).
+      CALLBACK_MIN_CONFIDENCE = 0.6
+      CALLBACK_MAX_HORIZON_DAYS = 180          # ignora datas muito distantes (provável erro de leitura)
+      CALLBACK_DEFAULT_HOUR = 9                 # sem hora/período → início do expediente
+      CALLBACK_PERIOD_HOURS = { 'manha' => 9, 'tarde' => 14, 'noite' => 19 }.freeze
+
+      def self.callback_detection_enabled?
+        BOOLEAN.cast(ENV.fetch('AI_CALLBACK_DETECTION', true))
+      end
+
+      # Toggle POR FUNIL (pipeline.metadata['ai']['callback_enabled'], default LIGADO). Controlado na
+      # config de IA do funil e no atalho do calendário. Combina com o kill-switch global da ENV.
+      def self.pipeline_callback_enabled?(pipeline)
+        pipeline_ai_settings(pipeline)[:callback_enabled] != false
+      end
+
+      # MODO do retorno por funil: 'reminder' (só lembrete na tela, default), 'message' (mensagem
+      # auto-agendada na data — IA gera/escolhe template, fallback p/ lembrete) ou 'both' (os dois).
+      CALLBACK_MODES = %w[reminder message both].freeze
+
+      def self.pipeline_callback_mode(pipeline)
+        mode = pipeline_ai_settings(pipeline)[:callback_mode].to_s
+        CALLBACK_MODES.include?(mode) ? mode : 'reminder'
+      end
+
+      # Timezone EFETIVO para ancorar "amanhã 10h" e gravar o lembrete: contato
+      # (additional_attributes['timezone']) → account.reporting_timezone → 'UTC'. Espelha o
+      # AutoFollowupPlanner (quiet hours) para consistência. Sempre devolve um nome de tz VÁLIDO.
+      def self.resolved_timezone(account:, contact: nil)
+        contact_tz = contact&.additional_attributes.to_h['timezone'].presence
+        return contact_tz if ActiveSupport::TimeZone[contact_tz.to_s].present?
+
+        account_tz = account&.try(:reporting_timezone).presence
+        ActiveSupport::TimeZone[account_tz.to_s].present? ? account_tz : 'UTC'
+      end
+
       # Media enrichment (PR13.1): audio via transcription, image via vision caption.
-      TRANSCRIBE_MODEL = 'gpt-4o-mini-transcribe'.freeze
+      # whisper-1: aceita OGG/Opus (.oga — formato de voz do WhatsApp/WAHA), m4a (iOS/Instagram), mp3,
+      # wav, webm. O gpt-4o-mini-transcribe REJEITA oga/ogg ("Unsupported file format oga", HTTP 400),
+      # então quebrava a transcrição de áudio de WhatsApp. Override por ENV p/ trocar sem deploy.
+      TRANSCRIBE_MODEL = ENV.fetch('CRM_AI_TRANSCRIBE_MODEL', 'whisper-1').freeze
       VISION_MODEL = 'gpt-5.4-mini'.freeze
       TRANSCRIPTION_BYTE_LIMIT = 25_000_000
       IMAGE_BYTE_LIMIT = 18_000_000
+      # TTS (espelhamento de áudio — Onda 2c): voz a partir do texto da resposta. Saída `opus` = formato
+      # de voz nativo do WhatsApp (toca como áudio de voz, não anexo). Override por ENV.
+      TTS_MODEL = ENV.fetch('CRM_AI_TTS_MODEL', 'gpt-4o-mini-tts').freeze
+      TTS_CHAR_LIMIT = 1200 # cap de entrada (custo/latência); a resposta do operate costuma ser curta
       MAX_MEDIA_ENRICH_PER_EVAL = 12
       TRANSCRIPT_MAX_CHARS = 1500
       CAPTION_MAX_CHARS = 400

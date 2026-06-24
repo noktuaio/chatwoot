@@ -25,6 +25,10 @@ module Autonomia
       # ANTES de existir um agente-rascunho. Alimenta Builder#builder_agent_type (esqueleto por tipo e
       # 1º turno) enquanto @thread.agent ainda é nil.
       store_accessor :state, :agent_type
+      # V2.1 — escolhas da abertura: atuação (external/internal/both) e se terá base de conhecimento.
+      # Persistidas no jsonb `state` ANTES de existir o agente-rascunho; o Builder lê via
+      # builder_actuation / with_knowledge?. with_knowledge=false também semeia no_materials_declared.
+      store_accessor :state, :actuation, :with_knowledge
 
       # Persiste o tipo escolhido na abertura, normalizando para os AGENT_TYPES válidos (desconhecido →
       # 'custom'). Só grava quando vem um valor; chamado pelo controller no create da thread.
@@ -33,6 +37,27 @@ module Autonomia
 
         valid = Autonomia::Agents::Agent::AGENT_TYPES.include?(type) ? type : 'custom'
         self.state = (state || {}).merge('agent_type' => valid)
+      end
+
+      ACTUATIONS = %w[external internal both].freeze
+
+      # V2.1 — grava as escolhas da abertura (tipo + atuação + base) num único merge no jsonb `state`.
+      # `actuation` normaliza para um valor válido (fallback external = comportamento atual);
+      # `with_knowledge=false` também semeia `no_materials_declared` para reusar o portão sem-material
+      # do Builder (não pedir documentos no 1º turno). Valores ausentes mantêm os defaults de hoje.
+      def persist_start_options!(type:, actuation: nil, with_knowledge: nil)
+        persist_agent_type!(type)
+        merged = (state || {}).dup
+
+        merged['actuation'] = ACTUATIONS.include?(actuation.to_s) ? actuation.to_s : 'external' unless actuation.nil?
+
+        # with_knowledge=false NÃO semeia no_materials_declared: aquele flag é o portão de FECHAMENTO
+        # ("sem material, feche") e fecharia o build no 1º turno sem coletar o essencial. A orientação de
+        # não pedir documentos vem do Builder#knowledge_intent_context (bloco persistente), preservando a
+        # entrevista normal. with_knowledge só registra a intenção (refletida no config do agente).
+        merged['with_knowledge'] = ActiveModel::Type::Boolean.new.cast(with_knowledge) unless with_knowledge.nil?
+
+        self.state = merged
       end
 
       # token-guard da geração do construtor (padrão EmailCampaign#ai_begin!): marca processing +
@@ -64,11 +89,24 @@ module Autonomia
       # MULTIMODAL (aditivo): `image_signed_ids` opcional guarda as referências ActiveStorage das imagens
       # anexadas a ESTE turno; default [] preserva o shape legado {role,content,at} (sem regressão). O
       # Builder resolve as imagens só do último turno user (Builder#image_parts_for).
-      def append_message!(role, content, image_signed_ids: [])
+      def append_message!(role, content, image_signed_ids: [], client_message_id: nil)
+        cid = client_message_id.to_s.presence
+        # #17 — IDEMPOTÊNCIA (best-effort): se este turno já foi gravado com o mesmo client_message_id
+        # (double-click / retry do front), é no-op — evita turno duplicado. Sem id (legado) não dedup.
+        reload if cid
+        return if cid && Array(messages).any? { |m| m['cid'] == cid }
+
         entry = { 'role' => role, 'content' => content.to_s, 'at' => Time.current.iso8601 }
         ids = Array(image_signed_ids).map(&:to_s).compact_blank
         entry['image_signed_ids'] = ids if ids.any?
-        update!(messages: (messages || []) + [entry])
+        entry['cid'] = cid if cid
+        # #17 — APPEND ATÔMICO no banco (jsonb `||` concatena; COALESCE cobre messages NULL). Substitui
+        # o read-modify-write em Ruby (`messages = (messages||[]) + [entry]`), que sob concorrência
+        # (2 abas / requests simultâneos) sobrescrevia o array inteiro e PERDIA mensagens (lost-update).
+        self.class.where(id: id).update_all(
+          ['messages = COALESCE(messages, \'[]\'::jsonb) || ?::jsonb, updated_at = ?', [entry].to_json, Time.current]
+        )
+        reload
       end
 
       private

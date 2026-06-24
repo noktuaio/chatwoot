@@ -16,7 +16,12 @@ class Api::V1::Accounts::Autonomia::Agents::BuilderImagesController < Api::V1::A
     blob = ActiveStorage::Blob.create_and_upload!(
       io: file.tempfile, filename: file.original_filename, content_type: content_type, identify: false
     )
-    render json: { signed_id: blob.signed_id, content_type: content_type }
+    # signed_id PURPOSE-BOUND + expirável: só resolvível pelo builder (mesmo purpose) e por tempo
+    # limitado — um signed_id vazado de outra feature/contexto não vira imagem do builder.
+    render json: {
+      signed_id: blob.signed_id(purpose: :autonomia_builder_image, expires_in: 1.day),
+      content_type: content_type
+    }
   end
 
   private

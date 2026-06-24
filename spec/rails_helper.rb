@@ -2,18 +2,8 @@ ENV['RAILS_ENV'] ||= 'test'
 
 require File.expand_path('../config/environment', __dir__)
 abort('The Rails environment is running in production mode!') if Rails.env.production?
+
 require 'rspec/rails'
-require 'pundit/rspec'
-require 'sidekiq/testing'
-
-# Load Rake tasks
-require 'rake'
-Rails.application.load_tasks
-
-# test-prof helpers for tests optimization
-require 'test_prof/recipes/rspec/before_all'
-require 'test_prof/recipes/rspec/let_it_be'
-
 require 'active_job/test_helper'
 
 Dir[Rails.root.join('spec/support/**/*.rb')].sort.each { |file| require file }

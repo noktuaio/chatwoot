@@ -6,6 +6,8 @@ module Crm
     # temperature 0.0) and writes to the shared cache key
     # `attachment.meta['transcribed_text']`.
     class TranscriptionClient
+      class Error < StandardError; end
+
       def initialize(credential:)
         @credential = credential
       end
@@ -36,8 +38,20 @@ module Crm
       def client
         @client ||= OpenAI::Client.new(
           access_token: @credential[:api_key],
-          uri_base: @credential[:api_base]
+          uri_base: safe_uri_base
         )
+      end
+
+      # SSRF: o `api_base` pode vir do hook da conta (api_base custom OpenAI-compatível). Mesmo guard do
+      # ResponsesClient/EmbeddingService — bloqueia host/IP interno/loopback/metadata para o backend não
+      # postar o arquivo de áudio em destino controlado pelo tenant. Blank => default da gem (OpenAI).
+      def safe_uri_base
+        base = @credential[:api_base].to_s.strip
+        return if base.blank?
+
+        ::Crm::Ai::ApiBaseGuard.validate!(base)
+      rescue ::Crm::Ai::ApiBaseGuard::BlockedError
+        raise Error, 'invalid_api_base' # mensagem curta; nunca loga conteúdo/credencial
       end
 
       def download_to_temp(blob)

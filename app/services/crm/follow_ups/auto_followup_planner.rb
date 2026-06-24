@@ -50,9 +50,13 @@ module Crm
       def plan_for(card, cutoff)
         conversation = card.primary_conversation
         return false if conversation.blank?
-        return false if native_agent_active?(conversation)
+        # SEM trava pelo agente de IA (decisão do PO): quem decide enviar o follow é o próprio cérebro
+        # do follow-up (Crm::Ai::FollowUpComposer#should_send, que lê a conversa antes de enviar). Um
+        # agente de IA no comando NÃO bloqueia mais a cadência — a guarda `native_agent_active?` foi
+        # removida (contas só-IA, como a 6, PRECISAM de follow-up).
         return false unless Crm::FollowUps::MessagingWindow.new(conversation, at: @now).whatsapp_capable?
         return false if cadence_active?(card) || cadence_spent?(card)
+        return false if pending_callback?(card)
         return false unless sufficient_two_way_exchange?(conversation)
 
         last_inbound = last_inbound_message(conversation)
@@ -63,26 +67,6 @@ module Crm
         true
       end
 
-      # GUARDA ADITIVA (Fase D — Agentes Autonom.ia): NÃO inicia a cadência de
-      # auto-followup enquanto um agente nativo está no comando da conversa
-      # (pending + inbox vinculado + agente ativo) — evita mensagem dupla
-      # bot×followup. Após o handoff (humano assume) o predicado vira false e o
-      # planner volta a operar normalmente.
-      #
-      # ANTI-REGRESSÃO: 1ª linha é o feature-flag — com a flag OFF (estado atual
-      # do CRM, sem Autonomia) retorna false SEM tocar o DB nem carregar
-      # AgentInbox, então plan_for segue byte-idêntico ao comportamento anterior.
-      # Mesmo com a flag ON, conversa sem AgentInbox/agente ativo -> false.
-      def native_agent_active?(conversation)
-        # Gate POR CONTA: ENV master + feature da conta DONA da conversa (planner roda
-        # em job, sem Current.account). Com a feature OFF na conta -> false SEM tocar o
-        # DB nem carregar AgentInbox (active_for? nem é chamado), preservando o caminho
-        # antigo byte-idêntico para contas/instalações sem Autonomia.
-        return false unless ::Autonomia::Agents::Config.enabled?(conversation.account)
-
-        ::Autonomia::Agents::Operate.active_for?(conversation)
-      end
-
       # Só inicia se a conversa principal teve mão dupla real: >= 2 mensagens do cliente E >= 2 do
       # agente. "Agente" = mensagens outgoing (humano OU IA/bot); ignora notas privadas, eventos de
       # sistema (activity) e templates automáticos — só conta troca real com o cliente. Usa os scopes
@@ -91,6 +75,16 @@ module Crm
         non_private = conversation.messages.where(private: false)
         non_private.incoming.count >= MIN_CONTACT_MESSAGES &&
           non_private.outgoing.count >= MIN_AGENT_MESSAGES
+      end
+
+      # GUARDA: NÃO inicia a cadência genérica de auto-followup se o card tem um RETORNO POR DATA
+      # (ai_callback) pendente com data futura — o cliente já disse QUANDO voltar; não perturbar antes.
+      # Depois que o callback dispara (vira done/overdue), o card volta a ser elegível normalmente.
+      def pending_callback?(card)
+        card.follow_ups.active.any? do |follow_up|
+          follow_up.metadata.to_h['source'] == 'ai_callback' &&
+            follow_up.due_at.present? && follow_up.due_at > @now
+        end
       end
 
       def cadence_active?(card)

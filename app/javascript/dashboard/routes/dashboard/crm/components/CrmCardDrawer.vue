@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
+import PhoneNumberInput from 'dashboard/components-next/phonenumberinput/PhoneNumberInput.vue';
 import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 import ContactAPI from 'dashboard/api/contacts';
 import CrmKanbanAPI from 'dashboard/api/crmKanban';
@@ -19,6 +20,9 @@ const props = defineProps({
   show: { type: Boolean, default: false },
   mode: { type: String, default: 'create' },
   card: { type: Object, default: null },
+  // Tab to land on when the drawer opens (e.g. 'followups' from the calendar
+  // quick-add). Null → default 'summary'.
+  initialTab: { type: String, default: null },
   stages: { type: Array, default: () => [] },
   pipelineId: { type: [String, Number], default: '' },
   agents: { type: Array, default: () => [] },
@@ -31,6 +35,7 @@ const props = defineProps({
   isArchiving: { type: Boolean, default: false },
   isFetchingFollowUps: { type: Boolean, default: false },
   isSavingFollowUp: { type: Boolean, default: false },
+  meetingsEnabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -42,6 +47,7 @@ const emit = defineEmits([
   'completeFollowUp',
   'cancelFollowUp',
   'refreshCard',
+  'scheduleMeeting',
 ]);
 
 const { t } = useI18n();
@@ -68,6 +74,21 @@ const form = reactive({
   inboxId: '',
   contactId: '',
 });
+// Editable contact fields shown in the Contact tab. Native columns (name/email/
+// phone) + Chatwoot-standard additional_attributes (company/city/country) +
+// non-native custom_attributes (address/job title). Persisted via the existing
+// contacts update API, which merges additional/custom attributes server-side.
+const contactForm = reactive({
+  name: '',
+  email: '',
+  phoneNumber: '',
+  company: '',
+  jobTitle: '',
+  address: '',
+  city: '',
+  country: '',
+});
+const contactSnapshot = ref('');
 const followUpForm = reactive({
   title: '',
   dueAt: '',
@@ -92,11 +113,15 @@ const isSearchingContacts = ref(false);
 const activeTab = ref('summary');
 
 const isEditing = computed(() => props.mode === 'edit');
-const panelTitle = computed(() =>
-  isEditing.value
-    ? t('CRM_KANBAN.DRAWER.EDIT_TITLE')
-    : t('CRM_KANBAN.DRAWER.CREATE_TITLE')
-);
+const panelTitle = computed(() => {
+  if (!isEditing.value) return t('CRM_KANBAN.DRAWER.CREATE_TITLE');
+  // Pull the card's own title into the header once it has one ("Detalhes do {nome}");
+  // a brand-new/untitled card keeps the generic "Detalhes do card".
+  const name = form.title?.trim();
+  return name
+    ? t('CRM_KANBAN.DRAWER.EDIT_TITLE_NAMED', { name })
+    : t('CRM_KANBAN.DRAWER.EDIT_TITLE');
+});
 const panelSubtitle = computed(() =>
   isEditing.value
     ? t('CRM_KANBAN.DRAWER.EDIT_SUBTITLE')
@@ -194,19 +219,12 @@ const activeFollowUps = computed(() =>
     followUp => followUp.status === 'pending' || followUp.status === 'overdue'
   )
 );
-const contactRows = computed(() => {
-  const contact = props.card?.contact;
-  if (!contact) return [];
-  return [
-    { label: t('CRM_KANBAN.DRAWER.CONTACT_NAME'), value: contact.name },
-    {
-      label: t('CRM_KANBAN.DRAWER.CONTACT_PHONE'),
-      value: contact.phone_number,
-    },
-    { label: t('CRM_KANBAN.DRAWER.CONTACT_EMAIL'), value: contact.email },
-  ].filter(row => row.value);
-});
-
+// Done/canceled — shown collapsed at the bottom of the Follow-ups tab.
+const completedFollowUps = computed(() =>
+  props.followUps.filter(
+    followUp => followUp.status !== 'pending' && followUp.status !== 'overdue'
+  )
+);
 // --- Deal close (Win / Lose / Reopen) ---------------------------------------
 const cardStatus = computed(() => props.card?.status || 'open');
 const isDealOpen = computed(() => cardStatus.value === 'open');
@@ -261,6 +279,21 @@ const confirmLose = () => {
 };
 const reopenDeal = () => emit('closeDeal', { result: 'reopen' });
 
+const hydrateContactForm = card => {
+  const contact = card?.contact || {};
+  const add = contact.additional_attributes || {};
+  const custom = contact.custom_attributes || {};
+  contactForm.name = contact.name || '';
+  contactForm.email = contact.email || '';
+  contactForm.phoneNumber = contact.phone_number || '';
+  contactForm.company = add.company_name || '';
+  contactForm.city = add.city || '';
+  contactForm.country = add.country || '';
+  contactForm.address = custom.address || '';
+  contactForm.jobTitle = custom.job_title || '';
+  contactSnapshot.value = JSON.stringify({ ...contactForm });
+};
+
 const resetForm = () => {
   const card = props.card || {};
   form.title = card.title || '';
@@ -276,10 +309,11 @@ const resetForm = () => {
   form.ownerId = card.owner_id || '';
   form.inboxId = card.inbox_id || '';
   form.contactId = card.contact_id || '';
+  hydrateContactForm(card);
   contactSearch.value = card.contact?.name || '';
   contactResults.value = card.contact ? [card.contact] : [];
   hasSearchedContacts.value = false;
-  activeTab.value = 'summary';
+  activeTab.value = props.initialTab || 'summary';
   followUpForm.title = t('CRM_KANBAN.DRAWER.FOLLOW_UP_DEFAULT_TITLE');
   followUpForm.dueAt = '';
   followUpForm.automationMode = 'reminder_only';
@@ -426,8 +460,44 @@ const buildPayload = () => {
   return payload;
 };
 
-const onSubmit = () => {
+const contactDirty = computed(
+  () => JSON.stringify({ ...contactForm }) !== contactSnapshot.value
+);
+
+// Send ONLY the keys the drawer manages — the server shallow-merges additional/
+// custom attributes, so every other key (incl. nested social_profiles) is preserved
+// untouched. Avoids re-writing stale values for fields we don't edit here.
+const buildContactPayload = () => ({
+  name: contactForm.name.trim(),
+  email: contactForm.email.trim(),
+  phone_number: contactForm.phoneNumber.trim(),
+  additional_attributes: {
+    company_name: contactForm.company.trim(),
+    city: contactForm.city.trim(),
+    country: contactForm.country.trim(),
+  },
+  custom_attributes: {
+    address: contactForm.address.trim(),
+    job_title: contactForm.jobTitle.trim(),
+  },
+});
+
+const persistContactIfChanged = async () => {
+  const contact = props.card?.contact;
+  if (!isEditing.value || !contact?.id || !contactDirty.value) return;
+
+  await ContactAPI.update(contact.id, buildContactPayload());
+};
+
+const onSubmit = async () => {
   if (!form.title.trim() || (!isEditing.value && !form.stageId)) return;
+
+  try {
+    await persistContactIfChanged();
+  } catch {
+    useAlert(t('CRM_KANBAN.DRAWER.CONTACT_SAVE_ERROR'));
+    return;
+  }
   emit('save', buildPayload());
 };
 
@@ -623,6 +693,26 @@ const ACTIVITY_META = {
     icon: 'i-lucide-triangle-alert',
     tone: 'negative',
   },
+  meeting_scheduled: {
+    key: 'ACTIVITY_MEETING_SCHEDULED',
+    icon: 'i-lucide-video',
+    tone: 'info',
+  },
+  meeting_rescheduled: {
+    key: 'ACTIVITY_MEETING_RESCHEDULED',
+    icon: 'i-lucide-calendar-clock',
+    tone: 'info',
+  },
+  meeting_canceled: {
+    key: 'ACTIVITY_MEETING_CANCELED',
+    icon: 'i-lucide-calendar-x',
+    tone: 'negative',
+  },
+  meeting_outcome_recorded: {
+    key: 'ACTIVITY_MEETING_OUTCOME',
+    icon: 'i-lucide-circle-check',
+    tone: 'info',
+  },
   automation_owner_assigned: {
     key: 'ACTIVITY_AUTOMATION_OWNER_ASSIGNED',
     icon: 'i-lucide-user-check',
@@ -741,10 +831,14 @@ const activityDetail = activity => {
     case 'autonomia_handoff': {
       const assignee = activityLabelValue(activity, 'assignee_id');
       if (assignee)
-        return t('CRM_KANBAN.DRAWER.ACTIVITY_DETAIL_HANDOFF', { agent: assignee });
+        return t('CRM_KANBAN.DRAWER.ACTIVITY_DETAIL_HANDOFF', {
+          agent: assignee,
+        });
       const team = activityLabelValue(activity, 'team_id');
       return team
-        ? t('CRM_KANBAN.DRAWER.ACTIVITY_DETAIL_AUTONOMIA_HANDOFF_TEAM', { team })
+        ? t('CRM_KANBAN.DRAWER.ACTIVITY_DETAIL_AUTONOMIA_HANDOFF_TEAM', {
+            team,
+          })
         : '';
     }
     case 'contact_linked':
@@ -763,6 +857,14 @@ const activityDetail = activity => {
     case 'follow_up_message_failed': {
       const title = activity.payload?.title;
       return title || '';
+    }
+    case 'meeting_scheduled':
+    case 'meeting_rescheduled':
+    case 'meeting_canceled': {
+      const title = activity.payload?.title;
+      return title
+        ? t('CRM_KANBAN.DRAWER.ACTIVITY_DETAIL_MEETING', { title })
+        : '';
     }
     default:
       return '';
@@ -1193,18 +1295,49 @@ useKeyboardEvents({
         <section v-else-if="activeTab === 'contact'" class="grid gap-4">
           <div
             v-if="card?.contact"
-            class="grid gap-3 rounded-lg border border-n-weak bg-n-alpha-black2 p-4"
+            class="grid gap-3 rounded-lg border border-n-weak bg-n-alpha-black2 p-4 md:grid-cols-2"
           >
-            <div
-              v-for="row in contactRows"
-              :key="row.label"
-              class="flex items-center justify-between gap-4 border-b border-n-weak pb-3 last:border-b-0 last:pb-0"
-            >
-              <span class="text-sm text-n-slate-11">{{ row.label }}</span>
-              <span class="min-w-0 truncate text-right text-sm text-n-slate-12">
-                {{ row.value }}
+            <Input
+              v-model="contactForm.name"
+              :label="t('CRM_KANBAN.DRAWER.CONTACT_NAME')"
+              class="md:col-span-2"
+            />
+            <Input
+              v-model="contactForm.email"
+              :label="t('CRM_KANBAN.DRAWER.CONTACT_EMAIL')"
+            />
+            <label class="grid gap-1">
+              <span class="text-xs font-medium text-n-slate-11">
+                {{ t('CRM_KANBAN.DRAWER.CONTACT_PHONE') }}
               </span>
-            </div>
+              <!-- Country selector + libphonenumber => always emits E.164 (+digits),
+                   which the contact model requires for messaging. -->
+              <PhoneNumberInput v-model="contactForm.phoneNumber" />
+            </label>
+            <Input
+              v-model="contactForm.company"
+              :label="t('CRM_KANBAN.DRAWER.CONTACT_COMPANY')"
+            />
+            <Input
+              v-model="contactForm.jobTitle"
+              :label="t('CRM_KANBAN.DRAWER.CONTACT_JOB_TITLE')"
+            />
+            <Input
+              v-model="contactForm.address"
+              :label="t('CRM_KANBAN.DRAWER.CONTACT_ADDRESS')"
+              class="md:col-span-2"
+            />
+            <Input
+              v-model="contactForm.city"
+              :label="t('CRM_KANBAN.DRAWER.CONTACT_CITY')"
+            />
+            <Input
+              v-model="contactForm.country"
+              :label="t('CRM_KANBAN.DRAWER.CONTACT_COUNTRY')"
+            />
+            <p class="mb-0 text-xs leading-5 text-n-slate-11 md:col-span-2">
+              {{ t('CRM_KANBAN.DRAWER.CONTACT_EDIT_HINT') }}
+            </p>
           </div>
           <div
             v-else
@@ -1293,11 +1426,65 @@ useKeyboardEvents({
         </section>
 
         <section v-else-if="activeTab === 'followups'" class="grid gap-4">
-          <CrmCardAutoFollowupStatus
-            :card="props.card"
-            @reset="$emit('refreshCard')"
-          />
+          <!-- 1) Open follow-ups (pending / overdue) on top -->
+          <div
+            v-if="isFetchingFollowUps"
+            class="flex items-center gap-2 text-xs text-n-slate-10"
+          >
+            <span class="i-lucide-loader-2 size-3 animate-spin" />
+            {{ t('CRM_KANBAN.DRAWER.FOLLOW_UP_LOADING') }}
+          </div>
+          <article
+            v-for="followUp in activeFollowUps"
+            :key="`active-${followUp.id}`"
+            class="grid gap-3 rounded-lg border border-n-weak bg-n-alpha-black2 p-4"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="mb-1 truncate text-sm font-medium text-n-slate-12">
+                  {{ followUp.title }}
+                </p>
+                <p class="mb-0 flex flex-wrap gap-2 text-xs text-n-slate-11">
+                  <span>{{ formatDate(followUp.due_at) }}</span>
+                  <span>{{ followUpAutomationLabel(followUp) }}</span>
+                </p>
+              </div>
+              <span
+                class="shrink-0 rounded-md px-2 py-1 text-[11px] font-medium"
+                :class="followUpStatusClass(followUp)"
+              >
+                {{ followUpStatusLabel(followUp) }}
+              </span>
+            </div>
+            <p
+              v-if="followUp.description"
+              class="mb-0 text-xs leading-5 text-n-slate-11"
+            >
+              {{ followUp.description }}
+            </p>
+            <div class="flex justify-end gap-2">
+              <Button
+                :label="t('CRM_KANBAN.DRAWER.FOLLOW_UP_COMPLETE')"
+                icon="i-lucide-check"
+                slate
+                faded
+                sm
+                :is-loading="isSavingFollowUp"
+                @click="$emit('completeFollowUp', followUp)"
+              />
+              <Button
+                :label="t('CRM_KANBAN.DRAWER.FOLLOW_UP_CANCEL')"
+                icon="i-lucide-x"
+                ruby
+                ghost
+                sm
+                :is-loading="isSavingFollowUp"
+                @click="$emit('cancelFollowUp', followUp)"
+              />
+            </div>
+          </article>
 
+          <!-- 2) New follow-up -->
           <div
             class="grid gap-3 rounded-lg border border-n-weak bg-n-alpha-black2 p-4"
           >
@@ -1499,16 +1686,21 @@ useKeyboardEvents({
             </div>
           </div>
 
-          <div
-            v-if="isFetchingFollowUps"
-            class="flex items-center gap-2 text-xs text-n-slate-10"
-          >
-            <span class="i-lucide-loader-2 size-3 animate-spin" />
-            {{ t('CRM_KANBAN.DRAWER.FOLLOW_UP_LOADING') }}
-          </div>
+          <!-- 3) Automatic follow-up -->
+          <CrmCardAutoFollowupStatus
+            :card="props.card"
+            @reset="$emit('refreshCard')"
+          />
 
+          <!-- 4) Completed follow-ups (bottom) -->
+          <p
+            v-if="completedFollowUps.length"
+            class="mb-0 mt-1 text-[11px] font-semibold uppercase tracking-wide text-n-slate-10"
+          >
+            {{ t('CRM_KANBAN.DRAWER.FOLLOW_UP_COMPLETED_SECTION') }}
+          </p>
           <article
-            v-for="followUp in followUps"
+            v-for="followUp in completedFollowUps"
             :key="followUp.id"
             class="grid gap-3 rounded-lg border border-n-weak bg-n-alpha-black2 p-4"
           >
@@ -1623,15 +1815,24 @@ useKeyboardEvents({
       <div
         class="flex items-center justify-between gap-3 border-t border-n-weak px-6 py-4"
       >
-        <Button
-          v-if="isEditing"
-          :label="t('CRM_KANBAN.DRAWER.ARCHIVE')"
-          icon="i-lucide-archive"
-          ruby
-          ghost
-          :is-loading="isArchiving"
-          @click="$emit('archive')"
-        />
+        <div v-if="isEditing" class="flex items-center gap-2">
+          <Button
+            :label="t('CRM_KANBAN.DRAWER.ARCHIVE')"
+            icon="i-lucide-archive"
+            ruby
+            ghost
+            :is-loading="isArchiving"
+            @click="$emit('archive')"
+          />
+          <Button
+            v-if="meetingsEnabled && card?.id"
+            :label="t('CRM_KANBAN.DRAWER.SCHEDULE_MEETING')"
+            icon="i-lucide-video"
+            variant="outline"
+            color="slate"
+            @click="$emit('scheduleMeeting', { cardId: card.id })"
+          />
+        </div>
         <span v-else />
         <div class="flex items-center gap-2">
           <Button

@@ -25,6 +25,12 @@ class Whatsapp::IncomingMessageBaseService
   private
 
   def process_messages
+    # AUTONOMIA (Onda 2b): o core descarta reações (abaixo). Mas se a inbox tem um agente Autonomia
+    # ATIVO e o recurso está ligado, materializamos a reação como UMA mensagem incoming sintética
+    # ("[o cliente reagiu com 👍 …]") para o agente interpretá-la. Escopo + fail-safe: inbox sem agente
+    # (ou flag off) cai no descarte normal abaixo (ZERO regressão). Resposta do bot é outgoing → não loopa.
+    return capture_autonomia_reaction if autonomia_capture_reaction?
+
     # We don't support reactions & ephemeral message now, we need to skip processing the message
     # if the webhook event is a reaction or an ephermal message or an unsupported message.
     return if unprocessable_message_type?(message_type)
@@ -44,6 +50,36 @@ class Whatsapp::IncomingMessageBaseService
       set_conversation
       create_messages
     end
+  end
+
+  # AUTONOMIA (Onda 2b): só captura reação quando (a) é evento de reação de entrada, (b) a inbox tem um
+  # AgentInbox Autonomia e (c) o recurso está ligado (ENV + por-agente). Qualquer erro -> false (cai no
+  # descarte normal do core). NÃO toca inboxes sem agente.
+  def autonomia_capture_reaction?
+    return false if outgoing_echo || message_type != 'reaction'
+
+    agent_inbox = ::Autonomia::Agents::AgentInbox.find_by(inbox_id: inbox.id)
+    return false if agent_inbox.nil?
+
+    ::Autonomia::Agents::Config.operate_reactions_enabled?(agent_inbox.agent)
+  rescue StandardError
+    false
+  end
+
+  # Materializa a reação como uma mensagem incoming sintética (dispara o listener do operate), via o
+  # serviço CHANNEL-AGNÓSTICO ReactionMaterializer (mesma regra do Instagram). A trava de concorrência
+  # do WhatsApp (`lock_message_source_id!`) é passada como `lock:` e só é acionada ANTES do create (após
+  # as validações de âncora/elegibilidade) -> descarte = zero side-effect. `@message` recebe o resultado
+  # (ou nil).
+  def capture_autonomia_reaction
+    reaction = messages_data.first[:reaction] || {}
+    @message = ::Autonomia::Agents::Operate::ReactionMaterializer.call(
+      inbox: inbox,
+      reacted_source_id: reaction[:message_id],
+      emoji: reaction[:emoji],
+      event_source_id: messages_data.first[:id],
+      lock: -> { lock_message_source_id! }
+    )
   end
 
   def process_statuses

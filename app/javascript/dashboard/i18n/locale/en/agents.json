@@ -17,21 +17,26 @@
       },
       "CHANNELS_COUNT": "No channels | 1 channel | {count} channels",
       "NO_METRICS": "—",
-      "OPEN": "Open agent",
-      "EDIT_AI": "Adjust AI",
-      "DELETE": "Delete",
-      "DELETE_ERROR": "We couldn't delete this agent. Please try again.",
-      "DELETE_DIALOG": {
-        "TITLE": "Delete agent",
-        "DESCRIPTION": "Are you sure you want to delete {name}? This removes the agent, its channels, and linked knowledge.",
-        "CONFIRM": "Delete agent",
-        "CANCEL": "Cancel"
-      }
+      "OPEN": "Open agent"
     },
     "TYPES": {
       "PICK_TITLE": "What should your agent do?",
       "PICK_SUBTITLE": "Pick a starting point. You can refine everything afterwards.",
       "SETUP_TIME": "About 3 min to set up",
+      "ACTUATION": {
+        "LABEL": "Where the agent works",
+        "EXTERNAL": "External",
+        "EXTERNAL_HINT": "Talks to customers on WhatsApp/Instagram/chat.",
+        "INTERNAL": "Internal",
+        "INTERNAL_HINT": "Never talks to customers — only helps the agent."
+      },
+      "KNOWLEDGE": {
+        "LABEL": "Knowledge base",
+        "WITH": "With base",
+        "WITH_HINT": "You upload PDFs/FAQs and the agent learns.",
+        "WITHOUT": "No base",
+        "WITHOUT_HINT": "No documents — works by rules and hands off."
+      },
       "SUPPORT": {
         "TITLE": "Support",
         "SUBTITLE": "Answers questions and solves common requests."
@@ -63,11 +68,9 @@
     },
     "BUILDER": {
       "TITLE": "Agent builder",
-      "EDIT_TITLE": "Adjust agent with AI",
       "BUILDER_NAME": "Builder",
       "YOU": "You",
       "INTRO": "Tell us what this agent should do — describe your business and how it should help. We'll ask a few questions and build it for you.",
-      "EDIT_INTRO": "Describe what you want to change in this agent. The AI keeps the current setup and adjusts only what you ask for.",
       "FAILED": "Something went wrong while building your agent. Send another message to try again.",
       "TIMEOUT": "This is taking longer than expected. Please send your message again.",
       "PLACEHOLDER": "Type your answer…",
@@ -144,6 +147,8 @@
       "APPROVED_SUMMARY": "{count} materials approved · {pct}% confidence",
       "TEST_FIRST": "Test first",
       "CONNECT_TITLE": "Connect to an inbox",
+      "INTERNAL_TITLE": "Internal agent (team copilot)",
+      "INTERNAL_HINT": "This agent helps your team inside conversations and never talks to customers, so there's no inbox to connect.",
       "SELECT_INBOX": "Choose an inbox",
       "CONNECT_ACTIVATE": "Connect and activate",
       "BACK": "Back"
@@ -156,7 +161,6 @@
         "KNOWLEDGE": "Knowledge",
         "CHANNELS": "Channels",
         "PERFORMANCE": "Performance",
-        "PUBLISH": "Publish",
         "TUNE": "Tune"
       }
     },
@@ -170,10 +174,6 @@
       "CONFIDENCE": "Confidence",
       "HANDOFF_NOTICE": "Would hand off to a human: {reason}",
       "KNOWLEDGE_USED": "Knowledge used ({count})",
-      "PROMPT_USED": "Prompt used",
-      "PROMPT_INSTRUCTIONS": "Instructions",
-      "PROMPT_INPUT": "Input",
-      "PROMPT_REQUEST": "Request configuration",
       "SOURCE": "Source: {source}",
       "CONVERSATION": "Test conversation",
       "NOT_FINALIZED": "This agent isn't finalized yet. Finish building it so the test reflects its real behavior."
@@ -267,7 +267,9 @@
       "OCCUPIED": "Already used by another agent",
       "ONE_PER_INBOX": "Each inbox can have only 1 agent.",
       "CONNECT_ERROR": "We couldn't connect that channel. Please try again.",
-      "DISCONNECT_ERROR": "We couldn't disconnect that channel. Please try again."
+      "DISCONNECT_ERROR": "We couldn't disconnect that channel. Please try again.",
+      "INTERNAL_TITLE": "This agent is internal",
+      "INTERNAL_BODY": "An internal agent is a team copilot and never connects to inboxes."
     },
     "TUNE": {
       "MODE_TITLE": "How you edit",
@@ -279,13 +281,6 @@
       "RECONVERSE_CLOSE": "Done",
       "CURRENT_CARD": "What your agent does today",
       "NO_CARD": "No summary available yet.",
-      "IDENTITY_TITLE": "Agent image",
-      "IDENTITY_HINT": "Use a photo or brand mark to identify this agent across cards and panels.",
-      "AVATAR_UPDATING": "Updating image…",
-      "AVATAR_UPLOAD_SUCCESS": "Agent image updated.",
-      "AVATAR_UPLOAD_ERROR": "We couldn't update the agent image.",
-      "AVATAR_DELETE_SUCCESS": "Agent image removed.",
-      "AVATAR_DELETE_ERROR": "We couldn't remove the agent image.",
       "INSTRUCTION_LABEL": "Instruction",
       "INSTRUCTION_PLACEHOLDER": "Write the instruction for your agent…",
       "MANUAL_WARNING": "Here you write the instruction. We still apply safety guardrails behind the scenes.",
@@ -304,15 +299,22 @@
         "PLAYFUL": "Playful"
       },
       "HANDOFF_STRATEGY": "Hand off to a human",
-      "HANDOFF_HINT": "Use “Inbox member” to automatically assign the conversation to a teammate connected to the channel when the agent hands it off.",
       "HANDOFF_OPTIONS": {
-        "NONE": "Do not auto-assign",
-        "INBOX_MEMBER": "Inbox member"
+        "LOW_CONFIDENCE": "When unsure",
+        "ALWAYS_ASK": "Always offer a human",
+        "NEVER": "Never"
       },
       "CONFIDENCE_THRESHOLD": "Confidence threshold",
       "SAVE": "Save changes",
       "SAVE_SUCCESS": "Changes saved.",
-      "SAVE_ERROR": "We couldn't save your changes. Please try again."
+      "SAVE_ERROR": "We couldn't save your changes. Please try again.",
+      "ACTUATION_LABEL": "Actuation",
+      "ACTUATION_HINT": "Where the agent acts: external answers customers, internal is a team copilot, both does both.",
+      "ACTUATION_OPTIONS": {
+        "EXTERNAL": "External (answers customers)",
+        "INTERNAL": "Internal (team copilot)",
+        "BOTH": "Both"
+      }
     },
     "PERFORMANCE": {
       "RANGE": {
@@ -354,6 +356,12 @@
       "EMPTY": "No activity yet. Once your agent starts replying, metrics will appear here.",
       "ERROR": "We couldn't load performance data.",
       "RETRY": "Try again"
+    },
+    "CARD": {
+      "ACTUATION_EXTERNAL": "External",
+      "ACTUATION_INTERNAL": "Internal",
+      "ACTUATION_BOTH": "Both",
+      "INTERNAL_COPILOT": "Internal copilot"
     }
   }
 }

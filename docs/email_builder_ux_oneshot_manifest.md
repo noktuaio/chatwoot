@@ -36,7 +36,7 @@ NOVO `EmailCampaigns::VideoAsset` service: dado URL YouTube/Vimeo -> extrair id 
 Garantir placeholders endpoint robusto p/ campanha recem-criada (0 recipients -> defaults). Campos da campanha p/ etapas (reusar status draft). Sem migracao se possivel. Contract permits se faltar algo.
 ### FE-EDITOR (nucleo — arquiteto define contrato; pode virar 1 dono + sub-agentes)
 GrapesEditor.vue REESCRITO headless: panels:[], blockManager.custom, styleManager.custom, expoe composable/bus (editorRef.getEditor + eventos block:custom/style:custom repassados). Top bar nova (IA heroi). Dono de campaigns.routes.js + store emailCampaigns.
-### FE-BLOCKS — painel de blocos Vue (consome block:custom; cards arrastaveis; drag via dragStart/dragStop).
+### FE-BLOCKS — painel de blocos Vue (consome block:custom; cards arrastaveis; drag via dragStart/dragStop). 
 ### FE-PROPS — painel de propriedades Vue curado (consome style:custom; controles Tamanho/Cor/Alinhamento/Espacamento via Style Manager API sm.getSectors).
 ### FE-FLOW — Etapa1 dialog (remover Corpo HTML; mover upload base p/ ca) + Etapa2 "como criar" (welcome) + roteamento. EmailCampaignDialog/Details/EmailCampaignsPage.
 ### FE-AI — AiComposerDialog redesenhado: briefing + UPLOAD de assets (imagem/pdf via assets_controller; video por LINK ou upload via BE-B) com rotulo de uso + lista dos placeholders da base; manda assets[] pro generate. AiBlockActions (manter, garantir montado).

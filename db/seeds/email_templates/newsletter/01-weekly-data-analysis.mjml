@@ -2,17 +2,17 @@
   Template: Weekly Newsletter with Data Analysis
   File: 01-weekly-data-analysis.mjml
   Category: newsletter / content-digest
-
+  
   Purpose:
   Deliver recurring educational content with data tables, insights, and analysis.
   Builds authority and keeps subscribers engaged with valuable industry information.
-
+  
   When to send:
   - Weekly on consistent day/time (e.g., every Monday 9 AM)
   - Bi-weekly for less frequent updates
   - Monthly for deep-dive analysis
   - Industry newsletters (finance, economics, tech, market research)
-
+  
   Personalize:
   - {{first_name}} (optional for newsletters)
   - {{week_number}} or {{date}} (e.g., "Week of Jan 15-22")
@@ -20,7 +20,7 @@
   - {{data_table}} - dynamic data injection
   - {{cta_url}} - newsletter signup or premium subscription
   - Brand colors (#2a9d8f teal/green, #000000 black background)
-
+ 
   Notes:
   - Marketing email (unsubscribe required - included in footer)
   - Data-heavy content: tables, accordion sections for scannability

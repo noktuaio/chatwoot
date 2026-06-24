@@ -20,7 +20,6 @@ module Autonomia
         def perform(conversation_id, agent_inbox_id, reply_to_message_id, chunks, index = 0, meta = {})
           conversation = Conversation.find_by(id: conversation_id)
           return if conversation.blank?
-          return if ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(conversation)
           return unless ::Autonomia::Agents::Config.enabled?(conversation.account)
 
           agent_inbox = ::Autonomia::Agents::AgentInbox.find_by(id: agent_inbox_id)
@@ -37,16 +36,19 @@ module Autonomia
 
           # Cliente mandou nova mensagem durante a entrega, ou um humano assumiu, ou acabaram os chunks:
           # limpa o "digitando" e encerra esta cadeia. (O novo settle do ReplyJob cuida da nova mensagem.)
-          if chunk.blank? || !current_turn?(conversation, reply_to_message_id) || !bot_in_command?(conversation)
+          if chunk.blank? || !current_turn?(conversation, reply_to_message_id) || !bot_in_command?(conversation, agent_inbox)
             typing.off
             return
           end
 
           typing.off # a pausa ANTES deste pedaço já passou; estamos prestes a postar
           posted = post_chunk!(conversation, agent_inbox, reply_to_message_id, index, chunk['text'].to_s)
+          # Não postou (re-check no lock reprovou: humano assumiu / agente desligado / turno mudou / já
+          # postado): ENCERRA a cadeia — não agenda o próximo pedaço nem deixa "digitando" pendurado.
+          return unless posted
 
           # Fase F: registra "respondido" só uma vez, quando o 1º pedaço entra de fato.
-          log_replied(agent_inbox.agent, conversation, meta) if index.zero? && posted
+          log_replied(agent_inbox.agent, conversation, meta) if index.zero?
 
           schedule_next(conversation, agent_inbox, reply_to_message_id, chunks, index, meta, typing)
         end
@@ -71,7 +73,12 @@ module Autonomia
         def post_chunk!(conversation, agent_inbox, reply_to_message_id, index, text)
           posted = false
           conversation.with_lock do
-            unless chunk_posted?(conversation, reply_to_message_id, index)
+            # Revalidação AUTORITATIVA com estado fresco DENTRO do lock (fecha a corrida entre o check
+            # do deliver e o post): turno ainda atual + contrato inteiro (sem responsável, agente
+            # ligado/ativo/não-interno/não-sistema, mesma caixa, feature on, allowlist) + idempotência.
+            if current_turn?(conversation, reply_to_message_id) &&
+               bot_in_command?(conversation, agent_inbox) &&
+               !chunk_posted?(conversation, reply_to_message_id, index)
               build_message!(conversation, agent_inbox, reply_to_message_id, index, text)
               posted = true
             end
@@ -117,10 +124,11 @@ module Autonomia
           pending.blank? || pending == reply_to_message_id
         end
 
-        def bot_in_command?(conversation)
-          return false if ::Autonomia::Channels::BroadcastGuard.blocked_conversation?(conversation)
-
-          conversation.pending? && conversation.assignee_id.blank?
+        def bot_in_command?(conversation, agent_inbox = nil)
+          # Revalida o CONTRATO INTEIRO com estado fresco, na MESMA caixa do agente (cada chunk):
+          # sem responsável + agente ligado/ativo/não-interno/não-sistema + feature on + allowlist.
+          fresh = ::Autonomia::Agents::Operate.eligible_agent_inbox(conversation)
+          fresh.present? && fresh.id == agent_inbox&.id
         end
 
         def log_replied(agent, conversation, meta)

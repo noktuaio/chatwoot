@@ -27,10 +27,11 @@ module Waha
         ENV.fetch('WAHA_CHATWOOT_ACCOUNT_TOKEN', '').to_s
       end
 
-      # Caminho do callback do conector. A doc usa singular (/webhook/chatwoot); deixamos
-      # configurável para acompanhar a versão do motor sem mexer no código.
+      # Caminho do callback do conector. O motor WAHA serve o receptor do plugin chatwoot no
+      # PLURAL (/webhooks/chatwoot/{sessão}/{app_id}); o singular retorna 401 e o outbound nunca
+      # chega ao WhatsApp. Mantido configurável por ENV para acompanhar a versão do motor.
       def webhook_path
-        ENV.fetch('WAHA_CHATWOOT_WEBHOOK_PATH', '/webhook/chatwoot').to_s
+        ENV.fetch('WAHA_CHATWOOT_WEBHOOK_PATH', '/webhooks/chatwoot').to_s
       end
 
       def conversation_sort

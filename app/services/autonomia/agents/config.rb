@@ -3,7 +3,7 @@ module Autonomia
     class Config
       BOOLEAN = ActiveModel::Type::Boolean.new
 
-      BUILDER_MODEL = Crm::Ai::Config::MODEL_EMAIL # gpt-5.4
+      BUILDER_MODEL = Crm::Ai::Config::MODEL_EMAIL # gpt-5.5
       # Construtor é um CHAT: chamada SÍNCRONA (ResponsesClient#create). O reasoning é ESCOLHIDO POR
       # FASE (Builder#run! decide) para atacar a latência (~24s/turno na campanha real):
       #   - COLETA (turnos de entrevista): 'low'. São perguntas curtas, sem geração da instruction
@@ -24,13 +24,13 @@ module Autonomia
       # Revisor v2 — IA Revisora de Qualidade (structured output por fonte + agregação da base).
       # Chamada SÍNCRONA dentro do ProcessJob (após embed). 'low' basta: structured output objetivo
       # sobre trechos curtos; mantém a ingestão rápida.
-      REVIEWER_MODEL = Crm::Ai::Config::MODEL_EMAIL # gpt-5.4
+      REVIEWER_MODEL = Crm::Ai::Config::MODEL_EMAIL # gpt-5.5
       REVIEWER_REASONING_EFFORT = 'low'.freeze
 
       # #3 INSTRUÇÃO VIVA — Refresh automático da instrução quando a KB muda (add/remove). Reusa o
       # modelo do Construtor (redação de instrução, como o fechamento) com effort 'medium'. NÃO é
       # entrevista: só reescreve o bloco de escopo/conhecimento da instrução de agentes JÁ FECHADOS.
-      INSTRUCTION_REFRESH_MODEL = BUILDER_MODEL # gpt-5.4
+      INSTRUCTION_REFRESH_MODEL = BUILDER_MODEL # gpt-5.5
       INSTRUCTION_REFRESH_REASONING_EFFORT = BUILDER_REASONING_EFFORT_FINAL # 'medium'
 
       # KILL-SWITCH do refresh automático da instrução (#3). Default LIGADO; desligar via ENV
@@ -60,9 +60,11 @@ module Autonomia
       IMAGE_CONTENT_TYPES = %w[image/png image/jpeg image/gif image/webp].freeze
       MAX_IMAGE_BYTES = 5.megabytes
       MAX_IMAGES_PER_MESSAGE = 4
+      # Onda 2 / Track B: teto de áudios transcritos por turno (limita custo/latência da transcrição).
+      MAX_AUDIO_PER_MESSAGE = 2
 
       # Fase B — motor de resposta (RAG + portão de confiança / Testar / Copiloto)
-      ANSWERER_MODEL = Crm::Ai::Config::MODEL_AUTO_MOVE # 'gpt-5.4'
+      ANSWERER_MODEL = Crm::Ai::Config::MODEL_AUTO_MOVE # 'gpt-5.5'
       ANSWERER_REASONING_EFFORT = 'low'.freeze
       DEFAULT_CONFIDENCE_THRESHOLD = 0.55
       ANSWER_TOP_K = 8
@@ -112,31 +114,88 @@ module Autonomia
         cfg.nil? ? true : BOOLEAN.cast(cfg)
       end
 
+      # Instruções v2 (humanização + audiência + mídia). KILL-SWITCH global (ENV, default ON): ligado,
+      # o PromptBuilder usa o OUTPUT_FORMAT v2 (anti-"material", sensível à audiência cliente/atendente,
+      # regras de mídia). OFF → cai no formato legado (rollback instantâneo sem deploy). Rollout global
+      # (decisão do PO); o flag existe só p/ rollback rápido caso um agente LIVE se comporte mal.
+      def self.prompt_v2_enabled?
+        BOOLEAN.cast(ENV.fetch('AI_AGENT_PROMPT_V2', true))
+      end
+
+      # MÍDIA NO OPERATE (Onda 2 / Track B): liga o encanamento que faz a imagem/figurinha da última
+      # incoming chegar ao modelo como input_image, e o áudio ser transcrito (Crm::Ai::TranscriptionClient,
+      # sem logar conteúdo) e injetado na query. KILL-SWITCH global (ENV, default ON) + override por agente
+      # (config['operate_media']). OFF em qualquer camada → o Responder responde só ao TEXTO (comportamento
+      # anterior, ZERO regressão). Independente do prompt_v2: o v2 só descreve as regras de mídia no prompt;
+      # este flag é quem efetivamente entrega a mídia ao Answerer.
+      def self.operate_media_enabled?(agent = nil)
+        return false unless BOOLEAN.cast(ENV.fetch('AI_AGENT_MEDIA', true))
+        return true if agent.nil?
+
+        cfg = agent.config.is_a?(Hash) ? agent.config['operate_media'] : nil
+        cfg.nil? ? true : BOOLEAN.cast(cfg)
+      end
+
+      # REACTION NO OPERATE (Onda 2b / Track B): o core do Chatwoot DESCARTA reações (emoji) na
+      # ingestão. Com este flag (e só em inbox com agente Autonomia ATIVO), a reação vira UMA mensagem
+      # incoming sintética ("[o cliente reagiu com 👍 …]") para o agente interpretá-la (o prompt v2 decide
+      # responder ou ficar em silêncio — "só quando fizer sentido"). KILL-SWITCH global (ENV, default ON) +
+      # override por agente (config['operate_reactions']). OFF em qualquer camada → reações seguem
+      # descartadas pelo core (ZERO regressão).
+      def self.operate_reactions_enabled?(agent = nil)
+        return false unless BOOLEAN.cast(ENV.fetch('AI_AGENT_REACTIONS', true))
+        return true if agent.nil?
+
+        cfg = agent.config.is_a?(Hash) ? agent.config['operate_reactions'] : nil
+        cfg.nil? ? true : BOOLEAN.cast(cfg)
+      end
+
+      # ESPELHAMENTO DE ÁUDIO (Onda 2c): quando o cliente manda áudio, o agente responde EM ÁUDIO (TTS).
+      # Outward-facing + custo de TTS → KILL-SWITCH global default OFF (opt-in): liga via ENV
+      # `AI_AGENT_VOICE_REPLY=true` (e/ou por agente config['voice_reply']). OFF -> responde em texto
+      # (comportamento atual, zero regressão). Só dispara no ESPELHAMENTO (turno com áudio do cliente).
+      # ENV é o DEFAULT (default OFF); config['voice_reply'] é OVERRIDE por agente (precedência sobre o
+      # ENV) — assim dá p/ LIGAR só um agente (config=true) com a ENV global ainda OFF, sem ativar p/ todos.
+      def self.voice_reply_enabled?(agent = nil)
+        env_default = BOOLEAN.cast(ENV.fetch('AI_AGENT_VOICE_REPLY', false))
+        return env_default if agent.nil?
+
+        cfg = agent.config.is_a?(Hash) ? agent.config['voice_reply'] : nil
+        cfg.nil? ? env_default : BOOLEAN.cast(cfg)
+      end
+
+      # Voz do TTS por gênero do agente (config['voice'] = 'feminina'|'masculina', escolhido pelo
+      # Construtor na criação a partir da persona; default feminina). Mapeia para vozes OpenAI.
+      # marin/cedar = vozes mais novas e de maior fidelidade da OpenAI (recomendadas por ela), bem
+      # mais naturais que coral/onyx. Confirmado que funcionam no endpoint gpt-4o-mini-tts.
+      VOICE_BY_GENDER = { 'feminina' => 'marin', 'masculina' => 'cedar' }.freeze
+      DEFAULT_TTS_VOICE = 'marin'.freeze
+
+      def self.voice_for(agent)
+        gender = (agent.respond_to?(:config) && agent.config.is_a?(Hash) ? agent.config['voice'] : nil).to_s.strip.downcase
+        VOICE_BY_GENDER.fetch(gender, DEFAULT_TTS_VOICE)
+      end
+
+      # Direcionamento de fala do TTS (gpt-4o-mini-tts aceita `instructions`): entonação + pronúncia
+      # PT-BR + ritmo. O modelo IGNORA o parâmetro `speed`, então o ~1,2x é pedido aqui (aproximado).
+      # ENV define o default; config['voice_instructions'] por agente sobrepõe (tunar sem redeploy).
+      DEFAULT_VOICE_INSTRUCTIONS = ENV.fetch(
+        'AI_AGENT_VOICE_INSTRUCTIONS',
+        'Fale em português do Brasil com pronúncia natural e correta, entonação expressiva e tom ' \
+        'acolhedor e profissional, nunca robótico ou monótono. Ritmo ágil, cerca de 20% mais rápido ' \
+        'que o normal, mantendo a clareza.'
+      ).freeze
+
+      def self.voice_instructions_for(agent)
+        cfg = (agent.respond_to?(:config) && agent.config.is_a?(Hash) ? agent.config['voice_instructions'] : nil)
+        cfg.to_s.strip.presence || DEFAULT_VOICE_INSTRUCTIONS
+      end
+
       # Indicador de "digitando" nos canais externos (WhatsApp Cloud / Instagram). Sub-switch do
       # humanize: alguns operadores podem querer o chunk+delay SEM custo/efeito de typing por canal.
       # O typing do web widget é nativo e sempre acompanha o humanize (não passa por este gate).
       def self.channel_typing_enabled?
         BOOLEAN.cast(ENV.fetch('AI_HUMANIZE_CHANNEL_TYPING', true))
-      end
-
-      # Exposição do prompt completo no painel "Testar".
-      #
-      # Por padrão fica desligado porque o payload contém instruction/scaffold
-      # completos. Para habilitar em produção:
-      #   AUTONOMIA_AGENT_TEST_PROMPT_VISIBLE=true
-      #   AUTONOMIA_AGENT_TEST_PROMPT_AGENT_IDS=2,5
-      #
-      # O wildcard "*" existe para diagnóstico controlado, mas ainda exige a
-      # chave geral ligada explicitamente.
-      def self.test_prompt_visible_for?(agent)
-        return false unless BOOLEAN.cast(ENV.fetch('AUTONOMIA_AGENT_TEST_PROMPT_VISIBLE', false))
-        return false if agent.blank?
-
-        allowed_ids = ENV.fetch('AUTONOMIA_AGENT_TEST_PROMPT_AGENT_IDS', '')
-                         .split(',')
-                         .map(&:strip)
-                         .compact_blank
-        allowed_ids.include?('*') || allowed_ids.include?(agent.id.to_s)
       end
 
       # Parâmetros do quebrador/ritmo (espelham o CONFIG do script n8n v3 que o produto calibrou).

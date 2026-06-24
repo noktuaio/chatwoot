@@ -2,26 +2,26 @@
   Template: Abandoned Cart with Benefits Breakdown
   File: 02-cart-recovery-benefits.mjml
   Category: abandoned-cart / cart-recovery
-
+  
   Purpose:
   Re-engage customers who left items in cart by showcasing product benefits and addressing objections.
   Uses educational approach with detailed features grid + FAQ section to overcome hesitation.
-
+  
   When to send:
   - 2-4 hours after cart abandonment (first reminder)
   - 24 hours after abandonment (second reminder in series)
   - For high-value items (>$30) where education drives conversion
-
+  
   Personalize:
   - {{first_name}}
   - {{product_name}} (e.g., "NYA body cream")
   - {{product_image}} - hero 16:9 product shot
   - {{cart_url}} for "Complete my order" CTA
   - Brand colors (#208e7c primary, #fff6ed background)
-
+  
   Tested on:
   Gmail (web/mobile), Outlook, Apple Mail, iOS Mail
-
+  
   Notes:
   - Marketing email (unsubscribe required - included in footer)
   - Educational approach vs. discount-driven (keeps brand value high)
@@ -31,12 +31,12 @@
   - Works best for premium/luxury products where trust > price
   - 16:9 hero image optimized for mobile preview
   - "Reply to this email" = builds personal connection
-
+  
   A/B test suggestions:
   - Subject line: Benefits-focused vs. "You forgot something"
   - CTA copy: "Complete my order" vs. "Get my cream now"
   - Add social proof section (reviews/testimonials)
-
+  
   Conversion goal:
   Primary: Recover 8-15% of abandoned carts
   Secondary: Educate on product value (nurture for future purchase)
@@ -57,7 +57,7 @@
         </mj-text>
       </mj-column>
     </mj-section>
-
+    
     <!-- Hero Section with 16:9 Product Photo -->
     <mj-section background-color="#ffffff" padding="0 0 0 0" border-radius="14px">
       <mj-column width="100%" padding="16px 15px" background-color="transparent">
@@ -71,7 +71,7 @@
         </mj-text>
       </mj-column>
     </mj-section>
-
+    
     <!-- Product Features Grid -->
     <mj-section background-color="#ffffff" padding="0 10px 0 10px" border-radius="10px">
       <mj-group>
@@ -117,7 +117,7 @@
         </mj-column>
       </mj-group>
     </mj-section>
-
+    
     <!-- Spacing before CTA -->
     <mj-section background-color="#ffffff" padding="0 0 0 0">
       <mj-column width="100%" padding="6px 15px" background-color="transparent">
@@ -133,14 +133,14 @@
         </mj-button>
       </mj-column>
     </mj-section>
-
+  
     <!-- Divider -->
     <mj-section background-color="transparent" padding="0 0 0 0">
       <mj-column width="100%">
         <mj-divider border-color="#ffe2c5" border-width="2px" padding="0"></mj-divider>
       </mj-column>
     </mj-section>
-
+  
     <!-- FAQ Section -->
     <mj-section background-color="#ffffff" padding="0 0 0 0">
       <mj-column width="100%" padding="30px 15px 0 15px" background-color="transparent">
@@ -174,7 +174,7 @@
         </mj-column>
       </mj-group>
     </mj-section>
-
+    
     <!-- See All Questions Button -->
     <mj-section background-color="#ffffff" padding="8px 0 16px 0">
       <mj-column width="100%" padding="10px 20px" background-color="transparent">
@@ -183,14 +183,14 @@
         </mj-button>
       </mj-column>
     </mj-section>
-
+    
     <!-- Divider -->
     <mj-section background-color="transparent" padding="0 0 0 0">
       <mj-column width="100%">
         <mj-divider border-color="#ffe2c5" border-width="2px" padding="0"></mj-divider>
       </mj-column>
     </mj-section>
-
+    
     <!-- Footer with supportive message and links -->
     <mj-section background-color="#fff6ed" padding="14px 0 0 0">
       <mj-column width="100%" padding="14px 25px" background-color="transparent">
@@ -203,7 +203,7 @@
       </mj-column>
       <mj-column width="100%" padding="10px 25px" background-color="transparent">
         <mj-text align="center" color="#a79c90" font-size="13px" padding="0 0 14px 0" line-height="22px">
-          <a href="#" style="color: #208e7c; text-decoration: underline;">View in browser</a> &nbsp;|&nbsp;
+          <a href="#" style="color: #208e7c; text-decoration: underline;">View in browser</a> &nbsp;|&nbsp; 
           <a href="{{ unsubscribe_url }}" style="color: #208e7c; text-decoration: underline;">Unsubscribe</a>
         </mj-text>
       </mj-column>

@@ -41,6 +41,16 @@ class Autonomia::Agents::EmbeddingService
 
       base = cred[:api_base].to_s.chomp('/')
       base = nil if base.blank? || base == OPENAI_DEFAULT_BASE
+      # SSRF: api_base custom controlado pela conta é validado (HTTPS + bloqueio de host/IP
+      # interno/loopback/link-local/metadata, literal E resolvido por DNS) ANTES de tocar a rede —
+      # mesmo guard do Crm::Ai::ResponsesClient (paridade). Host interno -> EmbeddingError.
+      if base.present?
+        begin
+          base = ::Crm::Ai::ApiBaseGuard.validate!(base)
+        rescue ::Crm::Ai::ApiBaseGuard::BlockedError
+          raise EmbeddingError, 'invalid_api_base'
+        end
+      end
       RubyLLM.context do |config|
         config.openai_api_key = cred[:api_key]
         config.openai_api_base = base if base.present?

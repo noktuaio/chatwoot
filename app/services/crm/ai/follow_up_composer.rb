@@ -91,14 +91,20 @@ module Crm
         }
       }.freeze
 
+      # purpose: :followup (padrão — retomar conversa parada, gate de "loop aberto") OU :callback
+      # (cliente PEDIU um retorno numa data; a "tarefa" é retomar o contato como combinado, NÃO caçar
+      # silêncio). callback_context: { requested_at_text:, requested_at: } usado só no :callback.
       def initialize(card:, client:, context:, mode: :free_form, candidates: [], tone_instructions: '',
-                     model: Config::MODEL_FOLLOWUP, reasoning_effort: 'low')
+                     purpose: :followup, callback_context: {},
+                     model: Config::MODEL_FOLLOWUP, reasoning_effort: Config::FOLLOWUP_REASONING_EFFORT)
         @card = card
         @client = client
         @context = context
         @mode = mode.to_sym
         @candidates = Array(candidates)
         @tone_instructions = tone_instructions.to_s.strip
+        @purpose = purpose.to_sym
+        @callback_context = (callback_context || {}).to_h
         @model = model
         @reasoning_effort = reasoning_effort
       end
@@ -142,6 +148,8 @@ module Crm
       end
 
       def instructions
+        return callback_instructions if @purpose == :callback
+
         <<~PROMPT.strip
           Você é o cérebro de follow-up em português do Brasil para retomar conversas de vendas/atendimento que ficaram paradas, "de onde a conversa parou".
           Responda apenas com JSON válido no schema solicitado.
@@ -160,6 +168,34 @@ module Crm
           #{mode_instructions}
 
           "tone" reflete o tom usado (friendly/neutral/helpful). "confidence" (0.0 a 1.0) reflete o quão claro é o loop aberto e o quão adequado é o follow agora.
+          #{tone_instructions_line}
+        PROMPT
+      end
+
+      # Enquadramento de CALLBACK: o cliente PEDIU um retorno numa data/hora — a tarefa é RETOMAR o
+      # contato como combinado, não caçar silêncio. Mesmo schema; o "loop aberto" aqui É o pedido de
+      # retorno (open_loop_source = a frase LITERAL onde o cliente pediu). should_send=false +
+      # closure_detected=true SOMENTE se a conversa mostrar que o cliente DESISTIU/CANCELOU ou o assunto
+      # já foi resolvido depois ("não precisa mais", "já resolvi", "comprei em outro lugar").
+      def callback_instructions
+        req = @callback_context['requested_at_text'].to_s.strip
+        <<~PROMPT.strip
+          Você é o cérebro de RETORNO AGENDADO em português do Brasil. O cliente PEDIU para ser contatado/retornado
+          numa data/hora específica#{req.present? ? " (pedido original: \"#{req}\")" : ''}. Sua tarefa é RETOMAR o contato
+          de forma natural e cordial, como combinado — NÃO é caçar silêncio nem inventar urgência.
+          Responda apenas com JSON válido no schema solicitado.
+
+          PORTÃO: por padrão should_send=true (é um retorno que o PRÓPRIO cliente pediu). Em "open_loop" descreva
+          "retorno solicitado pelo cliente" e em "open_loop_source" copie o trecho LITERAL onde ele pediu o retorno.
+          EXCEÇÃO — defina closure_detected=true e should_send=false SOMENTE se, DEPOIS do pedido, a conversa mostrar
+          que o cliente desistiu/cancelou, já resolveu, comprou em outro lugar, ou pediu para não ser mais contatado.
+
+          ANTI-ALUCINAÇÃO (regra dura): nunca invente fatos, nomes, valores ou prazos fora da conversa. A mensagem deve
+          ser uma retomada curta e cordial (ex.: "Oi! Como combinado, estou retomando nosso contato. Posso te ajudar com…").
+
+          #{mode_instructions}
+
+          "tone" friendly/neutral/helpful. "confidence" (0.0 a 1.0) reflete o quão adequado é retomar agora.
           #{tone_instructions_line}
         PROMPT
       end

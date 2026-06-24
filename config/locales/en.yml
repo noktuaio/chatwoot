@@ -409,12 +409,9 @@ en:
     agents:
       operate:
         handoff_default: "Thanks for reaching out! I'm connecting you with a member of our team who will continue from here."
-        handoff_defaults:
-          - "I don't want to give you an imprecise answer, so I'm sending this to our team to continue with you."
-          - "This needs a quick check from our team. I'm handing the conversation over so they can help you properly."
-          - "To keep the answer accurate, I'll bring someone from our team into the conversation."
         connect_errors:
           generic: 'Unable to connect this inbox to the agent.'
+          agent_internal_not_connectable: 'This is an internal agent (team copilot) and cannot be connected to a customer inbox.'
           agent_not_active: 'Enable and activate the agent before connecting an inbox.'
           inbox_has_webhook_bot: 'This inbox is already connected to another bot. Disconnect it first.'
           inbox_already_connected: 'This inbox is already connected to an agent.'
@@ -557,6 +554,25 @@ en:
   automation:
     system_name: 'Automation System'
   crm:
+    providers:
+      teams: 'Microsoft Teams'
+      google_meet: 'Google Meet'
+    follow_up_reminder:
+      subject: 'Reminder: %{title}'
+      push_title: 'Reminder: %{title}'
+      greeting: 'Hi %{name},'
+      card: 'Deal: %{card}'
+      due_at: 'Due: %{time}'
+      cta: 'Open CRM'
+    meetings:
+      reminder:
+        email_subject: 'Reminder: %{title} at %{time}'
+        push_title: 'Meeting %{title} at %{time}'
+        starts_at: 'Meeting time: %{time}'
+        join_cta: 'Join meeting'
+    booking:
+      verification:
+        subject: 'Confirme seu agendamento'
     no_message: 'No messages in conversation'
     attachment: '[Attachment: %{type}]'
     no_content: '[No content]'

@@ -6,6 +6,7 @@ import DatePicker from 'vue-datepicker-next';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import Popover from 'dashboard/components-next/popover/Popover.vue';
+import CrmCalendarCallbackToggle from './CrmCalendarCallbackToggle.vue';
 import { periodTitle } from './calendarEvents.js';
 
 const props = defineProps({
@@ -20,16 +21,34 @@ const props = defineProps({
   },
   overlays: {
     type: Object,
-    default: () => ({ reminders: true, whatsapp: true, closeDates: true }),
+    default: () => ({
+      reminders: true,
+      whatsapp: true,
+      closeDates: true,
+      meetings: true,
+      external: true,
+    }),
   },
   ownerScope: {
     type: String,
     default: 'all',
     validator: v => ['mine', 'all'].includes(v),
   },
+  showCompleted: {
+    type: Boolean,
+    default: false,
+  },
   overdueCount: {
     type: Number,
     default: 0,
+  },
+  pipelineId: {
+    type: [String, Number],
+    default: null,
+  },
+  pipelines: {
+    type: Array,
+    default: () => [],
   },
 });
 
@@ -41,6 +60,8 @@ const emit = defineEmits([
   'update:cursorDate',
   'update:overlays',
   'update:ownerScope',
+  'update:showCompleted',
+  'update:pipelineId',
   'quickAdd',
 ]);
 
@@ -98,6 +119,20 @@ const overlayDefs = computed(() => [
     activeClass: 'bg-n-amber-9/10 text-n-amber-11 outline-n-amber-9',
     dotClass: 'bg-n-amber-9',
   },
+  {
+    key: 'meetings',
+    label: t('CRM_KANBAN.CALENDAR.OVERLAY.MEETINGS'),
+    icon: 'i-lucide-video',
+    activeClass: 'bg-n-iris-9/10 text-n-iris-11 outline-n-iris-9',
+    dotClass: 'bg-n-iris-9',
+  },
+  {
+    key: 'external',
+    label: t('CRM_KANBAN.CALENDAR.OVERLAY.EXTERNAL'),
+    icon: 'i-lucide-calendar',
+    activeClass: 'bg-n-alpha-2 text-n-slate-11 outline-n-slate-7',
+    dotClass: 'bg-n-slate-8',
+  },
 ]);
 
 const toggleOverlay = key =>
@@ -132,16 +167,28 @@ const onMiniDatePick = value => {
 <template>
   <header class="flex flex-col gap-3">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <!-- Left: today + chevrons + title -->
+      <!-- Left: funil + today + chevrons + title -->
       <div class="flex items-center gap-2">
+        <select
+          v-if="pipelines.length"
+          class="reset-base !mb-0 h-9 w-44 shrink-0 truncate rounded-lg border-0 bg-n-alpha-black2 px-2.5 text-sm font-medium text-n-slate-12 outline outline-1 outline-n-weak focus:outline-n-brand"
+          :value="pipelineId"
+          :aria-label="t('CRM_KANBAN.FILTERS.PIPELINE')"
+          @change="emit('update:pipelineId', $event.target.value)"
+        >
+          <option v-for="p in pipelines" :key="p.value" :value="p.value">
+            {{ p.label }}
+          </option>
+        </select>
         <Button
           variant="outline"
           color="slate"
           size="sm"
+          class="shrink-0"
           :label="t('CRM_KANBAN.CALENDAR.TODAY')"
           @click="emit('today')"
         />
-        <div class="flex items-center">
+        <div class="flex items-center shrink-0">
           <Button
             variant="ghost"
             color="slate"
@@ -164,7 +211,7 @@ const onMiniDatePick = value => {
           <template #default>
             <button
               type="button"
-              class="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-base font-medium capitalize text-n-slate-12 outline-1 outline-transparent hover:bg-n-alpha-2"
+              class="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-2 py-1 text-base font-medium capitalize text-n-slate-12 outline-1 outline-transparent hover:bg-n-alpha-2"
             >
               <span>{{ title }}</span>
               <span class="i-lucide-chevron-down size-4 text-n-slate-10" />
@@ -233,13 +280,34 @@ const onMiniDatePick = value => {
           />
           {{ overlay.label }}
         </button>
+
+        <span class="mx-0.5 h-4 w-px shrink-0 bg-n-weak" aria-hidden="true" />
+
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium outline-1 transition-colors duration-100"
+          :class="
+            showCompleted
+              ? 'bg-n-slate-9/10 text-n-slate-12 outline-n-slate-9'
+              : 'bg-n-alpha-1 text-n-slate-10 outline-transparent hover:bg-n-alpha-2'
+          "
+          :title="t('CRM_KANBAN.CALENDAR.SHOW_COMPLETED_HINT')"
+          :aria-pressed="showCompleted"
+          @click="emit('update:showCompleted', !showCompleted)"
+        >
+          <span class="i-lucide-history size-3.5" />
+          {{ t('CRM_KANBAN.CALENDAR.SHOW_COMPLETED') }}
+        </button>
       </div>
 
-      <TabBar
-        :tabs="ownerScopeTabs"
-        :initial-active-tab="activeOwnerScopeIndex"
-        @tab-changed="onOwnerScopeChanged"
-      />
+      <div class="flex flex-wrap items-center gap-3">
+        <CrmCalendarCallbackToggle :pipeline-id="pipelineId" />
+        <TabBar
+          :tabs="ownerScopeTabs"
+          :initial-active-tab="activeOwnerScopeIndex"
+          @tab-changed="onOwnerScopeChanged"
+        />
+      </div>
     </div>
   </header>
 </template>

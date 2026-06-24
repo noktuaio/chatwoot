@@ -9,6 +9,8 @@ module Crm
         {
           enabled: pipeline_settings[:enabled] != false,
           auto_move_enabled: pipeline_settings[:auto_move_enabled] == true,
+          callback_enabled: pipeline_settings[:callback_enabled] != false,
+          callback_mode: Config.pipeline_callback_mode(@pipeline),
           stale_hours: pipeline_settings[:stale_hours].presence || Config::DEFAULT_STALE_HOURS,
           auto_followup: Config.auto_followup_settings(@pipeline),
           stages: @pipeline.stages.order(:position, :id).map do |stage|

@@ -34,8 +34,14 @@ const toTime = minutes =>
   `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(
     minutes % 60
   ).padStart(2, '0')}`;
+// Estrito: só "H:mm"/"HH:mm" válido (0..1439, e "24:00"=1440 = fim do dia). Qualquer outra coisa
+// (vazio, NaN, "25:61") -> NaN, que a validação rejeita (evita gravar minuto nulo/lixo no backend).
 const toMinutes = time => {
-  const [hours, minutes] = time.split(':').map(Number);
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(time ?? '').trim());
+  if (!match) return NaN;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (minutes > 59 || hours > 24 || (hours === 24 && minutes !== 0)) return NaN;
   return hours * 60 + minutes;
 };
 
@@ -66,7 +72,17 @@ const title = computed(() =>
     : t('CRM_SLA.SCHEDULES.EDITOR.AGENT_TITLE', { name: props.ownerName })
 );
 
-const isBlockInvalid = block => toMinutes(block.end) <= toMinutes(block.start);
+const isBlockInvalid = block => {
+  const start = toMinutes(block.start);
+  const end = toMinutes(block.end);
+  return (
+    !Number.isFinite(start) ||
+    !Number.isFinite(end) ||
+    start < 0 ||
+    end > 1440 ||
+    end <= start
+  );
+};
 const dayHasInvalidBlock = dayIndex => days[dayIndex].some(isBlockInvalid);
 const hasInvalidBlocks = computed(() =>
   days.some(blocks => blocks.some(isBlockInvalid))
