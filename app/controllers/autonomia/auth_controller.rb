@@ -4,8 +4,8 @@ require 'base64'
 require 'digest'
 
 class Autonomia::AuthController < ApplicationController
-  STATE_PURPOSE = :autonomia_sso_state
   STATE_TTL = 10.minutes
+  SESSION_STATES_KEY = :autonomia_sso_states
 
   skip_before_action :authenticate_user!, raise: false
 
@@ -13,7 +13,7 @@ class Autonomia::AuthController < ApplicationController
     return redirect_to login_page_url(error: 'autonomia-sso-disabled') unless sso_enabled?
 
     verifier = SecureRandom.urlsafe_base64(64)
-    state = encode_state(code_verifier: verifier, return_to: permitted_return_to)
+    state = store_state(code_verifier: verifier, return_to: permitted_return_to)
 
     redirect_to authorization_url(state, verifier), allow_other_host: true
   end
@@ -21,7 +21,7 @@ class Autonomia::AuthController < ApplicationController
   def callback
     return redirect_to login_page_url(error: 'autonomia-sso-error') if params[:error].present?
 
-    state = decode_state
+    state = consume_state
     return redirect_to login_page_url(error: 'autonomia-sso-state') if state.blank?
 
     client = Autonomia::Sso::Client.new
@@ -57,51 +57,41 @@ class Autonomia::AuthController < ApplicationController
     uri.to_s
   end
 
-  def encode_state(code_verifier:, return_to:)
-    encrypted_state = state_encryptor.encrypt_and_sign(
-      { code_verifier: code_verifier, return_to: return_to },
-      expires_in: STATE_TTL,
-      purpose: STATE_PURPOSE
-    )
-    Base64.urlsafe_encode64(encrypted_state, padding: false)
+  def store_state(code_verifier:, return_to:)
+    token = SecureRandom.urlsafe_base64(32)
+    states = current_states
+    states[token] = {
+      code_verifier: code_verifier,
+      return_to: return_to,
+      expires_at: STATE_TTL.from_now.to_i
+    }.compact
+    session[SESSION_STATES_KEY] = states
+    token
   end
 
-  def decode_state
-    state = state_candidates(params[:state].to_s).filter_map do |candidate|
-      state_encryptor.decrypt_and_verify(candidate, purpose: STATE_PURPOSE)
-    rescue ActiveSupport::MessageEncryptor::InvalidMessage, ActiveSupport::MessageVerifier::InvalidSignature
-      nil
-    end.first
+  def consume_state
+    states = current_states
+    state = states.delete(params[:state].to_s)
+    session[SESSION_STATES_KEY] = states
+
     return if state.blank?
 
     state = state.with_indifferent_access
+    return if state[:expires_at].to_i < Time.current.to_i
     return if state[:code_verifier].blank?
 
     state
-  end
-
-  def state_candidates(raw_state)
-    [
-      decode_urlsafe_state(raw_state),
-      raw_state,
-      raw_state.tr(' ', '+')
-    ].compact.uniq
-  end
-
-  def decode_urlsafe_state(raw_state)
-    Base64.urlsafe_decode64(raw_state)
-  rescue ArgumentError
-    nil
   end
 
   def pkce_challenge(verifier)
     Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
   end
 
-  def state_encryptor
-    key_len = ActiveSupport::MessageEncryptor.key_len
-    secret = Rails.application.key_generator.generate_key('autonomia-sso-state', key_len)
-    ActiveSupport::MessageEncryptor.new(secret, serializer: JSON)
+  def current_states
+    states = (session[SESSION_STATES_KEY] || {}).to_h
+    states.select do |_token, state|
+      state.to_h.with_indifferent_access[:expires_at].to_i >= Time.current.to_i
+    end
   end
 
   def callback_url

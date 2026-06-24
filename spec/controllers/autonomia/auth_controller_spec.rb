@@ -14,7 +14,7 @@ RSpec.describe 'Autonomia::AuthController', type: :request do
   end
 
   describe 'GET /auth/autonomia' do
-    it 'redirects to Autonomia Identity with an encrypted state and PKCE challenge' do
+    it 'redirects to Autonomia Identity with a short session state and PKCE challenge' do
       with_modified_env sso_env do
         get '/auth/autonomia'
       end
@@ -30,6 +30,7 @@ RSpec.describe 'Autonomia::AuthController', type: :request do
       expect(params['code_challenge_method']).to eq('S256')
       expect(params['state']).to be_present
       expect(params['state']).to match(/\A[A-Za-z0-9_-]+\z/)
+      expect(params['state'].length).to be <= 512
     end
 
     it 'passes prompt login to Autonomia Identity when requested' do
@@ -50,13 +51,12 @@ RSpec.describe 'Autonomia::AuthController', type: :request do
     let(:client) { instance_double(Autonomia::Sso::Client) }
     let(:provisioner) { instance_double(Autonomia::Sso::Provisioner, perform: user) }
 
-    it 'exchanges the code even when the Rails session cookie was not preserved' do
+    it 'exchanges the code when the Rails session state is preserved' do
       with_modified_env sso_env do
         get '/auth/autonomia'
       end
 
       state = Rack::Utils.parse_query(URI.parse(response.location).query).fetch('state')
-      reset!
 
       allow(Autonomia::Sso::Client).to receive(:new).and_return(client)
       allow(client).to receive(:exchange_code!).and_return(token)
@@ -83,7 +83,6 @@ RSpec.describe 'Autonomia::AuthController', type: :request do
       end
 
       state = Rack::Utils.parse_query(URI.parse(response.location).query).fetch('state')
-      reset!
 
       allow(Autonomia::Sso::Client).to receive(:new).and_return(client)
       allow(client).to receive(:exchange_code!).and_return(
