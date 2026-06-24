@@ -1,5 +1,5 @@
 class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autonomia::BaseController
-  before_action :fetch_agent, only: [:show, :update, :destroy]
+  before_action :fetch_agent, only: [:show, :update, :destroy, :avatar]
 
   # Andaime mínimo aplicado pelo backend em modo manual (IP oculto) — embrulha a instrução do
   # usuário com guardrails de segurança/formato/handoff. Nunca vem do params nem é exposto.
@@ -12,7 +12,7 @@ class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autono
   SCAFFOLD
 
   def index
-    @agents = agents_scope.order(created_at: :desc)
+    @agents = agents_scope.with_attached_avatar.order(created_at: :desc)
   end
 
   def show; end
@@ -47,6 +47,19 @@ class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autono
   def destroy
     @agent.destroy!
     head :no_content
+  end
+
+  def avatar
+    if request.delete?
+      @agent.avatar.purge if @agent.avatar.attached?
+    else
+      return render_unprocessable('avatar_required') if params[:avatar].blank?
+
+      @agent.avatar.attach(params[:avatar])
+      @agent.save!
+    end
+
+    render :show
   end
 
   private
@@ -89,15 +102,22 @@ class Api::V1::Accounts::Autonomia::AgentsController < Api::V1::Accounts::Autono
   # `guide_*` key (e.g. guide_kb_version) — otherwise a forged row could fake the Guia's freshness
   # marker and skip the self-healing canonicalize/purge.
   def sanitized_config(config)
-    config.to_h.reject { |key, _| RESERVED_CONFIG_KEYS.include?(key.to_s) || key.to_s.start_with?('guide_') }
+    parameter_hash(config).reject { |key, _| RESERVED_CONFIG_KEYS.include?(key.to_s) || key.to_s.start_with?('guide_') }
   end
 
   # Onda 6 (P2) — MESCLA o config recebido (já sanitizado de system/guide_) sobre o salvo, removendo
   # ainda as chaves COMPUTADAS (topic_map/knowledge_*/with_knowledge) que o usuário não define pela API.
   # Antes o update SUBSTITUÍA o jsonb inteiro e apagava o que o Revisor/Construtor gerou.
   def merge_config!(incoming)
-    safe = (incoming || {}).to_h.except(*PROTECTED_CONFIG_KEYS)
+    safe = parameter_hash(incoming).except(*PROTECTED_CONFIG_KEYS)
     @agent.config = @agent.config.to_h.merge(safe)
+  end
+
+  def parameter_hash(value)
+    return {} if value.blank?
+    return value.to_unsafe_h if value.respond_to?(:to_unsafe_h)
+
+    value.to_h
   end
 
   def manual_mode?

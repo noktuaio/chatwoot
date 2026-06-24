@@ -3,6 +3,8 @@ module Autonomia
     class Agent < ApplicationRecord
       self.table_name = 'autonomia_agents'
 
+      include Avatarable
+
       belongs_to :account
       belongs_to :created_by, class_name: 'User', optional: true
       has_many :sources, class_name: 'Autonomia::Agents::Source',

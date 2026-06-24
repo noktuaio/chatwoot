@@ -21,6 +21,18 @@ export default createStore({
       return data;
     },
 
+    async updateAvatar({ commit }, { agentId, avatar }) {
+      const { data } = await AutonomiaAgentsAPI.updateAvatar(agentId, avatar);
+      commit(mutationTypes.UPSERT, data);
+      return data;
+    },
+
+    async deleteAvatar({ commit }, agentId) {
+      const { data } = await AutonomiaAgentsAPI.deleteAvatar(agentId);
+      commit(mutationTypes.UPSERT, data);
+      return data;
+    },
+
     // Same shape as `test`, used to suggest a reply to a human agent.
     async suggest(_, { agentId, message, history = [] }) {
       const { data } = await AutonomiaAgentsAPI.suggest(agentId, {

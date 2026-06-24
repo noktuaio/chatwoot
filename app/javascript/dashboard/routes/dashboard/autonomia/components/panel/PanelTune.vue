@@ -6,6 +6,7 @@ import { useAlert } from 'dashboard/composables';
 import AutonomiaBuilderImagesAPI from 'dashboard/api/autonomia/builderImages';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import Select from 'dashboard/components-next/select/Select.vue';
@@ -36,6 +37,8 @@ const builderPhase = useMapGetter('autonomiaBuildThreads/getPhase');
 const builderUiFlags = useMapGetter('autonomiaBuildThreads/getUIFlags');
 
 const reconverseDialogRef = ref(null);
+const avatarPreviewUrl = ref('');
+const isUploadingAvatar = ref(false);
 
 const advancedMode = ref(props.agent.mode === 'manual');
 
@@ -100,6 +103,10 @@ const isSaving = computed(
   () => store.getters['autonomiaAgents/getUIFlags'].updatingItem
 );
 
+const avatarSource = computed(
+  () => avatarPreviewUrl.value || props.agent.avatar_url || ''
+);
+
 // handoff_strategy/confidence_threshold MUST be nested under `config` — the
 // controller's strong params only permit `config: {}` for these virtuals and
 // would silently drop them at the top level.
@@ -128,6 +135,39 @@ const saveSettings = async (extra = {}) => {
     // connected (422). Surface its human-readable message so the user knows to
     // disconnect first; fall back to the generic save error otherwise.
     useAlert(error?.message || t('AGENTS.TUNE.SAVE_ERROR'));
+  }
+};
+
+const onAvatarUpload = async ({ file, url }) => {
+  if (!file || isUploadingAvatar.value) return;
+  avatarPreviewUrl.value = url;
+  isUploadingAvatar.value = true;
+  try {
+    await store.dispatch('autonomiaAgents/updateAvatar', {
+      agentId: props.agentId,
+      avatar: file,
+    });
+    avatarPreviewUrl.value = '';
+    useAlert(t('AGENTS.TUNE.AVATAR_UPLOAD_SUCCESS'));
+  } catch (error) {
+    avatarPreviewUrl.value = '';
+    useAlert(t('AGENTS.TUNE.AVATAR_UPLOAD_ERROR'));
+  } finally {
+    isUploadingAvatar.value = false;
+  }
+};
+
+const onAvatarDelete = async () => {
+  if (isUploadingAvatar.value) return;
+  isUploadingAvatar.value = true;
+  try {
+    await store.dispatch('autonomiaAgents/deleteAvatar', props.agentId);
+    avatarPreviewUrl.value = '';
+    useAlert(t('AGENTS.TUNE.AVATAR_DELETE_SUCCESS'));
+  } catch (error) {
+    useAlert(t('AGENTS.TUNE.AVATAR_DELETE_ERROR'));
+  } finally {
+    isUploadingAvatar.value = false;
   }
 };
 
@@ -226,6 +266,33 @@ watch(builderPhase, phase => {
 
 <template>
   <div class="flex flex-col w-full h-full max-w-3xl gap-8 px-6 py-6 mx-auto">
+    <section
+      class="flex items-center justify-between gap-4 pb-6 border-b border-n-weak"
+    >
+      <div class="flex items-center min-w-0 gap-3">
+        <Avatar
+          :name="agent.name"
+          :src="avatarSource"
+          :size="56"
+          rounded-full
+          allow-upload
+          @upload="onAvatarUpload"
+          @delete="onAvatarDelete"
+        />
+        <div class="flex flex-col min-w-0 gap-1">
+          <h2 class="text-sm font-medium text-n-slate-12">
+            {{ t('AGENTS.TUNE.IDENTITY_TITLE') }}
+          </h2>
+          <p class="text-xs leading-relaxed text-n-slate-10">
+            {{ t('AGENTS.TUNE.IDENTITY_HINT') }}
+          </p>
+        </div>
+      </div>
+      <span v-if="isUploadingAvatar" class="text-xs shrink-0 text-n-slate-10">
+        {{ t('AGENTS.TUNE.AVATAR_UPDATING') }}
+      </span>
+    </section>
+
     <!-- Mode toggle: guided (default) vs advanced/manual -->
     <div class="flex items-center justify-between">
       <div class="flex flex-col">
