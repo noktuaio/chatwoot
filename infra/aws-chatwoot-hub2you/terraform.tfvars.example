@@ -1,0 +1,45 @@
+aws_profile = "hub2you"
+aws_region  = "us-east-1"
+
+# Trocar pela URL definitiva antes do apply.
+domain_name = "agents-hub2you.autonomia.site"
+
+# Emitir/importar um certificado ACM nesta conta/regiao para o domain_name acima.
+certificate_arn = "arn:aws:acm:us-east-1:354307071110:certificate/REPLACE_ME"
+
+# VPC default existente na conta hub2you. Nao criar VPC/subnets novas para este MVP.
+existing_vpc_id = "vpc-0dc630d9b0d30e44e"
+
+existing_public_subnet_ids = [
+  "subnet-041dbb033a963d944",
+  "subnet-0abaaca39d84be6db",
+  "subnet-0ebfac35430c63a85"
+]
+
+existing_database_subnet_ids = [
+  "subnet-041dbb033a963d944",
+  "subnet-0abaaca39d84be6db",
+  "subnet-0ebfac35430c63a85"
+]
+
+existing_ec2_subnet_id = "subnet-041dbb033a963d944"
+
+github_actions_repository = "autonom-ia2/chat"
+github_actions_extra_repositories = []
+
+ec2_instance_type = "t3.small"
+
+# Segredos opcionais/externos. Preencher quando estes recursos forem usados.
+smtp_address  = ""
+smtp_username = ""
+smtp_password = ""
+
+waha_api_url                = ""
+waha_public_url             = ""
+waha_api_key                = ""
+waha_chatwoot_account_token = ""
+
+email_campaign_enabled               = false
+email_campaign_aws_region            = "us-east-1"
+email_campaign_aws_access_key_id     = ""
+email_campaign_aws_secret_access_key = ""

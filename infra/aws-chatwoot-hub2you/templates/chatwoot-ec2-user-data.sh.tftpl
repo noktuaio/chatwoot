@@ -1,0 +1,99 @@
+#!/bin/bash
+set -euxo pipefail
+
+AWS_REGION="${aws_region}"
+ECR_REGISTRY="${ecr_registry}"
+ENV_PARAMETER="${env_parameter}"
+RUNTIME_PARAMETER="${runtime_parameter}"
+APP_DIR="/opt/chatwoot"
+
+dnf update -y
+dnf install -y docker awscli
+systemctl enable --now docker
+
+mkdir -p "$APP_DIR"
+
+aws ssm get-parameter \
+  --region "$AWS_REGION" \
+  --name "$ENV_PARAMETER" \
+  --with-decryption \
+  --query Parameter.Value \
+  --output text > "$APP_DIR/.env"
+chmod 600 "$APP_DIR/.env"
+
+IMAGE_URI="$(aws ssm get-parameter \
+  --region "$AWS_REGION" \
+  --name "$RUNTIME_PARAMETER" \
+  --query Parameter.Value \
+  --output text)"
+
+cat > "$APP_DIR/runtime.env" <<EOF
+IMAGE_URI=$IMAGE_URI
+AWS_REGION=$AWS_REGION
+ECR_REGISTRY=$ECR_REGISTRY
+EOF
+
+cat > "$APP_DIR/deploy.sh" <<'EOF'
+#!/bin/bash
+set -euxo pipefail
+
+APP_DIR="/opt/chatwoot"
+source "$APP_DIR/runtime.env"
+
+if [ "$#" -gt 0 ] && [ -n "$1" ]; then
+  IMAGE_URI="$1"
+  {
+    echo "IMAGE_URI=$IMAGE_URI"
+    echo "AWS_REGION=$AWS_REGION"
+    echo "ECR_REGISTRY=$ECR_REGISTRY"
+  } > "$APP_DIR/runtime.env"
+fi
+
+aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+docker pull "$IMAGE_URI"
+docker run --rm --env-file "$APP_DIR/.env" "$IMAGE_URI" bundle exec rails db:chatwoot_prepare
+systemctl restart chatwoot-web.service
+systemctl restart chatwoot-worker.service
+docker image prune -f
+EOF
+chmod +x "$APP_DIR/deploy.sh"
+
+cat > /etc/systemd/system/chatwoot-web.service <<'EOF'
+[Unit]
+Description=Chatwoot web
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Restart=always
+RestartSec=10
+EnvironmentFile=/opt/chatwoot/runtime.env
+ExecStartPre=-/usr/bin/docker rm -f chatwoot-web
+ExecStart=/usr/bin/docker run --rm --name chatwoot-web --env-file /opt/chatwoot/.env -p 3000:3000 $IMAGE_URI bundle exec rails s -p 3000 -b 0.0.0.0
+ExecStop=/usr/bin/docker stop chatwoot-web
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat > /etc/systemd/system/chatwoot-worker.service <<'EOF'
+[Unit]
+Description=Chatwoot worker
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Restart=always
+RestartSec=10
+EnvironmentFile=/opt/chatwoot/runtime.env
+ExecStartPre=-/usr/bin/docker rm -f chatwoot-worker
+ExecStart=/usr/bin/docker run --rm --name chatwoot-worker --env-file /opt/chatwoot/.env $IMAGE_URI bundle exec sidekiq -C config/sidekiq.yml
+ExecStop=/usr/bin/docker stop chatwoot-worker
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable chatwoot-web.service chatwoot-worker.service
+"$APP_DIR/deploy.sh"
