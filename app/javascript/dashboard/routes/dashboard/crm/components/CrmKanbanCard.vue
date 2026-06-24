@@ -1,0 +1,275 @@
+<script setup>
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import {
+  dynamicTime,
+  shortTimestamp,
+  dateFormat,
+} from 'shared/helpers/timeHelper';
+
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
+import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
+import CardPriorityIcon from 'dashboard/components-next/Conversation/ConversationCard/CardPriorityIcon.vue';
+import SLACardLabel from 'dashboard/components-next/Conversation/Sla/SLACardLabel.vue';
+import CrmCardPill from './CrmCardPill.vue';
+
+const props = defineProps({
+  card: {
+    type: Object,
+    required: true,
+  },
+  // Stage accent hex (e.g. '#22c55e). Slate fallback when absent.
+  stageColor: {
+    type: String,
+    default: '',
+  },
+  // Standalone variant renders a minimal card (used outside the board v-for).
+  standalone: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+defineEmits(['open']);
+
+const { t } = useI18n();
+
+const STAGE_FALLBACK_COLOR = '#64748b';
+
+const railStyle = computed(() => ({
+  backgroundColor: props.stageColor || STAGE_FALLBACK_COLOR,
+}));
+
+const contactLabel = computed(
+  () =>
+    props.card.contact?.name ||
+    props.card.contact?.phone_number ||
+    props.card.inbox?.name ||
+    t('CRM_KANBAN.CARD.STANDALONE')
+);
+
+// The title is backfilled from the contact (name/phone) when no custom title
+// exists, so the contact line would just repeat the title. Only show it when it
+// adds information beyond the title.
+const showContactLine = computed(
+  () => Boolean(contactLabel.value) && contactLabel.value !== props.card.title
+);
+
+// The avatar represents WHO is handling the card (the responsible), in 3 states:
+//   bot   -> IA (square i-lucide-bot glyph)
+//   agent -> a human (initials avatar)
+//   none  -> nobody assigned and no bot (distinct dashed i-lucide-user-round-x)
+const responsibleType = computed(() => props.card.responsible?.type || 'none');
+const responsibleIsBot = computed(() => responsibleType.value === 'bot');
+const responsibleName = computed(
+  () => props.card.responsible?.name || t('CRM_KANBAN.CARD.NO_OWNER')
+);
+const avatarIconName = computed(() => {
+  if (responsibleType.value === 'bot') return 'i-lucide-bot';
+  if (responsibleType.value === 'none') return 'i-lucide-user-round-x';
+  return null; // agent -> initials from name
+});
+const responsibleIcon = computed(() => {
+  if (responsibleType.value === 'bot') return 'i-lucide-bot';
+  if (responsibleType.value === 'agent') return 'i-lucide-user-round';
+  return 'i-lucide-user-round-x';
+});
+
+// Demote priority to a small glyph, only for high/urgent (reuse the
+// shared CardPriorityIcon).
+const showPriorityGlyph = computed(() =>
+  ['high', 'urgent'].includes(props.card.priority)
+);
+
+const valueLabel = computed(() => {
+  const cents = Number(props.card.value_cents || 0);
+  if (!cents) return null;
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: props.card.currency || 'BRL',
+  }).format(cents / 100);
+});
+
+const scoreLabel = computed(() => {
+  const score = Number(props.card.score || 0);
+  if (!score || score <= 0) return null;
+  return score;
+});
+
+const aiSuggestionLabel = computed(() => {
+  const suggestion = props.card.ai_suggestion;
+  if (!suggestion?.to_stage_name) return '';
+  return t('CRM_KANBAN.AI_CARD.BADGE', { stage: suggestion.to_stage_name });
+});
+
+// Board sends epoch seconds; render via timeHelper (fromUnixTime). Do not mix
+// with ISO date helpers.
+const relativeFromEpoch = epoch => {
+  const value = Number(epoch);
+  if (!value || Number.isNaN(value)) return '';
+  return shortTimestamp(dynamicTime(value), true);
+};
+
+const titleFromEpoch = epoch => {
+  const value = Number(epoch);
+  if (!value || Number.isNaN(value)) return '';
+  return dateFormat(value, 'MMM d, yyyy h:mm a');
+};
+
+const lastMessageLabel = computed(() =>
+  relativeFromEpoch(props.card.last_message_at)
+);
+
+const lastMessageTitle = computed(() =>
+  titleFromEpoch(props.card.last_message_at)
+);
+
+// SLACardLabel expects the conversation-list "chat" shape; card.conversation
+// already carries applied_sla + epoch fields from the payload builder.
+const slaChat = computed(() => {
+  const conversation = props.card?.conversation;
+  if (!conversation?.applied_sla) return null;
+  return {
+    applied_sla: conversation.applied_sla,
+    first_reply_created_at: conversation.first_reply_created_at,
+    waiting_since: conversation.waiting_since,
+    status: conversation.status,
+  };
+});
+
+const followUp = computed(() => {
+  const epoch = Number(props.card.next_follow_up_at);
+  if (!epoch || Number.isNaN(epoch)) return null;
+
+  const nowSeconds = Date.now() / 1000;
+  const secondsUntil = epoch - nowSeconds;
+  let tone = 'default';
+  if (secondsUntil < 0) {
+    tone = 'ruby';
+  } else if (secondsUntil <= 24 * 60 * 60) {
+    tone = 'amber';
+  }
+
+  // The nearest follow-up can be the AI cadence or a manual reminder; the badge
+  // shows whichever is closest to due (per the locked decision) but flags its
+  // type with an icon + tooltip so the two are never confused.
+  const isAi = props.card.next_follow_up_source === 'ai';
+  return {
+    label: shortTimestamp(dynamicTime(epoch), true),
+    title: isAi
+      ? t('CRM_KANBAN.CARD.FOLLOW_UP_AI')
+      : t('CRM_KANBAN.CARD.FOLLOW_UP_MANUAL'),
+    icon: isAi ? 'i-lucide-bot' : 'i-lucide-calendar-clock',
+    tone,
+  };
+});
+</script>
+
+<template>
+  <button
+    type="button"
+    class="group/card relative w-full shrink-0 overflow-hidden rounded-lg border border-n-weak bg-n-surface-1 py-3 pl-4 pr-3 text-left shadow-sm transition-colors hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+    @click="$emit('open', card)"
+  >
+    <!-- Stage accent rail (inline :style per repo precedent; slate fallback,
+         dark ring guards pale colors on dark surfaces) -->
+    <span
+      class="absolute inset-y-0 left-0 w-1 rounded-l-lg ring-1 ring-inset ring-n-alpha-1 dark:ring-n-alpha-2"
+      :style="railStyle"
+    />
+
+    <div class="flex items-start gap-2.5">
+      <Avatar
+        :name="responsibleName"
+        :size="32"
+        :rounded-full="!responsibleIsBot"
+        :icon-name="avatarIconName"
+        :title="responsibleName"
+        class="mt-0.5 shrink-0"
+      />
+
+      <div class="min-w-0 flex-1">
+        <div class="flex items-start justify-between gap-2">
+          <p class="mb-0 truncate text-sm font-medium text-n-slate-12">
+            {{ card.title }}
+          </p>
+          <CardPriorityIcon
+            v-if="showPriorityGlyph"
+            :priority="card.priority"
+            class="mt-0.5 shrink-0"
+          />
+        </div>
+        <p
+          v-if="showContactLine"
+          class="mb-0 mt-0.5 truncate text-xs text-n-slate-11"
+        >
+          {{ contactLabel }}
+        </p>
+      </div>
+    </div>
+
+    <p
+      v-if="card.description"
+      class="mb-0 mt-2 line-clamp-2 text-xs leading-5 text-n-slate-11"
+    >
+      {{ card.description }}
+    </p>
+
+    <!-- Signal pills -->
+    <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+      <SLACardLabel v-if="slaChat" :chat="slaChat" />
+
+      <CrmCardPill v-if="card.inbox?.channel_type" tone="default">
+        <template #lead>
+          <ChannelIcon
+            :inbox="{ channel_type: card.inbox.channel_type }"
+            class="size-3 shrink-0"
+          />
+        </template>
+        {{ card.inbox.name }}
+      </CrmCardPill>
+
+      <CrmCardPill v-if="valueLabel" icon="i-lucide-banknote" tone="default">
+        {{ valueLabel }}
+      </CrmCardPill>
+
+      <CrmCardPill
+        v-if="followUp"
+        :icon="followUp.icon"
+        :tone="followUp.tone"
+        :title="followUp.title"
+      >
+        {{ t('CRM_KANBAN.CARD.FOLLOW_UP_DUE', { time: followUp.label }) }}
+      </CrmCardPill>
+
+      <CrmCardPill
+        v-if="aiSuggestionLabel"
+        icon="i-lucide-sparkles"
+        tone="blue"
+      >
+        {{ aiSuggestionLabel }}
+      </CrmCardPill>
+
+      <CrmCardPill v-if="scoreLabel" icon="i-lucide-flame" tone="default">
+        {{ t('CRM_KANBAN.CARD.SCORE', { score: scoreLabel }) }}
+      </CrmCardPill>
+    </div>
+
+    <div
+      class="mt-2 flex items-center justify-between gap-2 text-[11px] text-n-slate-10"
+    >
+      <span class="flex min-w-0 items-center gap-1" :title="responsibleName">
+        <span :class="responsibleIcon" class="size-3 shrink-0" />
+        <span class="truncate">{{ responsibleName }}</span>
+      </span>
+      <span
+        v-if="lastMessageLabel && !standalone"
+        class="flex shrink-0 items-center gap-1"
+        :title="lastMessageTitle"
+      >
+        <span class="i-lucide-message-circle size-3 shrink-0" />
+        {{ lastMessageLabel }}
+      </span>
+    </div>
+  </button>
+</template>

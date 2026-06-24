@@ -69,6 +69,7 @@ const isActive = computed(() => {
     'twilio',
     'api',
     'whatsapp',
+    'whatsapp_api',
     'sms',
     'telegram',
     'line',

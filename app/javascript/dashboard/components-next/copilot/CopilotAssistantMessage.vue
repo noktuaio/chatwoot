@@ -23,6 +23,12 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  // Optional override for the sender label. Defaults to the Captain name to keep the existing
+  // Captain/copilot widgets unchanged; the Guia da Plataforma passes its own name.
+  senderName: {
+    type: String,
+    default: '',
+  },
 });
 const hasEmptyMessageContent = computed(() => !props.message?.content);
 
@@ -57,7 +63,7 @@ const useCopilotResponse = () => {
 
 <template>
   <div class="flex flex-col gap-1 text-n-slate-12">
-    <div class="font-medium">{{ $t('CAPTAIN.NAME') }}</div>
+    <div class="font-medium">{{ senderName || $t('CAPTAIN.NAME') }}</div>
     <span v-if="hasEmptyMessageContent" class="text-n-ruby-11">
       {{ $t('CAPTAIN.COPILOT.EMPTY_MESSAGE') }}
     </span>

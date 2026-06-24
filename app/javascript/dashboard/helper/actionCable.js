@@ -54,6 +54,16 @@ class ActionCableConnector extends BaseActionCableConnector {
       'voice_call.outbound_connected': this.onVoiceCallOutboundConnected,
       'voice_call.outbound_accepted': this.onVoiceCallOutboundAccepted,
       'voice_call.ended': this.onVoiceCallEnded,
+      'crm.card.created': data =>
+        this.onCrmCardChanged('crm.card.created', data),
+      'crm.card.updated': data =>
+        this.onCrmCardChanged('crm.card.updated', data),
+      'crm.card.moved': data => this.onCrmCardChanged('crm.card.moved', data),
+      'crm.card.archived': data =>
+        this.onCrmCardChanged('crm.card.archived', data),
+      'crm.follow_up.due': this.onCrmFollowUpDue,
+      'email_campaign.ai.ready': this.onEmailCampaignAiReady,
+      'email_campaign.ai.failed': this.onEmailCampaignAiFailed,
     };
   }
 
@@ -266,6 +276,35 @@ class ActionCableConnector extends BaseActionCableConnector {
 
   onEnrichmentCompleted = () => {
     this.app.$store.dispatch('accounts/get', { silent: true });
+  };
+
+  onCrmCardChanged = (event, data) => {
+    this.app.$store.dispatch('crmKanban/handleRealtimeCardEvent', {
+      event,
+      card: data,
+    });
+  };
+
+  onCrmFollowUpDue = data => {
+    if (!this.isAValidEvent(data)) return;
+
+    emitter.emit(BUS_EVENTS.CRM_FOLLOW_UP_DUE, data);
+  };
+
+  // Geração de e-mail por IA concluída/falhou: atualiza os selos (refetch) e emite o bus para o
+  // toast global (EmailCampaignAiToast, que tem i18n). O connector não tem i18n próprio.
+  onEmailCampaignAiReady = data => {
+    if (!this.isAValidEvent(data)) return;
+
+    this.app.$store.dispatch('emailCampaigns/get');
+    emitter.emit(BUS_EVENTS.EMAIL_CAMPAIGN_AI_READY, data);
+  };
+
+  onEmailCampaignAiFailed = data => {
+    if (!this.isAValidEvent(data)) return;
+
+    this.app.$store.dispatch('emailCampaigns/get');
+    emitter.emit(BUS_EVENTS.EMAIL_CAMPAIGN_AI_FAILED, data);
   };
 
   onCacheInvalidate = data => {

@@ -1,10 +1,12 @@
 module Enterprise::ActionService
   def add_sla(sla_policy_id)
     return if sla_policy_id.blank?
+    return unless @account.feature_enabled?('sla') # automação não aplica SLA quando a feature está off
 
     sla_policy = @account.sla_policies.find_by(id: sla_policy_id.first)
     return if sla_policy.nil?
     return if @conversation.sla_policy.present?
+    return if sla_policy.exclude_groups? && Crm::WhatsappGroupDetector.group_conversation?(@conversation)
 
     Rails.logger.info "SLA:: Adding SLA #{sla_policy.id} to conversation: #{@conversation.id}"
     @conversation.update!(sla_policy_id: sla_policy.id)

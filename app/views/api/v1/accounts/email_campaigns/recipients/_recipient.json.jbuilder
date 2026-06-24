@@ -1,0 +1,9 @@
+json.id recipient.id
+json.email_campaign_id recipient.email_campaign_id
+json.name recipient.name
+json.email recipient.email
+json.status recipient.status
+json.ses_message_id recipient.ses_message_id
+json.sent_at recipient.sent_at
+json.last_error recipient.last_error
+json.created_at recipient.created_at

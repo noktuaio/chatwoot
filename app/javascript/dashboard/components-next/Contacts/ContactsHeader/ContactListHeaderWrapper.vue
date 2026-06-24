@@ -17,11 +17,13 @@ import {
   useCamelCase,
   useSnakeCase,
 } from 'dashboard/composables/useTransformKeys';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 
 import ContactsHeader from 'dashboard/components-next/Contacts/ContactsHeader/ContactHeader.vue';
 import CreateNewContactDialog from 'dashboard/components-next/Contacts/ContactsForm/CreateNewContactDialog.vue';
 import ContactExportDialog from 'dashboard/components-next/Contacts/ContactsForm/ContactExportDialog.vue';
 import ContactImportDialog from 'dashboard/components-next/Contacts/ContactsForm/ContactImportDialog.vue';
+import CampaignImportDialog from 'dashboard/components-next/Contacts/CampaignImport/CampaignImportDialog.vue';
 import CreateSegmentDialog from 'dashboard/components-next/Contacts/ContactsForm/CreateSegmentDialog.vue';
 import DeleteSegmentDialog from 'dashboard/components-next/Contacts/ContactsForm/DeleteSegmentDialog.vue';
 import ContactsFilter from 'dashboard/components-next/filter/ContactsFilter.vue';
@@ -49,10 +51,12 @@ const emit = defineEmits([
 const { t } = useI18n();
 const store = useStore();
 const router = useRouter();
+const { isAdmin } = useAdmin();
 
 const createNewContactDialogRef = ref(null);
 const contactExportDialogRef = ref(null);
 const contactImportDialogRef = ref(null);
+const campaignImportDialogRef = ref(null);
 const createSegmentDialogRef = ref(null);
 const deleteSegmentDialogRef = ref(null);
 
@@ -63,6 +67,10 @@ const segmentsQuery = ref({});
 const appliedFilters = useMapGetter('contacts/getAppliedContactFiltersV4');
 const contactAttributes = useMapGetter('attributes/getContactAttributes');
 const labels = useMapGetter('labels/getLabels');
+const globalConfig = useMapGetter('globalConfig/get');
+const campaignImportEnabled = computed(
+  () => globalConfig.value?.campaignImportEnabled === true && isAdmin.value
+);
 const hasActiveSegments = computed(
   () => props.activeSegment && props.segmentsId !== 0
 );
@@ -73,6 +81,10 @@ const openCreateNewContactDialog = () => {
 };
 const openContactImportDialog = () =>
   contactImportDialogRef.value?.dialogRef.open();
+const openCampaignImportDialog = () =>
+  campaignImportDialogRef.value?.dialogRef.open();
+const openCampaignImportHistory = () =>
+  router.push({ name: 'contacts_campaign_imports' });
 const openContactExportDialog = () =>
   contactExportDialogRef.value?.dialogRef.open();
 const openCreateSegmentDialog = () =>
@@ -117,6 +129,18 @@ const onImport = async file => {
         t('CONTACTS_LAYOUT.HEADER.ACTIONS.IMPORT_CONTACT.ERROR_MESSAGE')
     );
     useTrack(CONTACTS_EVENTS.IMPORT_FAILURE);
+  }
+};
+
+const onCampaignImport = async payload => {
+  try {
+    await store.dispatch('campaignImports/create', payload);
+    campaignImportDialogRef.value?.dialogRef.close();
+    campaignImportDialogRef.value?.reset();
+    useAlert(t('CAMPAIGN_IMPORT.API.CREATE_SUCCESS'));
+    router.push({ name: 'contacts_campaign_imports' });
+  } catch (error) {
+    useAlert(error.message ?? t('CAMPAIGN_IMPORT.API.CREATE_ERROR'));
   }
 };
 
@@ -281,12 +305,15 @@ defineExpose({
     :is-label-view="isLabelView"
     :is-active-view="isActiveView"
     :has-active-filters="hasAppliedFilters"
+    :campaign-import-enabled="campaignImportEnabled"
     :button-label="t('CONTACTS_LAYOUT.HEADER.MESSAGE_BUTTON')"
     @search="emit('search', $event)"
     @update:sort="emit('update:sort', $event)"
     @add="openCreateNewContactDialog"
     @import="openContactImportDialog"
     @export="openContactExportDialog"
+    @campaign-import="openCampaignImportDialog"
+    @campaign-import-history="openCampaignImportHistory"
     @filter="onToggleFilters"
     @create-segment="openCreateSegmentDialog"
     @delete-segment="openDeleteSegmentDialog"
@@ -312,6 +339,11 @@ defineExpose({
   <CreateNewContactDialog ref="createNewContactDialogRef" @create="onCreate" />
   <ContactExportDialog ref="contactExportDialogRef" @export="onExport" />
   <ContactImportDialog ref="contactImportDialogRef" @import="onImport" />
+  <CampaignImportDialog
+    v-if="campaignImportEnabled"
+    ref="campaignImportDialogRef"
+    @create="onCampaignImport"
+  />
   <CreateSegmentDialog ref="createSegmentDialogRef" @create="onCreateSegment" />
   <DeleteSegmentDialog ref="deleteSegmentDialogRef" @delete="onDeleteSegment" />
 </template>

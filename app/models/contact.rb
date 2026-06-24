@@ -58,6 +58,7 @@ class Contact < ApplicationRecord
   belongs_to :account
   has_many :conversations, dependent: :destroy_async
   has_many :contact_inboxes, dependent: :destroy_async
+  has_many :crm_cards, class_name: 'Crm::Card', dependent: :nullify
   has_many :csat_survey_responses, dependent: :destroy_async
   has_many :inboxes, through: :contact_inboxes
   has_many :messages, as: :sender, dependent: :destroy_async
@@ -235,10 +236,14 @@ class Contact < ApplicationRecord
   end
 
   def dispatch_create_event
+    return if Current.suppress_contact_events
+
     Rails.configuration.dispatcher.dispatch(CONTACT_CREATED, Time.zone.now, contact: self)
   end
 
   def dispatch_update_event
+    return if Current.suppress_contact_events
+
     Rails.configuration.dispatcher.dispatch(CONTACT_UPDATED, Time.zone.now, contact: self, changed_attributes: previous_changes)
   end
 

@@ -3,7 +3,10 @@
 # Table name: sla_policies
 #
 #  id                            :bigint           not null, primary key
+#  ai_skip_natural_pause         :boolean          default(TRUE), not null
+#  auto_apply                    :jsonb            not null
 #  description                   :string
+#  exclude_groups                :boolean          default(TRUE), not null
 #  first_response_time_threshold :float
 #  name                          :string           not null
 #  next_response_time_threshold  :float
@@ -31,6 +34,18 @@ class SlaPolicy < ApplicationRecord
       frt: first_response_time_threshold,
       nrt: next_response_time_threshold,
       rt: resolution_time_threshold
+    }
+  end
+
+  # Safe accessor for the jsonb auto_apply config. Shape:
+  # { 'enabled' => bool, 'event' => 'conversation_created', 'inbox_ids' => [Integer], 'pipeline_ids' => [Integer] }
+  def auto_apply_config
+    config = auto_apply.is_a?(Hash) ? auto_apply : {}
+    {
+      'enabled' => ActiveModel::Type::Boolean.new.cast(config['enabled']) || false,
+      'event' => config['event'].presence || 'conversation_created',
+      'inbox_ids' => Array(config['inbox_ids']).map(&:to_i),
+      'pipeline_ids' => Array(config['pipeline_ids']).map(&:to_i)
     }
   end
 end

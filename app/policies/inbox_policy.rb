@@ -70,6 +70,14 @@ class InboxPolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  def enable_whatsapp_api_campaigns?
+    @account_user.administrator?
+  end
+
+  def disable_whatsapp_api_campaigns?
+    @account_user.administrator?
+  end
+
   def enable_whatsapp_calling?
     @account_user.administrator?
   end

@@ -1,0 +1,367 @@
+{
+  "AGENTS": {
+    "HUB": {
+      "TITLE": "My Agents",
+      "SUBTITLE": "Your AI agents answer customers automatically and hand off to a human when needed.",
+      "CREATE": "Create agent with AI",
+      "LOADING": "Loading your agents…",
+      "ERROR": "We couldn't load your agents. Please try again.",
+      "EMPTY": {
+        "TITLE": "Create your first agent",
+        "SUBTITLE": "Build an agent in 3 minutes — you chat, it learns. No technical setup required."
+      },
+      "STATUS": {
+        "DRAFT": "Draft",
+        "ACTIVE": "Active",
+        "PAUSED": "Paused"
+      },
+      "CHANNELS_COUNT": "No channels | 1 channel | {count} channels",
+      "NO_METRICS": "—",
+      "OPEN": "Open agent"
+    },
+    "TYPES": {
+      "PICK_TITLE": "What should your agent do?",
+      "PICK_SUBTITLE": "Pick a starting point. You can refine everything afterwards.",
+      "SETUP_TIME": "About 3 min to set up",
+      "ACTUATION": {
+        "LABEL": "Where the agent works",
+        "EXTERNAL": "External",
+        "EXTERNAL_HINT": "Talks to customers on WhatsApp/Instagram/chat.",
+        "INTERNAL": "Internal",
+        "INTERNAL_HINT": "Never talks to customers — only helps the agent."
+      },
+      "KNOWLEDGE": {
+        "LABEL": "Knowledge base",
+        "WITH": "With base",
+        "WITH_HINT": "You upload PDFs/FAQs and the agent learns.",
+        "WITHOUT": "No base",
+        "WITHOUT_HINT": "No documents — works by rules and hands off."
+      },
+      "SUPPORT": {
+        "TITLE": "Support",
+        "SUBTITLE": "Answers questions and solves common requests."
+      },
+      "SDR": {
+        "TITLE": "Lead qualifier",
+        "SUBTITLE": "Qualifies leads and books opportunities for your team."
+      },
+      "RECEPTIONIST": {
+        "TITLE": "Receptionist",
+        "SUBTITLE": "Greets, triages and routes each conversation."
+      },
+      "POST_SALE": {
+        "TITLE": "Post-sale",
+        "SUBTITLE": "Onboards new customers and handles follow-ups."
+      },
+      "SCHEDULER": {
+        "TITLE": "Scheduler",
+        "SUBTITLE": "Collects day/time preference and hands off to confirm."
+      },
+      "REACTIVATION": {
+        "TITLE": "Reactivation",
+        "SUBTITLE": "Re-engages inactive contacts and brings them back."
+      },
+      "SCRATCH": {
+        "TITLE": "Start from scratch",
+        "SUBTITLE": "Describe what you need and build it from a blank slate."
+      }
+    },
+    "BUILDER": {
+      "TITLE": "Agent builder",
+      "BUILDER_NAME": "Builder",
+      "YOU": "You",
+      "INTRO": "Tell us what this agent should do — describe your business and how it should help. We'll ask a few questions and build it for you.",
+      "FAILED": "Something went wrong while building your agent. Send another message to try again.",
+      "TIMEOUT": "This is taking longer than expected. Please send your message again.",
+      "PLACEHOLDER": "Type your answer…",
+      "SEND": "Send",
+      "ATTACH": {
+        "LABEL": "Attach file",
+        "KNOWLEDGE": "For it to know",
+        "KNOWLEDGE_HINT": "Becomes the agent's knowledge (PDF, DOCX, XLSX, TXT, JSON, image)",
+        "MEDIA": "For it to send",
+        "MEDIA_HINT": "Material the agent sends to the customer",
+        "ATTACHED": "File attached to the agent.",
+        "INVALID_EXT": "Unsupported format.",
+        "IMAGE_PENDING": "Images attached to your next message",
+        "IMAGE_REMOVE": "Remove image",
+        "IMAGE_TOO_LARGE": "Image over 5 MB.",
+        "IMAGE_TOO_MANY": "Up to 4 images per message.",
+        "IMAGE_INVALID_TYPE": "Unsupported image format."
+      },
+      "OPENING": "Getting your agent ready…",
+      "STARTING": "Getting started…",
+      "GENERATING": "Building your agent…",
+      "THINKING": "Thinking…",
+      "ADD_KNOWLEDGE": "Add knowledge",
+      "EXIT": "Exit",
+      "CLOSE": "Close",
+      "RETRY": "Try again",
+      "START_ERROR": "We couldn't start the builder. Please try again.",
+      "SEND_ERROR": "Your message couldn't be sent. Please try again.",
+      "READY": {
+        "TITLE": "Your agent is ready"
+      },
+      "GREETING_LABEL": "First message",
+      "STARTERS_LABEL": "Suggested questions",
+      "CONFIRM": "Confirm and create",
+      "KEEP_TUNING": "Keep refining",
+      "NO_MATERIALS_SIGNAL": "I don't have materials to include right now.",
+      "MATERIALS_DONE_SIGNAL": "I've added the materials, you can finish.",
+      "ADVANCE_TO_REVIEW": "Advance to review",
+      "FINALIZE_SIGNAL": "I've finished, you can finalize the agent.",
+      "FINALIZE_ERROR": "Couldn't finalize the agent. Please try again.",
+      "FINALIZING": "Finalizing your agent…",
+      "CONVERSATION": "Builder conversation",
+      "URL_SUGGEST": {
+        "PROMPT": "I saw the link {url}. Add it to {name}'s knowledge?",
+        "ADD": "Add",
+        "DISMISS": "Dismiss",
+        "ADDED": "Link added to knowledge. We're processing it now.",
+        "ERROR": "We couldn't add that link. Please try again.",
+        "FALLBACK_NAME": "your agent"
+      }
+    },
+    "WIZARD": {
+      "PROGRESS": "Build progress",
+      "STEPS": {
+        "CONVERSA": "Conversation + materials",
+        "MATERIAIS": "Materials",
+        "REVISAO": "Review",
+        "CONECTAR": "Connect"
+      },
+      "STATE": {
+        "DONE": "done",
+        "CURRENT": "current step",
+        "UPCOMING": "upcoming"
+      },
+      "STEP_STATUS": "{label} — {state}"
+    },
+    "REVIEW": {
+      "TITLE": "Review your agent",
+      "FIRST_MESSAGE_LABEL": "First message",
+      "FIRST_MESSAGE_HINT": "This is a suggestion. Adjust it however you like; it isn't fixed.",
+      "SAVE_FIRST_MESSAGE": "Save first message",
+      "SAVED": "First message saved.",
+      "STARTERS": "Suggested questions",
+      "APPROVED_SUMMARY": "{count} materials approved · {pct}% confidence",
+      "TEST_FIRST": "Test first",
+      "CONNECT_TITLE": "Connect to an inbox",
+      "INTERNAL_TITLE": "Internal agent (team copilot)",
+      "INTERNAL_HINT": "This agent helps your team inside conversations and never talks to customers, so there's no inbox to connect.",
+      "SELECT_INBOX": "Choose an inbox",
+      "CONNECT_ACTIVATE": "Connect and activate",
+      "BACK": "Back"
+    },
+    "PANEL": {
+      "LOADING": "Loading agent…",
+      "ERROR": "We couldn't load this agent. Please try again.",
+      "TABS": {
+        "TEST": "Test",
+        "KNOWLEDGE": "Knowledge",
+        "CHANNELS": "Channels",
+        "PERFORMANCE": "Performance",
+        "TUNE": "Tune"
+      }
+    },
+    "TEST": {
+      "DESCRIPTION": "Try your agent here. Customers won't see these messages.",
+      "PLACEHOLDER": "Send a message to test…",
+      "EMPTY": "Send a message to see how your agent replies.",
+      "THINKING": "Thinking…",
+      "RESET": "Clear conversation",
+      "ERROR": "The agent couldn't reply. Please try again.",
+      "CONFIDENCE": "Confidence",
+      "HANDOFF_NOTICE": "Would hand off to a human: {reason}",
+      "KNOWLEDGE_USED": "Knowledge used ({count})",
+      "SOURCE": "Source: {source}",
+      "CONVERSATION": "Test conversation",
+      "NOT_FINALIZED": "This agent isn't finalized yet. Finish building it so the test reflects its real behavior."
+    },
+    "KNOWLEDGE": {
+      "TITLE": "Knowledge",
+      "SUBTITLE": "Add links and files so your agent answers from your own content.",
+      "EMPTY": "No knowledge added yet. Add a link or file to get started.",
+      "ADD": "Add knowledge",
+      "ADD_LINK": "Add a link",
+      "ADD_FILE": "Upload a file",
+      "LINK_LABEL": "Link",
+      "LINK_PLACEHOLDER": "https://example.com/page",
+      "FILE_PLACEHOLDER": "No file selected",
+      "CHOOSE_FILE": "Choose file",
+      "FORMATS_HINT": "PDF, TXT, MD, JSON and links work well. XLSX and DOCX are in beta and may extract less content.",
+      "BETA": "beta",
+      "REMOVE": "Remove",
+      "RESYNC": "Re-sync",
+      "ADD_SUCCESS": "Knowledge added. We're processing it now.",
+      "ADD_ERROR": "We couldn't add that knowledge. Please try again.",
+      "REMOVE_ERROR": "We couldn't remove that item. Please try again.",
+      "RESYNC_ERROR": "We couldn't re-sync that item. Please try again.",
+      "STATUS": {
+        "IN_PROGRESS": "Processing",
+        "READY": "Ready",
+        "FAILED": "Failed"
+      }
+    },
+    "MATERIALS": {
+      "TITLE": "Materials",
+      "SUBTITLE": "Add what your agent needs to know and what it can send to customers. We review every file and give it a quality score.",
+      "PANEL_TITLE": "Knowledge and media",
+      "ADD_LINK": "Add link",
+      "NEED_START": "Start the conversation on the left, then attach here (or with the clip) what the agent should know. I review each file and show its status.",
+      "TABS": {
+        "KNOWLEDGE": "Knowledge",
+        "MEDIA": "Media to send"
+      },
+      "CONFIDENCE_OVERALL": "Overall confidence",
+      "CONFIDENCE_BAR": {
+        "LABEL": "Knowledge confidence"
+      },
+      "DROP_HINT": "Drag files here or click to upload",
+      "EMPTY": "No materials yet. Drag a file or click above to get started.",
+      "CONTINUE": "Continue",
+      "SKIP": "Skip materials",
+      "HAVE_MATERIALS": "I have materials to add",
+      "NO_MATERIALS": "I have no materials",
+      "STATUS": {
+        "SENDING": "Uploading",
+        "ANALYZING": "Analyzing",
+        "READY": "Ready",
+        "REVIEW": "Review",
+        "FAILED": "Couldn't read"
+      },
+      "LABEL": {
+        "OTIMA": "Great",
+        "BOA": "Good",
+        "FRACA": "Weak"
+      },
+      "CONFIDENCE": {
+        "ALTA": "High confidence",
+        "MEDIA": "Medium confidence",
+        "BAIXA": "Low confidence"
+      },
+      "SCORE": "Score {score}",
+      "PERCENT": "{value}%",
+      "SUMMARY": "Summary",
+      "REASON": "Reason",
+      "REVIEWING": "Reviewing…",
+      "RESEND": "Re-upload",
+      "REMOVE": "Remove",
+      "UPLOAD_ERROR": "We couldn't upload that file. Please try again.",
+      "RESEND_ERROR": "We couldn't re-upload that material. Please try again.",
+      "REMOVE_ERROR": "We couldn't remove that material. Please try again.",
+      "CLOSING": "Closing the instruction with your materials…",
+      "BLOCKED_RESEND": "Some material needs your attention before continuing.",
+      "BLOCKED_REVIEWING": "Reviewing your materials… this only takes a moment.",
+      "BLOCKED_EMPTY": "Add a material or use 'Skip' if Iris doesn't need a knowledge base.",
+      "FAILED_REASON": "We couldn't process this file. Try re-uploading.",
+      "STEP_PROMPT": "Can I use your materials so Iris can learn? Attach files or skip this step."
+    },
+    "CHANNELS": {
+      "ELIGIBLE": "Available channels",
+      "CONNECTED": "Connected channels",
+      "EMPTY": "No channels connected yet.",
+      "NO_ELIGIBLE": "No channels available to connect.",
+      "CONNECT": "Connect",
+      "DISCONNECT": "Disconnect",
+      "OCCUPIED": "Already used by another agent",
+      "ONE_PER_INBOX": "Each inbox can have only 1 agent.",
+      "CONNECT_ERROR": "We couldn't connect that channel. Please try again.",
+      "DISCONNECT_ERROR": "We couldn't disconnect that channel. Please try again.",
+      "INTERNAL_TITLE": "This agent is internal",
+      "INTERNAL_BODY": "An internal agent is a team copilot and never connects to inboxes."
+    },
+    "TUNE": {
+      "MODE_TITLE": "How you edit",
+      "GUIDED": "Guided",
+      "ADVANCED": "Advanced",
+      "ADVANCED_HINT": "Turn on to write the instruction yourself.",
+      "RECONVERSE": "Adjust with AI",
+      "RECONVERSE_TITLE": "Adjust with AI",
+      "RECONVERSE_CLOSE": "Done",
+      "CURRENT_CARD": "What your agent does today",
+      "NO_CARD": "No summary available yet.",
+      "INSTRUCTION_LABEL": "Instruction",
+      "INSTRUCTION_PLACEHOLDER": "Write the instruction for your agent…",
+      "MANUAL_WARNING": "Here you write the instruction. We still apply safety guardrails behind the scenes.",
+      "SAVE_INSTRUCTION": "Save instruction",
+      "EMPTY_INSTRUCTION": "The instruction can't be empty.",
+      "SIMPLE_TITLE": "Quick settings",
+      "GREETING": "First message",
+      "GREETING_PLACEHOLDER": "Hi! How can I help you today?",
+      "FALLBACK": "Fallback message",
+      "FALLBACK_PLACEHOLDER": "Sorry, I didn't get that. Let me bring in a teammate.",
+      "TONE": "Tone",
+      "TONE_OPTIONS": {
+        "FRIENDLY": "Friendly",
+        "PROFESSIONAL": "Professional",
+        "NEUTRAL": "Neutral",
+        "PLAYFUL": "Playful"
+      },
+      "HANDOFF_STRATEGY": "Hand off to a human",
+      "HANDOFF_OPTIONS": {
+        "LOW_CONFIDENCE": "When unsure",
+        "ALWAYS_ASK": "Always offer a human",
+        "NEVER": "Never"
+      },
+      "CONFIDENCE_THRESHOLD": "Confidence threshold",
+      "SAVE": "Save changes",
+      "SAVE_SUCCESS": "Changes saved.",
+      "SAVE_ERROR": "We couldn't save your changes. Please try again.",
+      "ACTUATION_LABEL": "Actuation",
+      "ACTUATION_HINT": "Where the agent acts: external answers customers, internal is a team copilot, both does both.",
+      "ACTUATION_OPTIONS": {
+        "EXTERNAL": "External (answers customers)",
+        "INTERNAL": "Internal (team copilot)",
+        "BOTH": "Both"
+      }
+    },
+    "PERFORMANCE": {
+      "RANGE": {
+        "7D": "Last 7 days",
+        "30D": "Last 30 days"
+      },
+      "STATS": {
+        "CONVERSATIONS": "Conversations handled",
+        "REPLIES": "Replies sent",
+        "HANDOFF_RATE": "Handoff rate",
+        "AVG_CONFIDENCE": "Avg. confidence",
+        "KNOWLEDGE_RATE": "Knowledge answer rate"
+      },
+      "TIMELINE": {
+        "TITLE": "Activity",
+        "REPLIES": "Replies",
+        "HANDOFFS": "Handoffs",
+        "BAR_ARIA": "{date}: {replies} replies, {handoffs} handoffs"
+      },
+      "REASONS": {
+        "TITLE": "Top handoff reasons",
+        "OTHER": "Other / unspecified",
+        "EMPTY": "No handoffs in this period.",
+        "CODES": {
+          "low_confidence": "Low confidence",
+          "ai_unavailable": "AI unavailable",
+          "human_requested": "Human requested",
+          "missing_knowledge": "Missing knowledge",
+          "policy": "Policy",
+          "other": "Other / unspecified"
+        }
+      },
+      "INSIGHT": {
+        "HIGH_HANDOFF_TITLE": "Many conversations are being handed off",
+        "LOW_KNOWLEDGE_TITLE": "Few answers came from your knowledge base",
+        "BODY": "Consider adding knowledge about the topics below to let the agent resolve more on its own:",
+        "BODY_GENERIC": "Consider adding more knowledge so the agent can resolve more conversations on its own."
+      },
+      "EMPTY": "No activity yet. Once your agent starts replying, metrics will appear here.",
+      "ERROR": "We couldn't load performance data.",
+      "RETRY": "Try again"
+    },
+    "CARD": {
+      "ACTUATION_EXTERNAL": "External",
+      "ACTUATION_INTERNAL": "Internal",
+      "ACTUATION_BOTH": "Both",
+      "INTERNAL_COPILOT": "Internal copilot"
+    }
+  }
+}

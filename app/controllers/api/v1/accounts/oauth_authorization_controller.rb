@@ -19,6 +19,11 @@ class Api::V1::Accounts::OauthAuthorizationController < Api::V1::Accounts::BaseC
     params[:return_to] == 'onboarding' ? 'onboarding' : 'default'
   end
 
+  # Conta usada para resolver as credenciais OAuth por conta (com fallback global).
+  def oauth_account
+    Current.account
+  end
+
   def base_url
     ENV.fetch('FRONTEND_URL', 'http://localhost:3000')
   end

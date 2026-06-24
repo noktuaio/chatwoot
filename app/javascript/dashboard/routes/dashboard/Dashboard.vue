@@ -20,8 +20,21 @@ const FloatingCallWidget = defineAsyncComponent(
   () => import('dashboard/components-next/call/FloatingCallWidget.vue')
 );
 
-import CopilotLauncher from 'dashboard/components-next/copilot/CopilotLauncher.vue';
+const CrmFollowUpReminderModal = defineAsyncComponent(
+  () => import('dashboard/components/crm/CrmFollowUpReminderModal.vue')
+);
+
+const EmailCampaignAiToast = defineAsyncComponent(
+  () => import('dashboard/components/EmailCampaignAiToast.vue')
+);
+
 import CopilotContainer from 'dashboard/components/copilot/CopilotContainer.vue';
+
+// V2.3 — "Copiloto Autonom.ia" widget (kanban + copilot gated; independent of Captain).
+import AutonomiaCopilotContainer from 'dashboard/components/autonomia/copilot/AutonomiaCopilotContainer.vue';
+import AutonomiaGuideLauncher from 'dashboard/components/autonomia/guide/AutonomiaGuideLauncher.vue';
+import AutonomiaGuideContainer from 'dashboard/components/autonomia/guide/AutonomiaGuideContainer.vue';
+import GuideHighlight from 'dashboard/components/autonomia/guide/GuideHighlight.vue';
 
 import MobileSidebarLauncher from 'dashboard/components-next/sidebar/MobileSidebarLauncher.vue';
 import { useCallsStore } from 'dashboard/stores/calls';
@@ -33,9 +46,14 @@ export default {
     WootKeyShortcutModal,
     AddAccountModal,
     UpgradePage,
-    CopilotLauncher,
     CopilotContainer,
+    AutonomiaCopilotContainer,
+    AutonomiaGuideLauncher,
+    AutonomiaGuideContainer,
+    GuideHighlight,
     FloatingCallWidget,
+    CrmFollowUpReminderModal,
+    EmailCampaignAiToast,
     MobileSidebarLauncher,
   },
   setup() {
@@ -156,13 +174,18 @@ export default {
       <template v-if="!showUpgradePage">
         <router-view />
         <CommandBar />
-        <CopilotLauncher />
+        <AutonomiaGuideLauncher />
         <MobileSidebarLauncher
           :is-mobile-sidebar-open="isMobileSidebarOpen"
           @toggle="toggleMobileSidebar"
         />
         <CopilotContainer />
+        <AutonomiaCopilotContainer />
+        <AutonomiaGuideContainer />
+        <GuideHighlight />
         <FloatingCallWidget v-if="hasActiveCall || hasIncomingCall" />
+        <CrmFollowUpReminderModal />
+        <EmailCampaignAiToast />
       </template>
       <AddAccountModal
         :show="showCreateAccountModal"

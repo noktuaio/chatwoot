@@ -10,6 +10,9 @@ import {
   MANAGE_ALL_CONVERSATION_PERMISSIONS,
   CONVERSATION_UNASSIGNED_PERMISSIONS,
   CONVERSATION_PARTICIPATING_PERMISSIONS,
+  CRM_PERMISSIONS,
+  CRM_ADMIN_PERMISSION,
+  CRM_VIEW_PERMISSION,
 } from 'dashboard/constants/permissions.js';
 
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -49,6 +52,19 @@ const rules = computed(() => ({
 }));
 
 const v$ = useVuelidate(rules, { name, description, selectedPermissions });
+
+// Render permissions in two groups: General (everything pre-CRM) and CRM.
+const generalPermissions = AVAILABLE_CUSTOM_ROLE_PERMISSIONS.filter(
+  permission => !CRM_PERMISSIONS.includes(permission)
+);
+const permissionGroups = [
+  { key: 'GENERAL', permissions: generalPermissions },
+  { key: 'CRM', permissions: CRM_PERMISSIONS },
+];
+// crm_admin auto-selects every other crm_* key (mirrors conversation_manage).
+const crmChildPermissions = CRM_PERMISSIONS.filter(
+  permission => permission !== CRM_ADMIN_PERMISSION
+);
 
 const resetForm = () => {
   name.value = '';
@@ -90,6 +106,28 @@ watch(
       selectedPermissions.value = selectedPermissions.value.filter(
         p => p !== MANAGE_ALL_CONVERSATION_PERMISSIONS
       );
+    }
+
+    // crm_admin implies every crm_* child key.
+    const hasAddedCrmAdmin =
+      newValue.includes(CRM_ADMIN_PERMISSION) &&
+      !oldValue.includes(CRM_ADMIN_PERMISSION);
+    if (hasAddedCrmAdmin) {
+      selectedPermissions.value = [
+        ...new Set([...selectedPermissions.value, ...crmChildPermissions]),
+      ];
+      return;
+    }
+
+    // Any crm_* child implies crm_view (can't manage without viewing).
+    const hasCrmChild = crmChildPermissions.some(
+      permission =>
+        permission !== CRM_VIEW_PERMISSION && newValue.includes(permission)
+    );
+    if (hasCrmChild && !newValue.includes(CRM_VIEW_PERMISSION)) {
+      selectedPermissions.value = [
+        ...new Set([...selectedPermissions.value, CRM_VIEW_PERMISSION]),
+      ];
     }
   },
   { deep: true }
@@ -189,23 +227,32 @@ const isSubmitDisabled = computed(
         <label :class="{ 'text-n-ruby-9': v$.selectedPermissions.$error }">
           {{ $t('CUSTOM_ROLE.FORM.PERMISSIONS.LABEL') }}
         </label>
-        <div class="flex flex-col gap-2.5 mb-4 mt-2">
+        <div class="flex flex-col gap-4 mb-4 mt-2">
           <div
-            v-for="permission in AVAILABLE_CUSTOM_ROLE_PERMISSIONS"
-            :key="permission"
-            class="flex items-center"
+            v-for="group in permissionGroups"
+            :key="group.key"
+            class="flex flex-col gap-2.5"
           >
-            <input
-              :id="permission"
-              v-model="selectedPermissions"
-              type="checkbox"
-              :value="permission"
-              name="permissions"
-              class="ltr:mr-2 rtl:ml-2"
-            />
-            <label :for="permission" class="text-sm font-normal">
-              {{ $t(`CUSTOM_ROLE.PERMISSIONS.${permission.toUpperCase()}`) }}
-            </label>
+            <span class="text-xs font-medium uppercase text-n-slate-11">
+              {{ $t(`CUSTOM_ROLE.PERMISSION_GROUPS.${group.key}`) }}
+            </span>
+            <div
+              v-for="permission in group.permissions"
+              :key="permission"
+              class="flex items-center"
+            >
+              <input
+                :id="permission"
+                v-model="selectedPermissions"
+                type="checkbox"
+                :value="permission"
+                name="permissions"
+                class="ltr:mr-2 rtl:ml-2"
+              />
+              <label :for="permission" class="text-sm font-normal">
+                {{ $t(`CUSTOM_ROLE.PERMISSIONS.${permission.toUpperCase()}`) }}
+              </label>
+            </div>
           </div>
         </div>
       </div>

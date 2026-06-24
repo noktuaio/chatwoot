@@ -6,6 +6,9 @@ import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import CardLabels from 'dashboard/components-next/Conversation/ConversationCard/CardLabels.vue';
 import SLACardLabel from 'dashboard/components-next/Conversation/ConversationCard/SLACardLabel.vue';
+import CrmConversationStageChip from 'dashboard/components-next/Conversation/ConversationCard/CrmConversationStageChip.vue';
+import { useCrmPermissions } from 'dashboard/routes/dashboard/crm/composables/useCrmPermissions';
+import { useCrmConversationStage } from 'dashboard/routes/dashboard/crm/composables/useCrmConversationStages';
 
 const props = defineProps({
   conversation: {
@@ -19,6 +22,15 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+
+const { canViewCrm } = useCrmPermissions();
+const crmChipEnabled = computed(
+  () => canViewCrm.value && window.globalConfig?.CRM_KANBAN_ENABLED === 'true'
+);
+const crmStage = useCrmConversationStage(
+  computed(() => (crmChipEnabled.value ? props.conversation?.id : null))
+);
+const hasCrmStage = computed(() => !!crmStage.value?.stage_name);
 
 const slaCardLabelRef = ref(null);
 
@@ -89,10 +101,15 @@ defineExpose({
         :conversation="conversation"
       />
       <div v-if="hasSlaThreshold" class="w-px h-3 bg-n-slate-4" />
-      <div class="overflow-hidden">
+      <div class="flex items-center gap-1.5 overflow-hidden min-w-0">
+        <CrmConversationStageChip
+          v-if="hasCrmStage"
+          :conversation-id="conversation.id"
+        />
         <CardLabels
           :conversation-labels="conversation.labels"
           :account-labels="accountLabels"
+          class="min-w-0"
         />
       </div>
       <Avatar

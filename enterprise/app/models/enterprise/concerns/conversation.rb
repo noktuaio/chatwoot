@@ -32,6 +32,11 @@ module Enterprise::Concerns::Conversation
   def ensure_applied_sla_is_created
     ActiveRecord::Base.transaction do
       yield
+      # Gate central da feature `sla`: mesmo que sla_policy_id seja setado (via conversations#update ou a
+      # ação de automação add_sla), NÃO cria o applied_sla quando a conta não tem a feature -> o SLA fica
+      # inerte com a flag off (consistente com os controllers e jobs gateados).
+      next unless account&.feature_enabled?('sla')
+
       create_applied_sla(sla_policy_id: sla_policy_id) if applied_sla.blank?
     end
   rescue ActiveRecord::RecordInvalid

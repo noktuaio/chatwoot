@@ -1,0 +1,87 @@
+class Crm::Meeting < ApplicationRecord
+  self.table_name = 'crm_meetings'
+
+  belongs_to :account
+  belongs_to :card, class_name: 'Crm::Card'
+  belongs_to :inbox
+  belongs_to :created_by, class_name: 'User'
+  belongs_to :reminder, class_name: 'Crm::FollowUp', optional: true
+
+  has_many :meeting_guests, class_name: 'Crm::MeetingGuest', dependent: :destroy, inverse_of: :meeting
+
+  enum status: { draft: 0, scheduled: 1, completed: 2, canceled: 3, rescheduled: 4, no_show: 5, failed: 6 }
+  enum provider: { microsoft: 0, google: 1 }
+  enum online_meeting_type: { teams: 0, google_meet: 1, no_online: 2 }
+  # The `_prefix` keeps these methods (outcome_held?/outcome_no_show?) distinct
+  # from the status enum, which already owns `no_show`/`completed` (status_*).
+  enum outcome: { held: 0, no_show: 1 }, _prefix: true
+
+  validates :title, :starts_at, :ends_at, :timezone, :provider, presence: true
+  validates :account_id, :card_id, :inbox_id, :created_by_id, presence: true
+  validates :external_event_id, uniqueness: { scope: :provider }, allow_blank: true
+  validates :metadata, jsonb_attributes_length: true
+  validate :ends_at_after_starts_at
+  validate :linked_records_must_belong_to_account
+  validate :inbox_must_have_calendar_enabled
+  validate :card_must_have_email_reachable_guest
+
+  scope :upcoming, -> { where(status: :scheduled).where('starts_at > ?', Time.current) }
+  scope :past, -> { where(status: %i[completed canceled no_show]) }
+  scope :by_agent, ->(user_id) { where(created_by_id: user_id) }
+  # `outcome_held` / `outcome_no_show` scopes are provided by the prefixed enum.
+  scope :with_outcome, -> { where.not(outcome: nil) }
+
+  def email_channel
+    inbox.channel
+  end
+
+  private
+
+  def ends_at_after_starts_at
+    return if ends_at.blank? || starts_at.blank?
+    return if ends_at > starts_at
+
+    errors.add(:ends_at, 'must be after starts_at')
+  end
+
+  def linked_records_must_belong_to_account
+    validate_same_account(:card)
+    validate_same_account(:inbox)
+    validate_same_account(:reminder)
+    validate_created_by_account
+  end
+
+  def validate_same_account(association_name)
+    record = public_send(association_name)
+    return if record.blank? || account_id.blank?
+    return if record.account_id == account_id
+
+    errors.add(association_name, 'must belong to the same account')
+  end
+
+  def validate_created_by_account
+    return if created_by.blank? || account_id.blank?
+    return if created_by.account_users.exists?(account_id: account_id)
+
+    errors.add(:created_by, 'must belong to the same account')
+  end
+
+  def inbox_must_have_calendar_enabled
+    return if inbox.blank?
+
+    channel = inbox.channel
+    return if channel.is_a?(Channel::Email) && channel.calendar_enabled?
+
+    errors.add(:inbox, 'must have calendar enabled')
+  end
+
+  def card_must_have_email_reachable_guest
+    return if card.blank?
+
+    contact_has_email = card.contact&.email.present?
+    guests_have_email = meeting_guests.any? { |guest| guest.email.present? }
+    return if contact_has_email || guests_have_email
+
+    errors.add(:base, 'at least one email-reachable guest is required')
+  end
+end

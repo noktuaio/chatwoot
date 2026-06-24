@@ -139,10 +139,10 @@
       }
     },
     "WHATSAPP": {
-      "HEADER_TITLE": "Campanhas do WhatsApp",
+      "HEADER_TITLE": "Campanhas WhatsApp Oficial",
       "NEW_CAMPAIGN": "Criar campanha",
       "EMPTY_STATE": {
-        "TITLE": "Nenhuma campanha do WhatsApp está disponível",
+        "TITLE": "Nenhuma campanha WhatsApp Oficial está disponível",
         "SUBTITLE": "Inicie uma campanha do WhatsApp para atingir seus clientes diretamente. Envie ofertas ou faça anúncios facilmente. Clique em \"Criar campanha\" para começar."
       },
       "CARD": {
@@ -157,7 +157,7 @@
         }
       },
       "CREATE": {
-        "TITLE": "Criar campanha do WhatsApp",
+        "TITLE": "Criar campanha WhatsApp Oficial",
         "CANCEL_BUTTON_TEXT": "Cancelar",
         "CREATE_BUTTON_TEXT": "Criar",
         "FORM": {
@@ -203,6 +203,114 @@
         }
       }
     },
+    "WHATSAPP_API": {
+      "HEADER_TITLE": "Campanhas WhatsApp API",
+      "NEW_CAMPAIGN": "Criar campanha",
+      "EMPTY_STATE": {
+        "TITLE": "Nenhuma campanha WhatsApp API ainda",
+        "SUBTITLE": "Crie campanhas para caixas API marcadas como WhatsApp API. O envio acontece uma mensagem por vez e aparece na conversa do contato."
+      },
+      "INFO": {
+        "INBOX_TITLE": "Caixa API marcada",
+        "INBOX_BODY": "Somente caixas API habilitadas para WhatsApp API aparecem aqui.",
+        "CADENCE_TITLE": "Cadência interna",
+        "CADENCE_BODY": "O intervalo entre envios vem do ambiente e não fica exposto na tela.",
+        "MESSAGE_TITLE": "Mensagem na conversa",
+        "MESSAGE_BODY": "Cada envio cria uma mensagem no Chatwoot para o WAHA entregar."
+      },
+      "STATUS": {
+        "SCHEDULED": "Agendada",
+        "RUNNING": "Enviando",
+        "PAUSED": "Pausada",
+        "COMPLETED": "Concluída",
+        "COMPLETED_WITH_FAILURES": "Concluída com falhas",
+        "CANCELLED": "Cancelada",
+        "FAILED": "Falhou",
+        "UNKNOWN": "Desconhecido"
+      },
+      "TABLE": {
+        "CAMPAIGN": "Campanha",
+        "STATUS": "Status",
+        "AUDIENCE": "Envios",
+        "INBOX": "Caixa",
+        "SCHEDULED_AT": "Agendada para",
+        "ACTIONS": "Ações",
+        "MEDIA_ONLY": "Somente mídia",
+        "FAILURES": "{count} falhas"
+      },
+      "ACTIONS": {
+        "PAUSE_SUCCESS": "Campanha pausada",
+        "RESUME_SUCCESS": "Campanha retomada",
+        "CANCEL_SUCCESS": "Campanha cancelada",
+        "ERROR": "Não foi possível atualizar a campanha"
+      },
+      "CREATE": {
+        "TITLE": "Criar campanha WhatsApp API",
+        "DESCRIPTION": "Use texto, mídia ou texto com mídia. As variáveis disponíveis são fixas para evitar mapeamentos manuais.",
+        "GUIDE": {
+          "INBOX_TITLE": "Escolha a caixa",
+          "INBOX_BODY": "A caixa precisa ser API e estar marcada como WhatsApp API.",
+          "MESSAGE_TITLE": "Monte a mensagem",
+          "MESSAGE_BODY": "Modelos salvam somente texto; a mídia fica no snapshot da campanha.",
+          "SEND_TITLE": "Agende e acompanhe",
+          "SEND_BODY": "O público usa o mesmo seletor por etiquetas das campanhas atuais."
+        },
+        "FORM": {
+          "TITLE": {
+            "LABEL": "Título",
+            "PLACEHOLDER": "Ex: Reativação Junho"
+          },
+          "INBOX": {
+            "LABEL": "Caixa WhatsApp API",
+            "PLACEHOLDER": "Selecione uma caixa",
+            "EMPTY": "Nenhuma caixa API marcada"
+          },
+          "TEMPLATE": {
+            "LABEL": "Modelo de texto",
+            "PLACEHOLDER": "Selecione um modelo",
+            "NONE": "Sem modelo",
+            "FETCH_ERROR": "Não foi possível carregar os modelos",
+            "SAVE_SUCCESS": "Modelo salvo",
+            "SAVE_ERROR": "Não foi possível salvar o modelo"
+          },
+          "MESSAGE": {
+            "LABEL": "Mensagem",
+            "PLACEHOLDER": "Olá {contactFirstName}, tudo bem?",
+            "HELP": "Use somente {contactName} e {contactFirstName}."
+          },
+          "VARIABLES": {
+            "TITLE": "Variáveis aceitas",
+            "HELP": "Não há caixa de mapeamento nesta versão. O sistema substitui estes dois campos automaticamente por contato."
+          },
+          "TEMPLATE_NAME": {
+            "LABEL": "Salvar texto como modelo",
+            "PLACEHOLDER": "Nome do modelo",
+            "SAVE": "Salvar"
+          },
+          "MEDIA": {
+            "LABEL": "Mídia da campanha",
+            "PLACEHOLDER": "Nenhum arquivo selecionado",
+            "CHOOSE": "Escolher",
+            "HELP": "A mídia pertence ao snapshot desta campanha, não ao modelo."
+          },
+          "AUDIENCE": {
+            "LABEL": "Público",
+            "PLACEHOLDER": "Selecionar etiquetas dos contatos"
+          },
+          "SCHEDULED_AT": {
+            "LABEL": "Horário agendado"
+          },
+          "BUTTONS": {
+            "CREATE": "Criar campanha",
+            "CANCEL": "Cancelar"
+          }
+        },
+        "API": {
+          "SUCCESS_MESSAGE": "Campanha WhatsApp API criada",
+          "ERROR_MESSAGE": "Não foi possível criar a campanha"
+        }
+      }
+    },
     "CONFIRM_DELETE": {
       "TITLE": "Você tem certeza que deseja excluir?",
       "DESCRIPTION": "A ação de exclusão é permanente e não pode ser revertida.",
@@ -210,6 +318,434 @@
       "API": {
         "SUCCESS_MESSAGE": "Campanha excluída com sucesso",
         "ERROR_MESSAGE": "Houve um erro. Por favor, tente novamente."
+      }
+    },
+    "EMAIL_SENDER": {
+      "HEADER_TITLE": "Domínios de envio de e-mail",
+      "NEW_DOMAIN": "Adicionar domínio de envio",
+      "DESCRIPTION": "Verifique seu domínio de envio uma única vez para que as campanhas de e-mail sejam entregues com a sua marca e passem nas checagens de SPF, DKIM e DMARC.",
+      "EMPTY_STATE": {
+        "TITLE": "Nenhum domínio de envio ainda",
+        "SUBTITLE": "Adicione seu domínio para gerar os registros DNS que você precisa colar no seu registrador."
+      },
+      "TABLE": {
+        "DOMAIN": "Domínio",
+        "STATUS": "Status",
+        "ACTIONS": "Ações"
+      },
+      "STATUS": {
+        "PENDING": "Pendente",
+        "VERIFYING": "Verificando",
+        "VERIFIED": "Verificado",
+        "FAILED": "Falhou"
+      },
+      "ACTIONS": {
+        "VERIFY": "Verificar",
+        "CHECK": "Verificar agora",
+        "VERIFY_SUCCESS": "Reverificando junto ao provedor.",
+        "DELETE": "Excluir",
+        "DELETE_SUCCESS": "Domínio de envio removido.",
+        "DELETE_IN_USE": "Este domínio é usado por uma campanha. Exclua essas campanhas primeiro.",
+        "ERROR": "Algo deu errado. Tente novamente."
+      },
+      "DNS": {
+        "TITLE": "Registros DNS",
+        "SUBTITLE": "Adicione estes registros no seu registrador de domínio. A verificação pode levar alguns minutos após a propagação.",
+        "WHAT_IS": "O DNS é onde ficam as configurações do seu domínio. Esses registros provam ao Gmail e ao Outlook que o e-mail é seu de verdade. Sem eles, sua campanha vai pro spam ou é recusada.",
+        "GUIDE_TITLE": "Como fazer, passo a passo:",
+        "GUIDE_STEP_1": "Entre no painel onde seu domínio está hospedado (Hostinger, GoDaddy, Cloudflare, etc.).",
+        "GUIDE_STEP_2": "Procure pela seção 'Zona DNS', 'DNS Zone Editor' ou 'Gerenciar DNS'.",
+        "GUIDE_STEP_3": "Para cada linha da tabela abaixo, crie um registro novo e copie o Nome e o Valor exatamente como estão (use o botão de copiar).",
+        "GUIDE_STEP_4": "Pronto! Agora é só aguardar. A verificação costuma levar alguns minutos e pode chegar a 1 hora. Você pode sair desta tela: o domínio fica verde sozinho quando confirmar.",
+        "REQUIRED_BADGE": "Obrigatório",
+        "RECOMMENDED_BADGE": "Recomendado",
+        "SPF_TITLE": "SPF (recomendado)",
+        "SPF_HELP": "É um registro TXT único. Se você já envia e-mail por esse domínio, provavelmente já existe um. Nesse caso não crie outro: edite o que já existe e acrescente include:amazonses.com.",
+        "SPF_EXAMPLE_BEFORE": "Se hoje está assim:",
+        "SPF_EXAMPLE_BEFORE_VALUE": "v=spf1 include:_spf.mail.hostinger.com ~all",
+        "SPF_EXAMPLE_AFTER": "Deixe assim:",
+        "SPF_EXAMPLE_AFTER_VALUE": "v=spf1 include:_spf.mail.hostinger.com include:amazonses.com ~all",
+        "DMARC_HELP": "Muitos domínios já têm DMARC. Veja se já existe um registro _dmarc no seu domínio. Se já tiver, pode pular esta linha.",
+        "AUTO_CHECKING": "Verificando sozinho. Pode levar até 1 hora. Você pode fechar esta tela.",
+        "TYPE": "Tipo",
+        "NAME": "Nome",
+        "VALUE": "Valor",
+        "DKIM": "DKIM (CNAME)",
+        "SPF": "SPF (TXT)",
+        "DMARC": "DMARC (TXT)",
+        "COPY": "Copiar",
+        "COPIED": "Copiado para a área de transferência"
+      },
+      "CHECK": {
+        "TITLE": "Resultado da conferência",
+        "ALL_OK": "Todos os registros obrigatórios estão certos. Agora é só aguardar a AWS confirmar (pode levar até 1 hora).",
+        "HAS_ERRORS": "Ainda falta acertar alguns registros. Corrija os marcados abaixo e verifique de novo.",
+        "STATUS_OK": "Encontrado e correto",
+        "STATUS_MISSING": "Não encontrado. Pode estar propagando (espere alguns minutos) ou esse registro não foi salvo.",
+        "STATUS_MISMATCH": "Encontrado, mas o valor está diferente. Confira o Valor e corrija."
+      },
+      "FAILED": {
+        "TITLE": "Não conseguimos verificar ainda",
+        "BODY": "Geralmente é um registro copiado errado, salvo no lugar errado (tem que ser onde o domínio está hospedado), ou que acabou de ser adicionado e ainda não propagou. Clique em Verificar agora pra ver exatamente qual registro precisa de ajuste."
+      },
+      "INBOX_SECTION": {
+        "TITLE": "Campanhas de e-mail",
+        "HELP": "Verifique este domínio para disparar campanhas em massa desta caixa com boa entrega.",
+        "WARNING": "Campanhas em massa saem por um canal separado, de alto volume. Verifique este domínio antes. Sem isso, ele não pode ser usado em campanhas, e disparar sem a autenticação correta vai pro spam ou é bloqueado.",
+        "VERIFIED": "Domínio verificado. Esta caixa está pronta para disparar campanhas.",
+        "NOT_CONFIGURED": "O domínio {domain} ainda não está configurado para campanhas.",
+        "SETUP": "Configurar domínio para campanhas",
+        "WEBMAIL": "Não é possível disparar campanhas de {domain} — webmail público (Gmail, Outlook, Hotmail, etc.) não pode ser autenticado porque você não controla o DNS dele, então seria rejeitado como falsificação. Use um domínio próprio (de preferência um subdomínio, ex.: envio.suaempresa.com) para campanhas. Esta caixa continua funcionando normalmente para respostas 1:1."
+      },
+      "DIALOG": {
+        "TITLE": "Adicionar domínio de envio",
+        "DOMAIN_LABEL": "Domínio",
+        "DOMAIN_PLACEHOLDER": "ex.: mail.suaempresa.com",
+        "DOMAIN_ERROR": "Informe um domínio válido",
+        "FROM_EMAIL_LABEL": "Remetente padrão (opcional)",
+        "FROM_EMAIL_PLACEHOLDER": "ex.: marketing{'@'}suaempresa.com",
+        "SUBMIT": "Adicionar domínio",
+        "CANCEL": "Cancelar",
+        "SUCCESS": "Domínio adicionado. Cole os registros DNS para concluir a verificação.",
+        "ERROR": "Não foi possível adicionar o domínio. Tente novamente."
+      }
+    },
+    "EMAIL_CAMPAIGN": {
+      "HEADER_TITLE": "Campanhas de e-mail",
+      "NEW": "Nova campanha de e-mail",
+      "DESCRIPTION": "Componha um e-mail, escolha um domínio de envio verificado, suba sua lista de destinatários e envie agora ou agende.",
+      "EMPTY_STATE": {
+        "TITLE": "Nenhuma campanha de e-mail ainda",
+        "SUBTITLE": "Crie sua primeira campanha para compor e enviar um e-mail para uma lista importada."
+      },
+      "STATUS": {
+        "DRAFT": "Rascunho",
+        "SCHEDULED": "Agendada",
+        "SENDING": "Enviando",
+        "SENT": "Enviada",
+        "PAUSED": "Pausada",
+        "CANCELED": "Cancelada",
+        "FAILED": "Falhou"
+      },
+      "COUNTS": {
+        "RECIPIENTS": "Destinatários",
+        "SENT": "Enviados",
+        "FAILED": "Falharam",
+        "SUPPRESSED": "Suprimidos"
+      },
+      "ACTIONS": {
+        "MANAGE_RECIPIENTS": "Destinatários",
+        "DUPLICATE": "Duplicar",
+        "DUPLICATE_SUCCESS": "Campanha duplicada. Atualize os destinatários e a data.",
+        "EDIT": "Editar",
+        "DELETE": "Excluir",
+        "SEND_NOW": "Enviar agora",
+        "SCHEDULE": "Agendar",
+        "PAUSE": "Pausar",
+        "RESUME": "Retomar",
+        "CANCEL": "Cancelar",
+        "SEND_SUCCESS": "Campanha enfileirada para envio.",
+        "SCHEDULE_SUCCESS": "Campanha agendada.",
+        "PAUSE_SUCCESS": "Campanha pausada.",
+        "RESUME_SUCCESS": "Campanha retomada.",
+        "CANCEL_SUCCESS": "Campanha cancelada.",
+        "DELETE_SUCCESS": "Campanha excluída.",
+        "ERROR": "Algo deu errado. Tente novamente.",
+        "OPEN_BUILDER": "Editor"
+      },
+      "DIALOG": {
+        "CREATE_TITLE": "Nova campanha de e-mail",
+        "EDIT_TITLE": "Editar campanha de e-mail",
+        "NAME_LABEL": "Nome da campanha",
+        "NAME_PLACEHOLDER": "ex.: Newsletter de junho",
+        "NAME_ERROR": "Informe um nome para a campanha",
+        "SUBJECT_LABEL": "Assunto",
+        "SUBJECT_PLACEHOLDER": "ex.: Olá {'{{ nome }}'}, novidades para você",
+        "SUBJECT_ERROR": "Informe um assunto",
+        "SENDER_LABEL": "Domínio de envio",
+        "SENDER_PLACEHOLDER": "Selecione um domínio verificado",
+        "SENDER_ERROR": "Selecione um domínio de envio verificado",
+        "NO_VERIFIED_DOMAIN": "Nenhum domínio de envio verificado ainda. Adicione e verifique um em Domínios de envio de e-mail primeiro.",
+        "DIRECT_OPTION": "envio direto por esta caixa",
+        "DIRECT_WARNING": "Atenção: esta é a sua caixa pessoal, não um canal de massa. Use só para a sua lista de contatos reais que aceitaram receber, em baixo volume — disparar em massa de um webmail gratuito pode bloquear ou suspender a sua conta. Limitamos a 100/dia e enviamos no ritmo de uma pessoa; para listas maiores, verifique o seu próprio domínio.",
+        "FROM_EMAIL_DIRECT_HINT": "Enviado diretamente como esta caixa.",
+        "FROM_NAME_LABEL": "Nome do remetente",
+        "FROM_NAME_PLACEHOLDER": "ex.: Marketing Acme",
+        "FROM_NAME_ERROR": "Nome do remetente é obrigatório",
+        "REPLY_TO_LABEL": "Responder para",
+        "REPLY_TO_PLACEHOLDER": "ex.: suporte{'@'}suaempresa.com",
+        "REPLY_TO_HINT": "As respostas vão para este endereço; conecte-o como uma caixa de entrada para transformar respostas em conversas.",
+        "REPLY_TO_ERROR": "Endereço de resposta é obrigatório",
+        "REPLY_TO_INVALID": "Informe um e-mail válido",
+        "CANCEL": "Cancelar",
+        "SUCCESS": "Campanha salva.",
+        "ERROR": "Não foi possível salvar a campanha. Tente novamente.",
+        "FROM_EMAIL_LABEL": "Remetente (e-mail)",
+        "FROM_EMAIL_PLACEHOLDER": "ex.: promo{'@'}suaempresa.com",
+        "FROM_EMAIL_ERROR": "E-mail do remetente é obrigatório",
+        "FROM_EMAIL_INVALID": "Informe um endereço válido no seu domínio verificado",
+        "FROM_EMAIL_HINT": "Precisa ser um endereço {'@'}{domain} (seu domínio verificado).",
+        "FROM_EMAIL_HINT_NO_DOMAIN": "Precisa ser um endereço do seu domínio de envio verificado.",
+        "PREHEADER_LABEL": "Preheader (opcional)",
+        "PREHEADER_PLACEHOLDER": "Texto curto de prévia exibido após o assunto",
+        "PREHEADER_HINT": "Aparece ao lado do assunto na maioria das caixas de entrada.",
+        "BASE_LABEL": "Lista de contatos (CSV ou XLSX)",
+        "BASE_HINT": "Envie um CSV ou XLSX com colunas de nome + e-mail. As colunas detectadas viram placeholders de personalizacao.",
+        "BASE_PICK": "Escolher arquivo",
+        "BASE_SELECTED": "Selecionado: {name}",
+        "BASE_IMPORTING": "Importando lista…",
+        "BASE_IMPORT_RESULT": "{count} contatos importados.",
+        "BASE_IMPORT_COLUMNS": "Colunas detectadas: {columns}",
+        "BASE_IMPORT_ERROR": "Nao foi possivel importar a lista. A campanha foi salva como rascunho.",
+        "CREATE_AND_OPEN": "Criar e abrir no editor",
+        "SAVE_DRAFT": "Salvar rascunho"
+      },
+      "SCHEDULE_DIALOG": {
+        "TITLE": "Agendar campanha",
+        "DATETIME_LABEL": "Enviar em",
+        "DATETIME_ERROR": "Escolha uma data e hora",
+        "SUBMIT": "Agendar",
+        "CANCEL": "Cancelar"
+      },
+      "RECIPIENTS": {
+        "TITLE": "Destinatários",
+        "SUBTITLE": "Suba um CSV ou XLSX com colunas de nome e e-mail. Os destinatários são usados apenas nesta campanha e não são adicionados aos seus contatos.",
+        "UPLOAD": "Subir lista",
+        "UPLOAD_HINT": "CSV ou XLSX com colunas de nome + e-mail.",
+        "TABLE": {
+          "EMAIL": "E-mail",
+          "NAME": "Nome",
+          "STATUS": "Status",
+          "SENT_AT": "Enviado em",
+          "ERROR": "Erro"
+        },
+        "STATUS": {
+          "PENDING": "Pendente",
+          "SENT": "Enviado",
+          "FAILED": "Falhou",
+          "SUPPRESSED": "Suprimido"
+        },
+        "IMPORT_RESULT": {
+          "TITLE": "Importação concluída",
+          "IMPORTED": "Importados",
+          "DUPLICATES": "Duplicados ignorados",
+          "INVALID": "Inválidos ignorados",
+          "SUPPRESSED": "Suprimidos",
+          "TOTAL": "Total de linhas"
+        },
+        "EMPTY": "Nenhum destinatário ainda. Suba uma lista para começar.",
+        "IMPORT_SUCCESS": "Lista de destinatários importada.",
+        "IMPORT_ERROR": "Não foi possível importar a lista. Verifique o formato do arquivo e as colunas.",
+        "ADD_MORE": "Adicionar mais contatos",
+        "ADD_MORE_HINT": "A lista foi enviada ao criar a campanha. Envie outro CSV/XLSX para adicionar mais contatos."
+      },
+      "PLACEHOLDERS": {
+        "TITLE": "Placeholders disponíveis",
+        "SUBTITLE": "Clique em um placeholder para copiá-lo e cole no assunto, preheader ou corpo.",
+        "EMPTY": "Importe destinatários para ver os placeholders das colunas da sua planilha.",
+        "COPY_SUCCESS": "Placeholder copiado para a área de transferência."
+      },
+      "VALIDATION": {
+        "TITLE": "Verificação pré-envio",
+        "OK": "Todos os placeholders usados nesta campanha têm valores. Pronto para enviar.",
+        "MISSING_LABEL": "Usados no template mas não encontrados nos destinatários:",
+        "BLANK_LABEL": "Destinatários sem valor:",
+        "BLANK_ITEM": "{key}: {count} destinatário(s) sem valor"
+      },
+      "BUILDER": {
+        "TITLE": "Editor de e-mail",
+        "TEMPLATE": "Modelo",
+        "SAVE": "Salvar",
+        "SAVE_SUCCESS": "Campanha salva com sucesso",
+        "SAVE_ERROR": "Não foi possível salvar a campanha, tente novamente",
+        "SEND_TEST": "Enviar teste",
+        "SEND_TEST_EMAIL_LABEL": "E-mail do destinatário",
+        "SEND_TEST_EMAIL_PLACEHOLDER": "nome{'@'}dominio.com",
+        "SEND_TEST_SUBMIT": "Enviar",
+        "SEND_TEST_SUCCESS": "E-mail de teste enviado",
+        "SEND_TEST_ERROR": "Não foi possível enviar o e-mail de teste",
+        "SAVE_TEMPLATE": "Salvar como modelo",
+        "SAVE_TEMPLATE_NAME_LABEL": "Nome do modelo",
+        "SAVE_TEMPLATE_NAME_PLACEHOLDER": "ex.: Convite para live",
+        "SAVE_TEMPLATE_SUBMIT": "Salvar modelo",
+        "SAVE_TEMPLATE_SUCCESS": "Modelo salvo com sucesso.",
+        "SAVE_TEMPLATE_ERROR": "Não foi possível salvar o modelo. Tente novamente.",
+        "AI_COMPOSE": "Criar com IA",
+        "SUBJECT_LABEL": "Assunto",
+        "SUBJECT_PLACEHOLDER": "Assunto do e-mail (a IA preenche)",
+        "PREVIEW_DESKTOP": "Desktop",
+        "PREVIEW_MOBILE": "Mobile",
+        "PLACEHOLDERS_TITLE": "Placeholders:",
+        "PLACEHOLDER_COPIED": "Placeholder copiado para a área de transferência",
+        "CANCEL": "Cancelar",
+        "BLOCKS": {
+          "EMPTY": "Os blocos aparecerão aqui assim que o editor estiver pronto."
+        },
+        "TEMPLATES": "Modelos",
+        "PREVIEW": "Prévia",
+        "PROPS": {
+          "TITLE": "Propriedades",
+          "EMPTY": "Selecione um bloco para editar o estilo.",
+          "SIZE": {
+            "TITLE": "Tamanho",
+            "FONT_SIZE": "Tamanho da fonte",
+            "WIDTH": "Largura",
+            "AUTO": "automático"
+          },
+          "COLOR": {
+            "TITLE": "Cor",
+            "TEXT": "Texto",
+            "BACKGROUND": "Fundo",
+            "BUTTON_BACKGROUND": "Fundo do botão"
+          },
+          "LINK": {
+            "TITLE": "Link",
+            "HREF": "Link de destino",
+            "PLACEHOLDER": "https://exemplo.com ou {'{{ link }}'}"
+          },
+          "ALIGN": {
+            "TITLE": "Alinhamento",
+            "LABEL": "Alinhar"
+          },
+          "SPACING": {
+            "TITLE": "Espaçamento",
+            "PADDING": "Preenchimento",
+            "MARGIN": "Margem",
+            "RADIUS": "Arredondamento"
+          },
+          "TEXT": {
+            "TITLE": "Texto",
+            "FONT_FAMILY": "Fonte",
+            "STYLE": "Estilo",
+            "LINE_HEIGHT": "Altura da linha"
+          },
+          "IMAGE": {
+            "TITLE": "Imagem",
+            "REPLACE": "Trocar imagem",
+            "URL": "URL da imagem",
+            "ALT": "Texto alternativo",
+            "LINK": "Link (href)",
+            "UPLOAD_ERROR": "Não foi possível enviar a imagem. Tente novamente.",
+            "UPLOAD_TOO_LARGE": "Imagem muito grande. Use um arquivo de até 10 MB.",
+            "UPLOAD_UNSUPPORTED": "Formato não suportado. Use PNG, JPG, GIF ou WebP.",
+            "FETCH_POSTER": "Buscar capa do vídeo",
+            "POSTER_ERROR": "Não foi possível buscar a capa do vídeo. Verifique o link."
+          }
+        }
+      },
+      "AI": {
+        "GENERATING": {
+          "TITLE": "Nossa IA está criando o melhor e-mail para a sua campanha ✨",
+          "BODY": "Estamos caprichando em cada detalhe — design, texto e seus toques de venda. Conforme o capricho que ele pede, isso pode levar até 5 minutos.",
+          "WORKING": "Gerando o seu e-mail...",
+          "LEAVE": "Pode sair, eu te aviso",
+          "LEAVE_HINT": "Pode seguir trabalhando: a gente avisa e o e-mail estará pronto na sua campanha, no botão Editor.",
+          "READY_TITLE": "Seu e-mail está pronto! 🎉",
+          "READY_BODY": "Caprichamos no design e nos textos com base no seu briefing. Abra no editor para revisar e ajustar o que quiser.",
+          "OPEN_EDITOR": "Ver no editor",
+          "FAILED_TITLE": "Não consegui terminar a geração",
+          "FAILED_BODY": "Algo deu errado ao gerar o seu e-mail. Tente novamente — se preferir, simplifique o briefing ou remova anexos pesados.",
+          "CLOSE": "Fechar"
+        },
+        "TOAST": {
+          "READY": "✨ O e-mail da campanha \"{name}\" está pronto! Abra no editor para revisar.",
+          "FAILED": "Não foi possível gerar o e-mail da campanha \"{name}\". Tente novamente."
+        },
+        "BADGE": {
+          "PROCESSING": "IA gerando",
+          "READY": "IA pronta",
+          "FAILED": "IA falhou"
+        },
+        "COMPOSER": {
+          "TITLE": "Criar com IA",
+          "SUBTITLE": "Descreva o e-mail que você precisa e a IA cria o assunto, o preheader e o layout.",
+          "BRIEF_LABEL": "Briefing",
+          "BRIEF_PLACEHOLDER": "Ex.: e-mail promocional sobre o novo plano de seguro auto, tom amigável, chamada para desconto",
+          "ADAPT_LABEL": "Adaptar o modelo atual",
+          "ADAPT_HINT": "Mantém o layout e a estrutura deste modelo; a IA só reescreve os textos e ajusta ao seu briefing. Desmarque para gerar do zero.",
+          "GENERATE": "Gerar",
+          "CANCEL": "Cancelar",
+          "ERROR": "Não foi possível gerar o e-mail. Tente novamente.",
+          "NOT_CONFIGURED": "Configure a chave de IA do CRM em Conexões para usar este recurso.",
+          "BASE_TOO_LARGE": "Este modelo é grande demais para adaptar. Desmarque \"Adaptar o modelo atual\" para gerar do zero.",
+          "PLACEHOLDERS_LABEL": "Placeholders da base",
+          "PLACEHOLDERS_HINT": "A IA pode personalizar o email com estas colunas da sua lista de contatos.",
+          "ASSETS_LABEL": "Recursos",
+          "ASSETS_HINT": "Adicione imagens, um logo, um PDF ou um vídeo para a IA usar. Diga como cada recurso deve ser usado.",
+          "ADD_IMAGE": "Imagem / Logo",
+          "ADD_PDF": "PDF",
+          "ADD_VIDEO_FILE": "Enviar vídeo",
+          "VIDEO_LINK_LABEL": "Vídeo por link",
+          "VIDEO_LINK_PLACEHOLDER": "Cole uma URL do YouTube ou Vimeo",
+          "VIDEO_LINK_ADD": "Adicionar",
+          "ASSET_DESCRIPTION_PLACEHOLDER": "O que é este recurso? Ex.: vídeo de depoimento do cliente",
+          "KIND_IMAGE": "Imagem",
+          "KIND_PDF": "PDF",
+          "KIND_VIDEO": "Vídeo",
+          "ROLE_LOGO": "Logo",
+          "ROLE_PRODUCT": "Produto",
+          "ROLE_BANNER": "Banner",
+          "ROLE_TESTIMONIAL": "Depoimento",
+          "ROLE_OTHER": "Outro"
+        },
+        "BLOCK_ACTIONS": {
+          "TRIGGER": "Melhorar com IA",
+          "REWRITE": "Reescrever",
+          "SHORTEN": "Encurtar",
+          "PERSUASIVE": "Mais persuasivo",
+          "NO_TEXT": "Selecione um bloco com texto para melhorar.",
+          "ERROR": "Não foi possível reescrever o texto. Tente novamente.",
+          "NOT_CONFIGURED": "Configure a chave de IA do CRM em Conexões para usar este recurso."
+        }
+      },
+      "WELCOME": {
+        "TITLE": "Como voce quer comecar?",
+        "SUBTITLE": "Escolha um ponto de partida. Voce pode mudar tudo depois no editor.",
+        "AI_TITLE": "Criar com IA",
+        "AI_SUBTITLE": "Descreva sua campanha e deixe a IA montar usando sua lista de contatos.",
+        "AI_BADGE": "Recomendado",
+        "AI_CTA": "Comecar com IA",
+        "TEMPLATE_TITLE": "Escolher um modelo",
+        "TEMPLATE_SUBTITLE": "Comece de um design pronto e ajuste.",
+        "TEMPLATE_CTA": "Ver modelos",
+        "BLANK_TITLE": "Comecar do zero",
+        "BLANK_SUBTITLE": "Monte seu e-mail bloco a bloco em uma tela em branco.",
+        "BLANK_CTA": "Comecar do zero"
+      },
+      "GALLERY": {
+        "TITLE": "Escolha um modelo",
+        "ALL_CATEGORIES": "Todos",
+        "PREVIEW": "Pré-visualizar",
+        "USE": "Usar este modelo",
+        "CANCEL": "Cancelar",
+        "EMPTY": "Nenhum modelo disponível ainda.",
+        "NO_PREVIEW": "Sem pré-visualização para este modelo.",
+        "APPLIED": "Modelo aplicado à campanha.",
+        "APPLY_ERROR": "Não foi possível aplicar o modelo. Tente novamente.",
+        "LOAD_ERROR": "Não foi possível carregar os modelos. Tente novamente.",
+        "CATEGORIES": {
+          "abandoned-cart": "Carrinho abandonado",
+          "account-activation": "Ativação de conta",
+          "feedback": "Feedback",
+          "newsletter": "Newsletter",
+          "product-launch": "Lançamento de produto",
+          "receipt-invoice": "Recibo e fatura",
+          "reengagement": "Reengajamento",
+          "shipping-update": "Atualização de envio",
+          "upsell": "Upsell"
+        }
+      },
+      "BUILDER_ERRORS": {
+        "asset_unsupported_type": "Tipo de arquivo não suportado. Envie uma imagem ou um vídeo.",
+        "asset_too_large": "O arquivo é muito grande.",
+        "asset_file_required": "Escolha um arquivo para enviar.",
+        "video_input_required": "Informe um link de vídeo ou envie um vídeo.",
+        "video_url_blank": "O link do vídeo está vazio.",
+        "video_host_not_allowed": "Apenas links do YouTube e do Vimeo são suportados.",
+        "video_id_not_found": "Não foi possível ler o id do vídeo nesse link.",
+        "video_oembed_failed": "Não foi possível obter a prévia do vídeo. Verifique o link e tente novamente.",
+        "video_poster_unavailable": "Nenhuma imagem de pôster está disponível para este vídeo.",
+        "video_blob_not_found": "Vídeo enviado não encontrado para esta campanha."
       }
     }
   }

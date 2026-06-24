@@ -11,6 +11,30 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
     end
   end
 
+  # Indicador "digitando" da Cloud API (Meta): marca a última mensagem do cliente como lida E mostra
+  # "digitando…" por até ~25s (some sozinho ou quando a próxima mensagem é enviada). Usado pela entrega
+  # humanizada do agente nativo (Autonomia). É BEST-EFFORT — devolve nil em qualquer erro, sem levantar.
+  # Requer Graph recente (typing_indicator é GA a partir de ~v21); a versão é configurável por ENV,
+  # independente do v13.0 legado do phone_id_path (que segue intocado p/ envio de mensagens).
+  # Doc: graph.facebook.com/<ver>/<phone_number_id>/messages { status:read, message_id, typing_indicator }.
+  def send_typing_indicator(message_id)
+    return if message_id.blank?
+
+    HTTParty.post(
+      "#{typing_phone_id_path}/messages",
+      headers: api_headers,
+      body: {
+        messaging_product: 'whatsapp',
+        status: 'read',
+        message_id: message_id,
+        typing_indicator: { type: 'text' }
+      }.to_json
+    )
+  rescue StandardError => e
+    Rails.logger.warn("[whatsapp][typing] failed phone=#{whatsapp_channel.provider_config['phone_number_id']} #{e.class}")
+    nil
+  end
+
   def send_template(phone_number, template_info, message)
     template_body = template_body_parameters(template_info)
 
@@ -91,6 +115,14 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
 
   # TODO: See if we can unify the API versions and for both paths and make it consistent with out facebook app API versions
   def phone_id_path(version = 'v13.0')
+    "#{api_base_path}/#{version}/#{whatsapp_channel.provider_config['phone_number_id']}"
+  end
+
+  # Path do indicador "digitando": MESMO endpoint /messages, mas numa versão de Graph recente
+  # (typing_indicator é GA a partir de ~v21; o v13.0 do envio normal não o reconhece). Configurável
+  # por ENV p/ acompanhar deprecations da Meta sem deploy. NÃO altera o envio de mensagens (intocado).
+  def typing_phone_id_path
+    version = ENV.fetch('WHATSAPP_CLOUD_TYPING_API_VERSION', 'v22.0')
     "#{api_base_path}/#{version}/#{whatsapp_channel.provider_config['phone_number_id']}"
   end
 

@@ -1,11 +1,13 @@
 import advancedFilters from './advancedFilters.json';
 import agentBots from './agentBots.json';
 import agentMgmt from './agentMgmt.json';
+import agents from './agents.json';
 import attributesMgmt from './attributesMgmt.json';
 import auditLogs from './auditLogs.json';
 import automation from './automation.json';
 import bulkActions from './bulkActions.json';
 import campaign from './campaign.json';
+import campaignImport from './campaignImport.json';
 import cannedMgmt from './cannedMgmt.json';
 import chatlist from './chatlist.json';
 import companies from './companies.json';
@@ -14,6 +16,7 @@ import contact from './contact.json';
 import contactFilters from './contactFilters.json';
 import contentTemplates from './contentTemplates.json';
 import conversation from './conversation.json';
+import crm from './crm.json';
 import csatMgmt from './csatMgmt.json';
 import customRole from './customRole.json';
 import datePicker from './datePicker.json';
@@ -47,11 +50,13 @@ export default {
   ...advancedFilters,
   ...agentBots,
   ...agentMgmt,
+  ...agents,
   ...attributesMgmt,
   ...auditLogs,
   ...automation,
   ...bulkActions,
   ...campaign,
+  ...campaignImport,
   ...cannedMgmt,
   ...chatlist,
   ...companies,
@@ -60,6 +65,7 @@ export default {
   ...contactFilters,
   ...contentTemplates,
   ...conversation,
+  ...crm,
   ...csatMgmt,
   ...customRole,
   ...datePicker,

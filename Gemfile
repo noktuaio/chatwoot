@@ -211,6 +211,13 @@ gem 'shopify_api'
 
 gem 'firecrawl-sdk', '~> 1.0', require: 'firecrawl'
 
+##-- autonomia: extração de conhecimento (PDF/XLSX/DOCX) --##
+# Ruby-puro ou com deps nativas já presentes (nokogiri já compilada na lock).
+# roo puxa rubyzip+nokogiri; pdf-reader puxa Ascii85/afm/hashery/ttfunk (todos ruby-puro).
+gem 'pdf-reader', '~> 2.12'
+gem 'roo', '~> 2.10'
+gem 'rubyzip', '~> 2.3', require: 'zip' # docx (Zip::File) + dep do roo
+
 ### Gems required only in specific deployment environments ###
 ##############################################################
 

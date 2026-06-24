@@ -37,6 +37,7 @@ class AgentBotListener < BaseListener
     message = extract_message_and_account(event)[0]
     inbox = message.inbox
     return unless message.webhook_sendable?
+    return if whatsapp_api_campaign_message?(message)
 
     method_name = __method__.to_s
     agent_bots_for(inbox, message.conversation).each { |agent_bot| process_message_event(method_name, agent_bot, message, event) }
@@ -46,6 +47,7 @@ class AgentBotListener < BaseListener
     message = extract_message_and_account(event)[0]
     inbox = message.inbox
     return unless message.webhook_sendable?
+    return if whatsapp_api_campaign_message?(message)
 
     method_name = __method__.to_s
     agent_bots_for(inbox, message.conversation).each { |agent_bot| process_message_event(method_name, agent_bot, message, event) }
@@ -74,6 +76,10 @@ class AgentBotListener < BaseListener
     return unless inbox.agent_bot_inbox&.active?
 
     inbox.agent_bot
+  end
+
+  def whatsapp_api_campaign_message?(message)
+    message.additional_attributes&.key?('whatsapp_api_campaign_id')
   end
 
   def process_message_event(method_name, agent_bot, message, _event)

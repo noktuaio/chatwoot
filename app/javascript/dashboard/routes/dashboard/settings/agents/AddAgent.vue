@@ -6,8 +6,9 @@ import { useAlert } from 'dashboard/composables';
 import { useVuelidate } from '@vuelidate/core';
 import { required, email } from '@vuelidate/validators';
 import Button from 'dashboard/components-next/button/Button.vue';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'open-schedule']);
 
 const store = useStore();
 const { t } = useI18n();
@@ -30,6 +31,20 @@ const v$ = useVuelidate(rules, {
 
 const uiFlags = useMapGetter('agents/getUIFlags');
 const getCustomRoles = useMapGetter('customRole/getCustomRoles');
+const accountId = useMapGetter('getCurrentAccountId');
+const isFeatureEnabledonAccount = useMapGetter(
+  'accounts/isFeatureEnabledonAccount'
+);
+
+// SLA service-hours calendar (CRM SLA v2): visible only when the CRM fork is
+// enabled AND the account has the enterprise `sla` feature. The schedule needs
+// the created user as owner, so the editor opens right after a successful save.
+const showSlaSchedule = computed(
+  () =>
+    window.globalConfig?.CRM_KANBAN_ENABLED === 'true' &&
+    isFeatureEnabledonAccount.value(accountId.value, FEATURE_FLAGS.SLA)
+);
+const defineSchedule = ref(false);
 
 const roles = computed(() => {
   const defaultRoles = [
@@ -77,8 +92,13 @@ const addAgent = async () => {
       payload.role = selectedRole.value.name;
     }
 
-    await store.dispatch('agents/create', payload);
+    const newAgent = await store.dispatch('agents/create', payload);
     useAlert(t('AGENT_MGMT.ADD.API.SUCCESS_MESSAGE'));
+    // O editor de calendário abre no PAI (Index.vue), como irmão, depois que este modal fecha
+    // (senão o overlay z-9990 deste modal cobriria o editor z-100).
+    if (showSlaSchedule.value && defineSchedule.value && newAgent?.id) {
+      emit('open-schedule', { id: newAgent.id, name: newAgent.name });
+    }
     emit('close');
   } catch (error) {
     const {
@@ -145,6 +165,16 @@ const addAgent = async () => {
             @input="v$.agentEmail.$touch"
           />
         </label>
+      </div>
+
+      <div v-if="showSlaSchedule" class="flex flex-col w-full gap-1 py-2">
+        <label class="flex items-center gap-2 text-sm text-n-slate-12">
+          <input v-model="defineSchedule" type="checkbox" class="!m-0 w-fit" />
+          {{ $t('CRM_SLA.AGENT.ADD_TOGGLE') }}
+        </label>
+        <p class="mb-1 text-xs text-n-slate-11">
+          {{ $t('CRM_SLA.AGENT.SECTION_NOTE') }}
+        </p>
       </div>
 
       <div class="flex flex-row justify-end w-full gap-2 px-0 py-2">

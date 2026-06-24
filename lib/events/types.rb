@@ -61,4 +61,18 @@ module Events::Types
 
   # copilot events
   COPILOT_MESSAGE_CREATED = 'copilot.message.created'
+
+  # crm events
+  CRM_CARD_CREATED = 'crm.card.created'
+  CRM_CARD_UPDATED = 'crm.card.updated'
+  CRM_CARD_MOVED = 'crm.card.moved'
+  CRM_CARD_WON = 'crm.card.won'
+  CRM_CARD_LOST = 'crm.card.lost'
+  CRM_CARD_REOPENED = 'crm.card.reopened'
+  CRM_CARD_ARCHIVED = 'crm.card.archived'
+  CRM_FOLLOW_UP_DUE = 'crm.follow_up.due'
+
+  # geração de e-mail por IA (assíncrona) concluída/falhou — toast + selo na lista
+  EMAIL_CAMPAIGN_AI_READY = 'email_campaign.ai.ready'
+  EMAIL_CAMPAIGN_AI_FAILED = 'email_campaign.ai.failed'
 end

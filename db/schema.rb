@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_26_000001) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -26,6 +26,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.datetime "updated_at", null: false
     t.index ["owner_type", "owner_id"], name: "index_access_tokens_on_owner_type_and_owner_id"
     t.index ["token"], name: "index_access_tokens_on_token", unique: true
+  end
+
+  create_table "account_email_oauth_apps", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "provider", null: false
+    t.text "client_id"
+    t.text "client_secret"
+    t.string "redirect_uri"
+    t.jsonb "settings", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "provider"], name: "index_account_email_oauth_apps_on_account_id_and_provider", unique: true
   end
 
   create_table "account_saml_settings", force: :cascade do |t|
@@ -52,10 +64,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.boolean "auto_offline", default: true, null: false
     t.bigint "custom_role_id"
     t.bigint "agent_capacity_policy_id"
+    t.boolean "integration", default: false, null: false
     t.index ["account_id", "user_id"], name: "uniq_user_id_per_account_id", unique: true
     t.index ["account_id"], name: "index_account_users_on_account_id"
     t.index ["agent_capacity_policy_id"], name: "index_account_users_on_agent_capacity_policy_id"
     t.index ["custom_role_id"], name: "index_account_users_on_custom_role_id"
+    t.index ["integration"], name: "index_account_users_on_integration"
     t.index ["user_id"], name: "index_account_users_on_user_id"
   end
 
@@ -73,6 +87,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.integer "status", default: 0
     t.jsonb "internal_attributes", default: {}, null: false
     t.jsonb "settings", default: {}
+    t.bigint "flags", default: 0, null: false
     t.index ["status"], name: "index_accounts_on_status"
   end
 
@@ -152,6 +167,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "sla_status", default: 0
+    t.jsonb "metadata", default: {}, null: false
     t.index ["account_id", "sla_policy_id", "conversation_id"], name: "index_applied_slas_on_account_sla_policy_conversation", unique: true
     t.index ["account_id"], name: "index_applied_slas_on_account_id"
     t.index ["conversation_id"], name: "index_applied_slas_on_conversation_id"
@@ -261,6 +277,122 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.index ["account_id"], name: "index_automation_rules_on_account_id"
   end
 
+  create_table "autonomia_agent_build_threads", force: :cascade do |t|
+    t.bigint "autonomia_agent_id"
+    t.bigint "account_id", null: false
+    t.jsonb "messages", default: [], null: false
+    t.jsonb "state", default: {}, null: false
+    t.string "build_token"
+    t.integer "status", default: 0, null: false
+    t.bigint "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "status"], name: "index_autonomia_agent_build_threads_on_account_id_and_status"
+    t.index ["account_id"], name: "index_autonomia_agent_build_threads_on_account_id"
+    t.index ["autonomia_agent_id"], name: "index_autonomia_agent_build_threads_on_autonomia_agent_id"
+    t.index ["created_by_id"], name: "index_autonomia_agent_build_threads_on_created_by_id"
+  end
+
+  create_table "autonomia_agent_events", force: :cascade do |t|
+    t.bigint "autonomia_agent_id", null: false
+    t.bigint "account_id", null: false
+    t.bigint "conversation_id"
+    t.integer "event_type", null: false
+    t.float "confidence"
+    t.boolean "answered_from_knowledge", default: false, null: false
+    t.string "handoff_reason"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.index ["account_id"], name: "index_autonomia_agent_events_on_account_id"
+    t.index ["autonomia_agent_id", "created_at"], name: "idx_autonomia_events_agent_created"
+    t.index ["autonomia_agent_id", "event_type"], name: "idx_autonomia_events_agent_type"
+    t.index ["autonomia_agent_id"], name: "index_autonomia_agent_events_on_autonomia_agent_id"
+  end
+
+  create_table "autonomia_agent_inboxes", force: :cascade do |t|
+    t.bigint "autonomia_agent_id", null: false
+    t.bigint "inbox_id", null: false
+    t.bigint "account_id", null: false
+    t.bigint "agent_bot_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_autonomia_agent_inboxes_on_account_id"
+    t.index ["agent_bot_id"], name: "index_autonomia_agent_inboxes_on_agent_bot_id"
+    t.index ["autonomia_agent_id"], name: "index_autonomia_agent_inboxes_on_autonomia_agent_id"
+    t.index ["inbox_id"], name: "idx_autonomia_agent_inboxes_on_inbox_uniq", unique: true
+  end
+
+  create_table "autonomia_agent_knowledge", force: :cascade do |t|
+    t.bigint "autonomia_agent_id", null: false
+    t.bigint "account_id", null: false
+    t.bigint "source_id"
+    t.text "content", null: false
+    t.vector "embedding", limit: 1536
+    t.integer "status", default: 1, null: false
+    t.integer "chunk_index", default: 0, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_autonomia_agent_knowledge_on_account_id"
+    t.index ["autonomia_agent_id", "status"], name: "idx_autonomia_knowledge_agent_status"
+    t.index ["autonomia_agent_id"], name: "index_autonomia_agent_knowledge_on_autonomia_agent_id"
+    t.index ["embedding"], name: "idx_autonomia_knowledge_embedding", using: :ivfflat
+    t.index ["source_id"], name: "index_autonomia_agent_knowledge_on_source_id"
+  end
+
+  create_table "autonomia_agent_sources", force: :cascade do |t|
+    t.bigint "autonomia_agent_id", null: false
+    t.bigint "account_id", null: false
+    t.string "source_type", null: false
+    t.string "reference"
+    t.string "external_link"
+    t.integer "status", default: 0, null: false
+    t.string "sync_status"
+    t.string "sync_token"
+    t.text "error"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "synced_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "quality_score"
+    t.string "confidence"
+    t.string "review_status"
+    t.text "review_summary"
+    t.string "review_label"
+    t.text "review_reason"
+    t.datetime "reviewed_at"
+    t.integer "kind", default: 0, null: false
+    t.index ["account_id"], name: "index_autonomia_agent_sources_on_account_id"
+    t.index ["autonomia_agent_id", "kind"], name: "index_autonomia_agent_sources_on_autonomia_agent_id_and_kind"
+    t.index ["autonomia_agent_id", "status"], name: "index_autonomia_agent_sources_on_autonomia_agent_id_and_status"
+    t.index ["autonomia_agent_id"], name: "index_autonomia_agent_sources_on_autonomia_agent_id"
+  end
+
+  create_table "autonomia_agents", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.string "agent_type", default: "support", null: false
+    t.integer "status", default: 0, null: false
+    t.integer "mode", default: 0, null: false
+    t.text "instruction"
+    t.text "scaffold"
+    t.text "human_card"
+    t.text "greeting"
+    t.text "fallback_message"
+    t.text "handoff_rule"
+    t.jsonb "starter_questions", default: [], null: false
+    t.string "tone"
+    t.jsonb "config", default: {}, null: false
+    t.boolean "enabled", default: false, null: false
+    t.bigint "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "agent_type"], name: "index_autonomia_agents_on_account_id_and_agent_type"
+    t.index ["account_id", "status"], name: "index_autonomia_agents_on_account_id_and_status"
+    t.index ["account_id"], name: "index_autonomia_agents_on_account_id"
+    t.index ["created_by_id"], name: "index_autonomia_agents_on_created_by_id"
+  end
+
   create_table "calls", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "inbox_id", null: false
@@ -283,6 +415,94 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.index ["account_id", "conversation_id"], name: "index_calls_on_account_id_and_conversation_id"
     t.index ["message_id"], name: "index_calls_on_message_id"
     t.index ["provider", "provider_call_id"], name: "index_calls_on_provider_and_provider_call_id", unique: true
+  end
+
+  create_table "campaign_import_labels", force: :cascade do |t|
+    t.bigint "campaign_import_id", null: false
+    t.bigint "label_id"
+    t.string "title", null: false
+    t.integer "kind", default: 0, null: false
+    t.integer "batch_index"
+    t.integer "planned_count", default: 0, null: false
+    t.integer "applied_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["campaign_import_id", "title"], name: "idx_campaign_import_labels_on_import_and_title", unique: true
+    t.index ["campaign_import_id"], name: "index_campaign_import_labels_on_campaign_import_id"
+    t.index ["label_id"], name: "index_campaign_import_labels_on_label_id"
+  end
+
+  create_table "campaign_import_rows", force: :cascade do |t|
+    t.bigint "campaign_import_id", null: false
+    t.integer "row_number", null: false
+    t.string "raw_name"
+    t.string "raw_phone_masked"
+    t.string "normalized_name"
+    t.string "normalized_phone_hash"
+    t.bigint "contact_id"
+    t.boolean "was_existing_contact", default: false, null: false
+    t.jsonb "labels_applied", default: [], null: false
+    t.integer "batch_index"
+    t.integer "status", default: 0, null: false
+    t.jsonb "error_messages", default: [], null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["campaign_import_id", "row_number"], name: "idx_campaign_import_rows_on_import_and_row_number", unique: true
+    t.index ["campaign_import_id", "status"], name: "index_campaign_import_rows_on_campaign_import_id_and_status"
+    t.index ["campaign_import_id"], name: "index_campaign_import_rows_on_campaign_import_id"
+    t.index ["contact_id"], name: "index_campaign_import_rows_on_contact_id"
+    t.index ["normalized_phone_hash"], name: "index_campaign_import_rows_on_normalized_phone_hash"
+  end
+
+  create_table "campaign_imports", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "data_import_id"
+    t.integer "status", default: 0, null: false
+    t.integer "undo_status", default: 0, null: false
+    t.string "source_filename"
+    t.string "source_content_type"
+    t.string "source_format"
+    t.bigint "source_byte_size"
+    t.integer "total_rows", default: 0, null: false
+    t.integer "valid_rows", default: 0, null: false
+    t.integer "invalid_rows", default: 0, null: false
+    t.integer "duplicate_file_rows", default: 0, null: false
+    t.integer "imported_contacts_count", default: 0, null: false
+    t.integer "existing_contacts_count", default: 0, null: false
+    t.integer "failed_contacts_count", default: 0, null: false
+    t.integer "new_contacts_estimate", default: 0, null: false
+    t.integer "processed_records", default: 0, null: false
+    t.integer "failed_records", default: 0, null: false
+    t.integer "new_contacts_count", default: 0, null: false
+    t.integer "existing_contacts_updated_count", default: 0, null: false
+    t.string "mode"
+    t.string "campaign_name"
+    t.string "campaign_slug"
+    t.string "base_label"
+    t.integer "batch_count", default: 0, null: false
+    t.jsonb "labels_payload", default: {}, null: false
+    t.jsonb "validation_summary", default: {}, null: false
+    t.jsonb "options", default: {}, null: false
+    t.datetime "started_at"
+    t.datetime "validated_at"
+    t.datetime "confirmed_at"
+    t.datetime "queued_at"
+    t.datetime "import_started_at"
+    t.datetime "import_finished_at"
+    t.datetime "completed_at"
+    t.datetime "failed_at"
+    t.datetime "undo_started_at"
+    t.datetime "undo_finished_at"
+    t.datetime "undo_completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "campaign_slug"], name: "index_campaign_imports_on_account_id_and_campaign_slug"
+    t.index ["account_id", "created_at"], name: "index_campaign_imports_on_account_id_and_created_at"
+    t.index ["account_id", "status"], name: "index_campaign_imports_on_account_id_and_status"
+    t.index ["account_id"], name: "index_campaign_imports_on_account_id"
+    t.index ["data_import_id"], name: "index_campaign_imports_on_data_import_id"
+    t.index ["user_id"], name: "index_campaign_imports_on_user_id"
   end
 
   create_table "campaigns", force: :cascade do |t|
@@ -474,8 +694,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.boolean "smtp_enable_ssl_tls", default: false
     t.jsonb "provider_config", default: {}
     t.string "provider"
-    t.string "imap_authentication", default: "plain"
     t.boolean "verified_for_sending", default: false, null: false
+    t.string "imap_authentication", default: "plain"
+    t.boolean "calendar_enabled", default: false, null: false
+    t.boolean "calendar_scope_granted", default: false, null: false
+    t.string "calendar_identity"
+    t.boolean "calendar_shared", default: false, null: false
+    t.index ["account_id", "calendar_enabled"], name: "idx_channel_email_calendar_enabled"
     t.index ["email"], name: "index_channel_email_on_email", unique: true
     t.index ["forward_to_email"], name: "index_channel_email_on_forward_to_email", unique: true
   end
@@ -615,7 +840,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.bigint "account_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.integer "contacts_count"
+    t.integer "contacts_count", default: 0, null: false
     t.jsonb "additional_attributes", default: {}
     t.jsonb "custom_attributes", default: {}
     t.datetime "last_activity_at", precision: nil
@@ -752,6 +977,445 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.index ["user_id"], name: "index_copilot_threads_on_user_id"
   end
 
+  create_table "crm_activities", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "card_id", null: false
+    t.bigint "conversation_id"
+    t.string "actor_type"
+    t.bigint "actor_id"
+    t.string "event_type", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.index ["account_id", "card_id", "created_at"], name: "idx_crm_activities_card_time"
+    t.index ["account_id", "event_type", "created_at"], name: "idx_crm_activities_event_time"
+    t.index ["account_id"], name: "index_crm_activities_on_account_id"
+    t.index ["card_id"], name: "index_crm_activities_on_card_id"
+    t.index ["conversation_id"], name: "index_crm_activities_on_conversation_id"
+  end
+
+  create_table "crm_agent_booking_links", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "booking_profile_id", null: false
+    t.bigint "agent_id", null: false
+    t.bigint "inbox_id", null: false
+    t.string "slug", null: false
+    t.boolean "enabled", default: true, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_crm_agent_booking_links_on_account_id"
+    t.index ["agent_id"], name: "index_crm_agent_booking_links_on_agent_id"
+    t.index ["booking_profile_id", "agent_id"], name: "idx_crm_booking_links_profile_agent", unique: true
+    t.index ["booking_profile_id"], name: "index_crm_agent_booking_links_on_booking_profile_id"
+    t.index ["inbox_id"], name: "index_crm_agent_booking_links_on_inbox_id"
+    t.index ["slug"], name: "index_crm_agent_booking_links_on_slug", unique: true
+  end
+
+  create_table "crm_agent_booking_profiles", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "inbox_id", null: false
+    t.string "slug", null: false
+    t.string "title"
+    t.text "description"
+    t.integer "duration_minutes", default: 30, null: false
+    t.integer "buffer_minutes", default: 0, null: false
+    t.integer "booking_window_days", default: 14, null: false
+    t.jsonb "working_hours", default: {}, null: false
+    t.string "timezone"
+    t.boolean "enabled", default: true, null: false
+    t.bigint "default_pipeline_id"
+    t.bigint "default_stage_id"
+    t.bigint "default_assignee_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "assignment_mode", default: 0, null: false
+    t.index ["account_id"], name: "index_crm_agent_booking_profiles_on_account_id"
+    t.index ["inbox_id"], name: "index_crm_agent_booking_profiles_on_inbox_id"
+    t.index ["slug"], name: "index_crm_agent_booking_profiles_on_slug", unique: true
+  end
+
+  create_table "crm_ai_stage_suggestions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "card_id", null: false
+    t.bigint "from_stage_id", null: false
+    t.bigint "to_stage_id", null: false
+    t.decimal "confidence", precision: 5, scale: 4, null: false
+    t.string "reasoning", limit: 500
+    t.string "model_used", null: false
+    t.integer "status", default: 0, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "status", "created_at"], name: "idx_crm_ai_suggestions_account_status_created"
+    t.index ["account_id"], name: "index_crm_ai_stage_suggestions_on_account_id"
+    t.index ["card_id", "status", "created_at"], name: "idx_crm_ai_suggestions_card_status_created"
+    t.index ["card_id"], name: "index_crm_ai_stage_suggestions_on_card_id"
+    t.index ["from_stage_id"], name: "index_crm_ai_stage_suggestions_on_from_stage_id"
+    t.index ["to_stage_id"], name: "index_crm_ai_stage_suggestions_on_to_stage_id"
+  end
+
+  create_table "crm_calendar_sync_states", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "inbox_id", null: false
+    t.integer "provider", default: 0, null: false
+    t.string "channel_id"
+    t.string "resource_id"
+    t.string "verification_token"
+    t.datetime "expires_at"
+    t.integer "status", default: 0, null: false
+    t.datetime "last_notified_at"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_crm_calendar_sync_states_on_account_id"
+    t.index ["channel_id"], name: "index_crm_calendar_sync_states_on_channel_id"
+    t.index ["expires_at"], name: "index_crm_calendar_sync_states_on_expires_at"
+    t.index ["inbox_id"], name: "index_crm_calendar_sync_states_on_inbox_id", unique: true
+  end
+
+  create_table "crm_card_conversations", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "card_id", null: false
+    t.bigint "conversation_id", null: false
+    t.boolean "is_primary", default: false, null: false
+    t.bigint "linked_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "card_id", "conversation_id"], name: "idx_crm_card_conversations_unique", unique: true
+    t.index ["account_id", "card_id"], name: "idx_crm_card_conversations_card"
+    t.index ["account_id", "conversation_id"], name: "idx_crm_card_conversations_conversation"
+    t.index ["account_id"], name: "index_crm_card_conversations_on_account_id"
+    t.index ["card_id"], name: "index_crm_card_conversations_on_card_id"
+    t.index ["conversation_id"], name: "index_crm_card_conversations_on_conversation_id"
+    t.index ["linked_by_id"], name: "index_crm_card_conversations_on_linked_by_id"
+  end
+
+  create_table "crm_cards", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "pipeline_id", null: false
+    t.bigint "stage_id", null: false
+    t.bigint "contact_id"
+    t.bigint "conversation_id"
+    t.bigint "inbox_id"
+    t.bigint "owner_id"
+    t.bigint "team_id"
+    t.string "title", null: false
+    t.text "description"
+    t.bigint "value_cents", default: 0, null: false
+    t.string "currency", default: "BRL", null: false
+    t.integer "status", default: 0, null: false
+    t.text "lost_reason"
+    t.string "source"
+    t.integer "priority", default: 1, null: false
+    t.integer "score", default: 0, null: false
+    t.datetime "entered_stage_at"
+    t.datetime "last_activity_at"
+    t.datetime "last_message_at"
+    t.datetime "expected_close_at"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "next_follow_up_at"
+    t.datetime "closed_at"
+    t.string "external_id"
+    t.index "lower((title)::text) gin_trgm_ops", name: "idx_crm_cards_title_trgm", using: :gin
+    t.index ["account_id", "contact_id"], name: "idx_crm_cards_contact"
+    t.index ["account_id", "conversation_id", "status", "id"], name: "idx_crm_cards_conversation"
+    t.index ["account_id", "entered_stage_at"], name: "idx_crm_cards_entered_stage"
+    t.index ["account_id", "external_id"], name: "uniq_crm_cards_external_id_per_account", unique: true, where: "(external_id IS NOT NULL)"
+    t.index ["account_id", "inbox_id", "owner_id"], name: "idx_crm_cards_inbox_owner"
+    t.index ["account_id", "inbox_id", "status", "id"], name: "idx_crm_cards_visible_inbox"
+    t.index ["account_id", "last_message_at"], name: "idx_crm_cards_last_message"
+    t.index ["account_id", "next_follow_up_at"], name: "idx_crm_cards_next_follow_up"
+    t.index ["account_id", "owner_id", "status", "id"], name: "idx_crm_cards_owner"
+    t.index ["account_id", "pipeline_id", "expected_close_at", "id"], name: "idx_crm_cards_calendar"
+    t.index ["account_id", "pipeline_id", "stage_id", "status", "id"], name: "idx_crm_cards_board"
+    t.index ["account_id", "pipeline_id", "stage_id", "status", "inbox_id", "id"], name: "idx_crm_cards_board_inbox"
+    t.index ["account_id", "pipeline_id", "stage_id", "status", "next_follow_up_at", "id"], name: "idx_crm_cards_board_follow_up"
+    t.index ["account_id", "pipeline_id", "stage_id", "status", "owner_id", "id"], name: "idx_crm_cards_board_owner"
+    t.index ["account_id", "pipeline_id", "stage_id", "status", "priority", "id"], name: "idx_crm_cards_board_priority"
+    t.index ["account_id", "pipeline_id", "stage_id", "status", "team_id", "id"], name: "idx_crm_cards_board_team"
+    t.index ["account_id", "pipeline_id", "status", "closed_at"], name: "idx_crm_cards_account_pipeline_status_closed"
+    t.index ["account_id", "status", "created_at"], name: "idx_crm_cards_status_created"
+    t.index ["account_id", "updated_at", "id"], name: "idx_crm_cards_account_updated"
+    t.index ["account_id"], name: "index_crm_cards_on_account_id"
+    t.index ["contact_id"], name: "index_crm_cards_on_contact_id"
+    t.index ["conversation_id"], name: "idx_crm_cards_unique_open_conversation", unique: true, where: "((conversation_id IS NOT NULL) AND (status = 0))"
+    t.index ["conversation_id"], name: "index_crm_cards_on_conversation_id"
+    t.index ["inbox_id"], name: "index_crm_cards_on_inbox_id"
+    t.index ["owner_id"], name: "index_crm_cards_on_owner_id"
+    t.index ["pipeline_id"], name: "index_crm_cards_on_pipeline_id"
+    t.index ["stage_id"], name: "index_crm_cards_on_stage_id"
+    t.index ["team_id"], name: "index_crm_cards_on_team_id"
+  end
+
+  create_table "crm_follow_ups", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "card_id", null: false
+    t.bigint "conversation_id"
+    t.bigint "contact_id"
+    t.bigint "inbox_id"
+    t.bigint "assignee_id"
+    t.string "title", null: false
+    t.text "description"
+    t.integer "follow_up_type", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.integer "automation_mode", default: 0, null: false
+    t.datetime "due_at", null: false
+    t.string "timezone", default: "UTC", null: false
+    t.datetime "completed_at"
+    t.datetime "canceled_at"
+    t.bigint "created_by_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "assignee_id", "due_at", "status"], name: "idx_crm_followups_assignee_due"
+    t.index ["account_id", "card_id"], name: "idx_crm_followups_card"
+    t.index ["account_id", "conversation_id"], name: "idx_crm_followups_conversation"
+    t.index ["account_id", "status", "due_at"], name: "idx_crm_followups_status_due"
+    t.index ["account_id"], name: "index_crm_follow_ups_on_account_id"
+    t.index ["assignee_id"], name: "index_crm_follow_ups_on_assignee_id"
+    t.index ["card_id"], name: "index_crm_follow_ups_on_card_id"
+    t.index ["contact_id"], name: "index_crm_follow_ups_on_contact_id"
+    t.index ["conversation_id"], name: "index_crm_follow_ups_on_conversation_id"
+    t.index ["created_by_id"], name: "index_crm_follow_ups_on_created_by_id"
+    t.index ["inbox_id"], name: "index_crm_follow_ups_on_inbox_id"
+    t.index ["status", "due_at", "id"], name: "idx_crm_followups_due_processor"
+  end
+
+  create_table "crm_inbox_settings", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "inbox_id", null: false
+    t.boolean "crm_enabled", default: false, null: false
+    t.bigint "default_pipeline_id"
+    t.bigint "default_stage_id"
+    t.integer "visibility_mode", default: 0, null: false
+    t.boolean "auto_create_card", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "crm_enabled"], name: "index_crm_inbox_settings_on_account_id_and_crm_enabled"
+    t.index ["account_id", "inbox_id"], name: "index_crm_inbox_settings_on_account_id_and_inbox_id", unique: true
+    t.index ["account_id"], name: "index_crm_inbox_settings_on_account_id"
+    t.index ["default_pipeline_id"], name: "index_crm_inbox_settings_on_default_pipeline_id"
+    t.index ["default_stage_id"], name: "index_crm_inbox_settings_on_default_stage_id"
+    t.index ["inbox_id"], name: "index_crm_inbox_settings_on_inbox_id"
+  end
+
+  create_table "crm_integration_tokens", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.bigint "custom_role_id"
+    t.bigint "account_user_id"
+    t.bigint "created_by_id"
+    t.datetime "last_used_at"
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_crm_integration_tokens_on_account_id"
+    t.index ["account_user_id"], name: "index_crm_integration_tokens_on_account_user_id"
+    t.index ["created_by_id"], name: "index_crm_integration_tokens_on_created_by_id"
+    t.index ["custom_role_id"], name: "index_crm_integration_tokens_on_custom_role_id"
+  end
+
+  create_table "crm_meeting_guests", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "meeting_id", null: false
+    t.bigint "contact_id"
+    t.bigint "user_id"
+    t.string "email", null: false
+    t.string "name"
+    t.integer "guest_type", default: 0, null: false
+    t.integer "rsvp_status", default: 0, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "meeting_id", "email"], name: "idx_crm_meeting_guests_unique_email", unique: true
+    t.index ["account_id", "meeting_id"], name: "idx_crm_meeting_guests_meeting"
+    t.index ["account_id"], name: "index_crm_meeting_guests_on_account_id"
+    t.index ["contact_id"], name: "idx_crm_meeting_guests_contact"
+    t.index ["contact_id"], name: "index_crm_meeting_guests_on_contact_id"
+    t.index ["meeting_id"], name: "index_crm_meeting_guests_on_meeting_id"
+    t.index ["user_id"], name: "index_crm_meeting_guests_on_user_id"
+  end
+
+  create_table "crm_meetings", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "card_id", null: false
+    t.bigint "inbox_id"
+    t.bigint "created_by_id", null: false
+    t.bigint "reminder_id"
+    t.string "title", null: false
+    t.text "description"
+    t.datetime "starts_at", null: false
+    t.datetime "ends_at", null: false
+    t.string "timezone", default: "UTC", null: false
+    t.integer "status", default: 0, null: false
+    t.integer "provider", null: false
+    t.integer "online_meeting_type", default: 0, null: false
+    t.string "external_event_id"
+    t.text "online_meeting_url"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "outcome"
+    t.text "outcome_notes"
+    t.datetime "outcome_recorded_at"
+    t.index ["account_id", "card_id"], name: "idx_crm_meetings_card"
+    t.index ["account_id", "created_by_id"], name: "idx_crm_meetings_created_by"
+    t.index ["account_id", "inbox_id"], name: "idx_crm_meetings_inbox"
+    t.index ["account_id", "outcome", "outcome_recorded_at"], name: "idx_on_account_id_outcome_outcome_recorded_at_085cfbd511"
+    t.index ["account_id", "starts_at"], name: "idx_crm_meetings_starts_at"
+    t.index ["account_id", "status"], name: "idx_crm_meetings_status"
+    t.index ["account_id"], name: "index_crm_meetings_on_account_id"
+    t.index ["card_id"], name: "index_crm_meetings_on_card_id"
+    t.index ["created_by_id"], name: "index_crm_meetings_on_created_by_id"
+    t.index ["external_event_id", "provider"], name: "idx_crm_meetings_external_unique", unique: true, where: "(external_event_id IS NOT NULL)"
+    t.index ["inbox_id"], name: "index_crm_meetings_on_inbox_id"
+    t.index ["reminder_id"], name: "index_crm_meetings_on_reminder_id"
+  end
+
+  create_table "crm_pipeline_inboxes", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "pipeline_id", null: false
+    t.bigint "inbox_id", null: false
+    t.bigint "default_stage_id"
+    t.boolean "auto_create_card", default: false, null: false
+    t.bigint "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "inbox_id"], name: "index_crm_pipeline_inboxes_on_account_id_and_inbox_id"
+    t.index ["account_id", "pipeline_id", "inbox_id"], name: "idx_crm_pipeline_inboxes_unique", unique: true
+    t.index ["account_id"], name: "index_crm_pipeline_inboxes_on_account_id"
+    t.index ["created_by_id"], name: "index_crm_pipeline_inboxes_on_created_by_id"
+    t.index ["default_stage_id"], name: "index_crm_pipeline_inboxes_on_default_stage_id"
+    t.index ["inbox_id"], name: "index_crm_pipeline_inboxes_on_inbox_id"
+    t.index ["pipeline_id"], name: "index_crm_pipeline_inboxes_on_pipeline_id"
+  end
+
+  create_table "crm_pipeline_stages", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "pipeline_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.string "color"
+    t.integer "position", default: 0, null: false
+    t.integer "win_probability", default: 0, null: false
+    t.integer "wip_limit"
+    t.integer "sla_seconds"
+    t.integer "sla_warning_seconds"
+    t.boolean "is_won_stage", default: false, null: false
+    t.boolean "is_lost_stage", default: false, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "pipeline_id", "position"], name: "idx_crm_stages_account_pipeline_position"
+    t.index ["account_id", "pipeline_id"], name: "index_crm_pipeline_stages_on_account_id_and_pipeline_id"
+    t.index ["account_id"], name: "index_crm_pipeline_stages_on_account_id"
+    t.index ["pipeline_id"], name: "index_crm_pipeline_stages_on_pipeline_id"
+  end
+
+  create_table "crm_pipelines", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.integer "status", default: 0, null: false
+    t.boolean "is_default", default: false, null: false
+    t.integer "position", default: 0, null: false
+    t.bigint "created_by_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "is_default"], name: "index_crm_pipelines_on_account_id_and_is_default"
+    t.index ["account_id", "position"], name: "index_crm_pipelines_on_account_id_and_position"
+    t.index ["account_id", "status"], name: "index_crm_pipelines_on_account_id_and_status"
+    t.index ["account_id"], name: "index_crm_pipelines_on_account_id"
+    t.index ["created_by_id"], name: "index_crm_pipelines_on_created_by_id"
+  end
+
+  create_table "crm_saved_views", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "pipeline_id"
+    t.string "name", null: false
+    t.integer "visibility", default: 0, null: false
+    t.jsonb "config", default: {}, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "pipeline_id"], name: "idx_crm_saved_views_account_pipeline"
+    t.index ["account_id", "user_id"], name: "idx_crm_saved_views_account_user"
+    t.index ["account_id", "visibility"], name: "idx_crm_saved_views_account_visibility"
+    t.index ["account_id"], name: "index_crm_saved_views_on_account_id"
+    t.index ["pipeline_id"], name: "index_crm_saved_views_on_pipeline_id"
+    t.index ["user_id"], name: "index_crm_saved_views_on_user_id"
+  end
+
+  create_table "crm_service_schedules", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "owner_type", null: false
+    t.bigint "owner_id", null: false
+    t.string "timezone", null: false
+    t.boolean "enabled", default: true, null: false
+    t.jsonb "blocks", default: [], null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "owner_type", "owner_id"], name: "idx_crm_service_schedules_owner_unique", unique: true
+    t.index ["account_id"], name: "index_crm_service_schedules_on_account_id"
+    t.index ["owner_type", "owner_id"], name: "index_crm_service_schedules_on_owner_type_and_owner_id"
+  end
+
+  create_table "crm_stage_automation_executions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "card_id", null: false
+    t.bigint "stage_automation_id", null: false
+    t.string "trigger_token", null: false
+    t.integer "status", default: 0, null: false
+    t.text "error_message"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_crm_stage_automation_executions_on_account_id"
+    t.index ["card_id", "stage_automation_id", "trigger_token"], name: "idx_crm_stage_automation_executions_unique", unique: true
+    t.index ["card_id"], name: "index_crm_stage_automation_executions_on_card_id"
+    t.index ["stage_automation_id"], name: "index_crm_stage_automation_executions_on_stage_automation_id"
+  end
+
+  create_table "crm_stage_automation_steps", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "stage_automation_id", null: false
+    t.integer "position", default: 0, null: false
+    t.integer "delay_seconds", default: 0, null: false
+    t.integer "action_type", default: 0, null: false
+    t.jsonb "action_config", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_crm_stage_automation_steps_on_account_id"
+    t.index ["stage_automation_id", "position"], name: "idx_crm_stage_automation_steps_order"
+    t.index ["stage_automation_id"], name: "index_crm_stage_automation_steps_on_stage_automation_id"
+  end
+
+  create_table "crm_stage_automations", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "pipeline_id", null: false
+    t.bigint "stage_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.integer "trigger_event", default: 0, null: false
+    t.boolean "enabled", default: true, null: false
+    t.integer "position", default: 0, null: false
+    t.bigint "created_by_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "stage_id", "trigger_event", "position"], name: "idx_crm_stage_automations_stage_trigger"
+    t.index ["account_id"], name: "index_crm_stage_automations_on_account_id"
+    t.index ["created_by_id"], name: "index_crm_stage_automations_on_created_by_id"
+    t.index ["pipeline_id"], name: "index_crm_stage_automations_on_pipeline_id"
+    t.index ["stage_id"], name: "index_crm_stage_automations_on_stage_id"
+  end
+
   create_table "csat_survey_responses", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "conversation_id", null: false
@@ -835,6 +1499,126 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.index ["account_id"], name: "index_data_imports_on_account_id"
   end
 
+  create_table "email_campaign_recipients", force: :cascade do |t|
+    t.bigint "email_campaign_id", null: false
+    t.string "name"
+    t.string "email", null: false
+    t.integer "status", default: 0, null: false
+    t.string "ses_message_id"
+    t.datetime "sent_at"
+    t.text "last_error"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "attempts", default: 0, null: false
+    t.datetime "last_event_at"
+    t.jsonb "custom_data", default: {}, null: false
+    t.index "email_campaign_id, lower((email)::text)", name: "idx_email_campaign_recipients_campaign_email", unique: true
+    t.index ["email_campaign_id", "status"], name: "idx_email_campaign_recipients_campaign_status"
+    t.index ["email_campaign_id"], name: "index_email_campaign_recipients_on_email_campaign_id"
+    t.index ["ses_message_id"], name: "index_email_campaign_recipients_on_ses_message_id"
+  end
+
+  create_table "email_campaign_templates", force: :cascade do |t|
+    t.bigint "account_id"
+    t.string "name", null: false
+    t.text "body_mjml"
+    t.text "body_html"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "category"
+    t.string "thumbnail_url"
+    t.index "account_id, lower((name)::text)", name: "index_email_campaign_templates_account_lower_name_unique", unique: true, where: "(account_id IS NOT NULL)"
+    t.index "lower((name)::text)", name: "index_email_campaign_templates_global_lower_name_unique", unique: true, where: "(account_id IS NULL)"
+    t.index ["account_id", "name"], name: "index_email_campaign_templates_on_account_id_and_name"
+    t.index ["account_id"], name: "index_email_campaign_templates_on_account_id"
+  end
+
+  create_table "email_campaigns", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "sender_identity_id"
+    t.string "name", null: false
+    t.string "subject"
+    t.string "from_name"
+    t.text "body_html"
+    t.string "reply_to"
+    t.integer "status", default: 0, null: false
+    t.datetime "scheduled_at"
+    t.datetime "sent_at"
+    t.integer "recipients_count", default: 0, null: false
+    t.integer "sent_count", default: 0, null: false
+    t.integer "failed_count", default: 0, null: false
+    t.integer "suppressed_count", default: 0, null: false
+    t.string "ses_configuration_set"
+    t.text "last_error"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "delivered_count", default: 0, null: false
+    t.integer "opened_count", default: 0, null: false
+    t.integer "clicked_count", default: 0, null: false
+    t.integer "bounced_count", default: 0, null: false
+    t.integer "complained_count", default: 0, null: false
+    t.integer "unsubscribed_count", default: 0, null: false
+    t.text "body_mjml"
+    t.string "preheader"
+    t.string "from_email"
+    t.integer "delivery_mode", default: 0, null: false
+    t.bigint "sender_inbox_id"
+    t.integer "ai_status", default: 0, null: false
+    t.string "ai_generation_token"
+    t.string "ai_provider_response_id"
+    t.string "ai_error"
+    t.datetime "ai_requested_at"
+    t.datetime "ai_completed_at"
+    t.jsonb "ai_subject_variants", default: [], null: false
+    t.index ["account_id", "status", "scheduled_at"], name: "idx_email_campaigns_account_status_scheduled"
+    t.index ["account_id"], name: "index_email_campaigns_on_account_id"
+    t.index ["sender_identity_id"], name: "index_email_campaigns_on_sender_identity_id"
+    t.index ["sender_inbox_id"], name: "index_email_campaigns_on_sender_inbox_id"
+  end
+
+  create_table "email_events", force: :cascade do |t|
+    t.bigint "recipient_id", null: false
+    t.integer "event_type", null: false
+    t.string "url"
+    t.datetime "occurred_at", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["occurred_at"], name: "idx_email_events_occurred_at"
+    t.index ["recipient_id", "event_type"], name: "idx_email_events_recipient_type"
+    t.index ["recipient_id"], name: "index_email_events_on_recipient_id"
+  end
+
+  create_table "email_sender_identities", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "domain", null: false
+    t.string "from_email"
+    t.bigint "reply_to_inbox_id"
+    t.integer "status", default: 0, null: false
+    t.jsonb "dkim_records", default: [], null: false
+    t.string "spf_record"
+    t.string "dmarc_record"
+    t.string "ses_configuration_set"
+    t.string "provider", default: "ses", null: false
+    t.datetime "verified_at"
+    t.string "last_error"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "account_id, lower((domain)::text)", name: "idx_email_sender_identities_account_domain", unique: true
+    t.index ["account_id", "status"], name: "idx_email_sender_identities_account_status"
+    t.index ["account_id"], name: "index_email_sender_identities_on_account_id"
+  end
+
+  create_table "email_suppressions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "email", null: false
+    t.string "reason"
+    t.string "source"
+    t.datetime "created_at", null: false
+    t.index "account_id, lower((email)::text)", name: "idx_email_suppressions_account_email", unique: true
+    t.index ["account_id"], name: "index_email_suppressions_on_account_id"
+  end
+
   create_table "email_templates", force: :cascade do |t|
     t.string "name", null: false
     t.text "body", null: false
@@ -852,6 +1636,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "idempotency_keys", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "key", null: false
+    t.string "request_fingerprint", null: false
+    t.integer "response_status"
+    t.jsonb "response_body"
+    t.integer "state", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.index ["account_id", "key"], name: "uniq_idempotency_keys_per_account", unique: true
+    t.index ["account_id"], name: "index_idempotency_keys_on_account_id"
+    t.index ["created_at"], name: "idx_idempotency_keys_created_at"
   end
 
   create_table "inbox_assignment_policies", force: :cascade do |t|
@@ -1204,6 +2001,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.datetime "updated_at", null: false
     t.string "description"
     t.float "resolution_time_threshold"
+    t.boolean "exclude_groups", default: true, null: false
+    t.boolean "ai_skip_natural_pause", default: true, null: false
+    t.jsonb "auto_apply", default: {}, null: false
     t.index ["account_id"], name: "index_sla_policies_on_account_id"
   end
 
@@ -1304,7 +2104,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.text "message_signature"
     t.string "otp_secret"
     t.integer "consumed_timestep"
-    t.boolean "otp_required_for_login", default: false
+    t.boolean "otp_required_for_login", default: false, null: false
     t.text "otp_backup_codes"
     t.index ["email"], name: "index_users_on_email"
     t.index ["otp_required_for_login"], name: "index_users_on_otp_required_for_login"
@@ -1324,7 +2124,92 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.jsonb "subscriptions", default: ["conversation_status_changed", "conversation_updated", "conversation_created", "contact_created", "contact_updated", "message_created", "message_updated", "webwidget_triggered"]
     t.string "name"
     t.string "secret"
+    t.boolean "include_contact_pii", default: false, null: false
     t.index ["account_id", "url"], name: "index_webhooks_on_account_id_and_url", unique: true
+  end
+
+  create_table "whatsapp_api_campaign_recipients", force: :cascade do |t|
+    t.bigint "whatsapp_api_campaign_id", null: false
+    t.bigint "account_id", null: false
+    t.bigint "inbox_id", null: false
+    t.bigint "contact_id", null: false
+    t.bigint "conversation_id"
+    t.bigint "message_id"
+    t.integer "status", default: 0, null: false
+    t.integer "attempts", default: 0, null: false
+    t.string "phone_mask"
+    t.string "phone_hash"
+    t.string "rendered_body_sha256"
+    t.string "provider_message_id"
+    t.text "last_error_message"
+    t.datetime "started_at"
+    t.datetime "sent_at"
+    t.datetime "failed_at"
+    t.datetime "cancelled_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_whatsapp_api_campaign_recipients_on_account_id"
+    t.index ["contact_id"], name: "index_whatsapp_api_campaign_recipients_on_contact_id"
+    t.index ["conversation_id"], name: "index_whatsapp_api_campaign_recipients_on_conversation_id"
+    t.index ["inbox_id", "status", "created_at"], name: "idx_wa_api_recipients_inbox_status"
+    t.index ["inbox_id"], name: "index_whatsapp_api_campaign_recipients_on_inbox_id"
+    t.index ["message_id"], name: "index_whatsapp_api_campaign_recipients_on_message_id"
+    t.index ["whatsapp_api_campaign_id", "contact_id"], name: "idx_wa_api_recipients_campaign_contact", unique: true
+    t.index ["whatsapp_api_campaign_id", "message_id"], name: "idx_wa_api_recipients_campaign_message", unique: true, where: "(message_id IS NOT NULL)"
+    t.index ["whatsapp_api_campaign_id", "phone_hash"], name: "idx_wa_api_recipients_active_phone_hash", unique: true, where: "((phone_hash IS NOT NULL) AND (status = ANY (ARRAY[0, 1, 2])))"
+    t.index ["whatsapp_api_campaign_id", "status"], name: "idx_wa_api_recipients_campaign_status"
+    t.index ["whatsapp_api_campaign_id"], name: "idx_wa_api_recipients_campaign_id"
+  end
+
+  create_table "whatsapp_api_campaigns", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "inbox_id", null: false
+    t.bigint "created_by_id", null: false
+    t.bigint "whatsapp_api_message_template_id"
+    t.string "title", null: false
+    t.integer "status", default: 0, null: false
+    t.jsonb "audience", default: [], null: false
+    t.text "message_body"
+    t.jsonb "template_snapshot", default: {}, null: false
+    t.jsonb "media_snapshot", default: {}, null: false
+    t.integer "recipients_count", default: 0, null: false
+    t.integer "sent_count", default: 0, null: false
+    t.integer "failed_count", default: 0, null: false
+    t.integer "cancelled_count", default: 0, null: false
+    t.text "last_error_message"
+    t.datetime "scheduled_at"
+    t.datetime "started_at"
+    t.datetime "paused_at"
+    t.datetime "resumed_at"
+    t.datetime "completed_at"
+    t.datetime "cancelled_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "status", "scheduled_at"], name: "idx_whatsapp_api_campaigns_account_status"
+    t.index ["account_id"], name: "index_whatsapp_api_campaigns_on_account_id"
+    t.index ["created_by_id"], name: "index_whatsapp_api_campaigns_on_created_by_id"
+    t.index ["inbox_id", "status", "scheduled_at"], name: "idx_whatsapp_api_campaigns_inbox_status"
+    t.index ["inbox_id"], name: "index_whatsapp_api_campaigns_on_inbox_id"
+    t.index ["whatsapp_api_message_template_id"], name: "idx_whatsapp_api_campaigns_template_id"
+  end
+
+  create_table "whatsapp_api_message_templates", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "inbox_id", null: false
+    t.bigint "created_by_id", null: false
+    t.bigint "updated_by_id"
+    t.string "name", null: false
+    t.text "body", null: false
+    t.jsonb "variables", default: [], null: false
+    t.datetime "archived_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "inbox_id", "archived_at"], name: "idx_whatsapp_api_templates_inbox"
+    t.index ["account_id", "inbox_id", "name"], name: "idx_whatsapp_api_templates_active_name", unique: true, where: "(archived_at IS NULL)"
+    t.index ["account_id"], name: "index_whatsapp_api_message_templates_on_account_id"
+    t.index ["created_by_id"], name: "index_whatsapp_api_message_templates_on_created_by_id"
+    t.index ["inbox_id"], name: "index_whatsapp_api_message_templates_on_inbox_id"
+    t.index ["updated_by_id"], name: "index_whatsapp_api_message_templates_on_updated_by_id"
   end
 
   create_table "working_hours", force: :cascade do |t|
@@ -1343,10 +2228,121 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.index ["inbox_id"], name: "index_working_hours_on_inbox_id"
   end
 
+  add_foreign_key "account_email_oauth_apps", "accounts"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "autonomia_agent_build_threads", "accounts"
+  add_foreign_key "autonomia_agent_build_threads", "autonomia_agents"
+  add_foreign_key "autonomia_agent_build_threads", "users", column: "created_by_id"
+  add_foreign_key "autonomia_agent_events", "accounts"
+  add_foreign_key "autonomia_agent_events", "autonomia_agents"
+  add_foreign_key "autonomia_agent_inboxes", "accounts"
+  add_foreign_key "autonomia_agent_inboxes", "agent_bots"
+  add_foreign_key "autonomia_agent_inboxes", "autonomia_agents"
+  add_foreign_key "autonomia_agent_inboxes", "inboxes"
+  add_foreign_key "autonomia_agent_knowledge", "accounts"
+  add_foreign_key "autonomia_agent_knowledge", "autonomia_agents"
+  add_foreign_key "autonomia_agent_sources", "accounts"
+  add_foreign_key "autonomia_agent_sources", "autonomia_agents"
+  add_foreign_key "autonomia_agents", "accounts"
+  add_foreign_key "autonomia_agents", "users", column: "created_by_id"
+  add_foreign_key "crm_activities", "accounts"
+  add_foreign_key "crm_activities", "conversations"
+  add_foreign_key "crm_activities", "crm_cards", column: "card_id"
+  add_foreign_key "crm_agent_booking_links", "accounts"
+  add_foreign_key "crm_agent_booking_links", "crm_agent_booking_profiles", column: "booking_profile_id"
+  add_foreign_key "crm_agent_booking_links", "inboxes"
+  add_foreign_key "crm_agent_booking_links", "users", column: "agent_id"
+  add_foreign_key "crm_agent_booking_profiles", "accounts"
+  add_foreign_key "crm_agent_booking_profiles", "inboxes"
+  add_foreign_key "crm_ai_stage_suggestions", "accounts"
+  add_foreign_key "crm_ai_stage_suggestions", "crm_cards", column: "card_id"
+  add_foreign_key "crm_ai_stage_suggestions", "crm_pipeline_stages", column: "from_stage_id"
+  add_foreign_key "crm_ai_stage_suggestions", "crm_pipeline_stages", column: "to_stage_id"
+  add_foreign_key "crm_calendar_sync_states", "accounts"
+  add_foreign_key "crm_calendar_sync_states", "inboxes"
+  add_foreign_key "crm_card_conversations", "accounts"
+  add_foreign_key "crm_card_conversations", "conversations"
+  add_foreign_key "crm_card_conversations", "crm_cards", column: "card_id"
+  add_foreign_key "crm_card_conversations", "users", column: "linked_by_id"
+  add_foreign_key "crm_cards", "accounts"
+  add_foreign_key "crm_cards", "contacts"
+  add_foreign_key "crm_cards", "conversations"
+  add_foreign_key "crm_cards", "crm_pipeline_stages", column: "stage_id"
+  add_foreign_key "crm_cards", "crm_pipelines", column: "pipeline_id"
+  add_foreign_key "crm_cards", "inboxes"
+  add_foreign_key "crm_cards", "teams"
+  add_foreign_key "crm_cards", "users", column: "owner_id"
+  add_foreign_key "crm_follow_ups", "accounts"
+  add_foreign_key "crm_follow_ups", "contacts"
+  add_foreign_key "crm_follow_ups", "conversations"
+  add_foreign_key "crm_follow_ups", "crm_cards", column: "card_id"
+  add_foreign_key "crm_follow_ups", "inboxes"
+  add_foreign_key "crm_follow_ups", "users", column: "assignee_id"
+  add_foreign_key "crm_follow_ups", "users", column: "created_by_id"
+  add_foreign_key "crm_inbox_settings", "accounts"
+  add_foreign_key "crm_inbox_settings", "crm_pipeline_stages", column: "default_stage_id"
+  add_foreign_key "crm_inbox_settings", "crm_pipelines", column: "default_pipeline_id"
+  add_foreign_key "crm_inbox_settings", "inboxes"
+  add_foreign_key "crm_integration_tokens", "account_users", on_delete: :nullify
+  add_foreign_key "crm_integration_tokens", "accounts"
+  add_foreign_key "crm_integration_tokens", "custom_roles", on_delete: :nullify
+  add_foreign_key "crm_integration_tokens", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "crm_meeting_guests", "accounts"
+  add_foreign_key "crm_meeting_guests", "contacts"
+  add_foreign_key "crm_meeting_guests", "crm_meetings", column: "meeting_id"
+  add_foreign_key "crm_meeting_guests", "users"
+  add_foreign_key "crm_meetings", "accounts"
+  add_foreign_key "crm_meetings", "crm_cards", column: "card_id"
+  add_foreign_key "crm_meetings", "crm_follow_ups", column: "reminder_id", on_delete: :nullify
+  add_foreign_key "crm_meetings", "inboxes", on_delete: :nullify
+  add_foreign_key "crm_meetings", "users", column: "created_by_id"
+  add_foreign_key "crm_pipeline_inboxes", "accounts"
+  add_foreign_key "crm_pipeline_inboxes", "crm_pipeline_stages", column: "default_stage_id"
+  add_foreign_key "crm_pipeline_inboxes", "crm_pipelines", column: "pipeline_id"
+  add_foreign_key "crm_pipeline_inboxes", "inboxes"
+  add_foreign_key "crm_pipeline_inboxes", "users", column: "created_by_id"
+  add_foreign_key "crm_pipeline_stages", "accounts"
+  add_foreign_key "crm_pipeline_stages", "crm_pipelines", column: "pipeline_id"
+  add_foreign_key "crm_pipelines", "accounts"
+  add_foreign_key "crm_pipelines", "users", column: "created_by_id"
+  add_foreign_key "crm_saved_views", "accounts"
+  add_foreign_key "crm_saved_views", "crm_pipelines", column: "pipeline_id"
+  add_foreign_key "crm_saved_views", "users"
+  add_foreign_key "crm_stage_automation_executions", "accounts"
+  add_foreign_key "crm_stage_automation_executions", "crm_cards", column: "card_id"
+  add_foreign_key "crm_stage_automation_executions", "crm_stage_automations", column: "stage_automation_id"
+  add_foreign_key "crm_stage_automation_steps", "accounts"
+  add_foreign_key "crm_stage_automation_steps", "crm_stage_automations", column: "stage_automation_id"
+  add_foreign_key "crm_stage_automations", "accounts"
+  add_foreign_key "crm_stage_automations", "crm_pipeline_stages", column: "stage_id"
+  add_foreign_key "crm_stage_automations", "crm_pipelines", column: "pipeline_id"
+  add_foreign_key "crm_stage_automations", "users", column: "created_by_id"
+  add_foreign_key "email_campaign_recipients", "email_campaigns"
+  add_foreign_key "email_campaign_templates", "accounts"
+  add_foreign_key "email_campaigns", "accounts"
+  add_foreign_key "email_campaigns", "email_sender_identities", column: "sender_identity_id"
+  add_foreign_key "email_campaigns", "inboxes", column: "sender_inbox_id"
+  add_foreign_key "email_events", "email_campaign_recipients", column: "recipient_id"
+  add_foreign_key "email_sender_identities", "accounts"
+  add_foreign_key "email_suppressions", "accounts"
+  add_foreign_key "idempotency_keys", "accounts"
   add_foreign_key "inboxes", "portals"
   add_foreign_key "user_sessions", "users"
+  add_foreign_key "whatsapp_api_campaign_recipients", "accounts"
+  add_foreign_key "whatsapp_api_campaign_recipients", "contacts"
+  add_foreign_key "whatsapp_api_campaign_recipients", "conversations"
+  add_foreign_key "whatsapp_api_campaign_recipients", "inboxes"
+  add_foreign_key "whatsapp_api_campaign_recipients", "messages"
+  add_foreign_key "whatsapp_api_campaign_recipients", "whatsapp_api_campaigns"
+  add_foreign_key "whatsapp_api_campaigns", "accounts"
+  add_foreign_key "whatsapp_api_campaigns", "inboxes"
+  add_foreign_key "whatsapp_api_campaigns", "users", column: "created_by_id"
+  add_foreign_key "whatsapp_api_campaigns", "whatsapp_api_message_templates"
+  add_foreign_key "whatsapp_api_message_templates", "accounts"
+  add_foreign_key "whatsapp_api_message_templates", "inboxes"
+  add_foreign_key "whatsapp_api_message_templates", "users", column: "created_by_id"
+  add_foreign_key "whatsapp_api_message_templates", "users", column: "updated_by_id"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
       after(:insert).

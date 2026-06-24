@@ -1,0 +1,31 @@
+class Crm::StageAutomation < ApplicationRecord
+  self.table_name = 'crm_stage_automations'
+
+  belongs_to :account
+  belongs_to :pipeline, class_name: 'Crm::Pipeline'
+  belongs_to :stage, class_name: 'Crm::PipelineStage'
+  belongs_to :created_by, class_name: 'User', optional: true
+
+  has_many :steps, class_name: 'Crm::StageAutomationStep', foreign_key: :stage_automation_id,
+                   dependent: :destroy, inverse_of: :stage_automation
+
+  enum trigger_event: { on_enter: 0, on_exit: 1 }
+
+  validates :name, presence: true
+  validates :position, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :metadata, jsonb_attributes_length: true
+  validate :stage_must_belong_to_pipeline_and_account
+
+  scope :enabled, -> { where(enabled: true) }
+  scope :ordered, -> { order(:position, :id) }
+
+  private
+
+  def stage_must_belong_to_pipeline_and_account
+    return if stage.blank? || pipeline.blank? || account_id.blank?
+
+    errors.add(:stage, 'must belong to the selected pipeline') if stage.pipeline_id != pipeline_id
+    errors.add(:pipeline, 'must belong to the same account') if pipeline.account_id != account_id
+    errors.add(:stage, 'must belong to the same account') if stage.account_id != account_id
+  end
+end

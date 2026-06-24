@@ -74,3 +74,75 @@ remove_orphan_conversations_job:
   cron: '0 */12 * * *'
   class: 'Internal::RemoveOrphanConversationsJob'
   queue: housekeeping
+
+# executed daily at 2315 UTC
+purge_expired_campaign_import_files_job:
+  cron: '15 23 * * *'
+  class: 'CampaignImports::PurgeExpiredFilesJob'
+  queue: scheduled_jobs
+
+# executed every minute; feature flag checked inside the job
+crm_follow_up_due_job:
+  cron: '*/1 * * * *'
+  class: 'Crm::FollowUpDueJob'
+  queue: scheduled_jobs
+
+# executed every 6 hours; feature flags checked inside the job
+crm_ai_stale_cards_job:
+  cron: '0 */6 * * *'
+  class: 'Crm::Ai::StaleCardsJob'
+  queue: scheduled_jobs
+
+# executed hourly; prunes idempotency keys past their 24h TTL
+crm_idempotency_keys_cleanup_job:
+  cron: '15 * * * *'
+  class: 'Crm::IdempotencyKeysCleanupJob'
+  queue: scheduled_jobs
+
+# executed every 15 minutes; 2-way sync sweep — reconciles imminent meetings with
+# the provider calendar (cancel/reschedule made directly in Google/Outlook).
+# Meetings flag + CRM_CALENDAR_SYNC_ENABLED checked inside the job.
+crm_meeting_sync_sweep_job:
+  cron: '*/15 * * * *'
+  class: 'Crm::Meetings::SyncSweepJob'
+  queue: scheduled_jobs
+
+# executed every 6 hours; (re)creates/renews calendar push subscriptions (S7-B).
+# Gated OFF by default (CRM_CALENDAR_WEBHOOKS_ENABLED) — needs domain verification.
+crm_calendar_subscription_renewal_job:
+  cron: '0 */6 * * *'
+  class: 'Crm::Calendar::SubscriptionRenewalJob'
+  queue: scheduled_jobs
+
+# executed every 15 minutes; AI auto follow-up planner, flags checked inside the job
+crm_ai_auto_followup_scan_job:
+  cron: '*/15 * * * *'
+  class: 'Crm::Ai::AutoFollowupScanJob'
+  queue: scheduled_jobs
+
+# executed every 5 minutes; re-polls SES for pending domain verifications.
+# feature flag checked inside the job.
+email_campaign_poll_pending_identities_job:
+  cron: '*/5 * * * *'
+  class: 'EmailCampaigns::PollPendingIdentitiesJob'
+  queue: scheduled_jobs
+
+# executed every 5 minutes; enqueues delivery for due scheduled email campaigns.
+# feature flag checked inside the job.
+email_campaign_schedule_due_campaigns_job:
+  cron: '*/5 * * * *'
+  class: 'EmailCampaigns::ScheduleDueCampaignsJob'
+  queue: scheduled_jobs
+
+# executed every 5 minutes; re-enqueues delivery for sending campaigns with retryable
+# (transient-failed) pending recipients past the backoff. Flag checked inside the job.
+email_campaign_retry_sweep_job:
+  cron: '*/5 * * * *'
+  class: 'EmailCampaigns::RetrySweepJob'
+  queue: scheduled_jobs
+
+# executed every 10 minutes; pauses tenants over bounce/complaint limits. Flag checked inside the job.
+email_campaign_guardrail_sweep_job:
+  cron: '*/10 * * * *'
+  class: 'EmailCampaigns::GuardrailSweepJob'
+  queue: scheduled_jobs

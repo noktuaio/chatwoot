@@ -4,6 +4,7 @@ class Api::V1::Accounts::AppliedSlasController < Api::V1::Accounts::EnterpriseAc
 
   RESULTS_PER_PAGE = 25
 
+  before_action :ensure_sla_feature
   before_action :set_applied_slas, only: [:index, :metrics, :download]
   before_action :set_current_page, only: [:index]
   before_action :check_admin_authorization?
@@ -29,6 +30,11 @@ class Api::V1::Accounts::AppliedSlasController < Api::V1::Accounts::EnterpriseAc
   end
 
   private
+
+  # Gate da feature `sla`: a API some (404) quando a conta não tem a feature, alinhado à UI.
+  def ensure_sla_feature
+    render json: { error: 'sla.disabled' }, status: :not_found unless Current.account.feature_enabled?('sla')
+  end
 
   def total_applied_slas
     @total_applied_slas ||= @applied_slas.count

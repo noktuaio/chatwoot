@@ -1,0 +1,105 @@
+module Crm
+  module Ai
+    # Executes an AI-decided handoff to a human: assigns the conversation to an
+    # inbox member and stops the AgentBot. Idempotent and loop-safe — assigning
+    # re-enqueues evaluation (assignee_changed -> SyncConversationCardJob), so the
+    # guards below MUST short-circuit before any side effect.
+    class HandoffExecutor
+      Result = Struct.new(:status, :assignee, :error, keyword_init: true)
+
+      def initialize(card:, handoff:, trigger: 'message')
+        @card = card
+        @handoff = normalize(handoff)
+        @trigger = trigger
+        @conversation = card.primary_conversation
+      end
+
+      def perform
+        return skip('not_requested') unless requested?
+        return skip('disabled') unless settings[:enabled]
+        return skip('no_conversation') if @conversation.blank?
+        return skip('already_assigned') if @conversation.assignee_id.present?
+        return skip('cooldown') if recently_handed_off?
+
+        agent = select_agent
+        return skip('no_eligible_agent') if agent.blank?
+
+        assign!(agent)
+        Result.new(status: :handed_off, assignee: agent)
+      end
+
+      private
+
+      def normalize(handoff)
+        return {} if handoff.blank?
+
+        handoff.respond_to?(:with_indifferent_access) ? handoff.with_indifferent_access : handoff
+      end
+
+      def requested?
+        ActiveModel::Type::Boolean.new.cast(@handoff[:should_handoff])
+      end
+
+      def settings
+        @settings ||= Config.handoff_settings(@card.stage, @card.pipeline)
+      end
+
+      def recently_handed_off?
+        last = (@card.metadata || {}).dig('ai', 'last_handoff_at')
+        return false if last.blank?
+
+        Time.parse(last.to_s) > Config::HANDOFF_COOLDOWN_SECONDS.seconds.ago
+      rescue ArgumentError, TypeError
+        false
+      end
+
+      # Seleção de membro delegada ao Crm::Ai::HandoffMemberSelector (lógica
+      # extraída — round-robin/online/match por nome). Mesmo comportamento de antes,
+      # agora compartilhado com a Fase D (Operate::HandoffAssigner). Os parâmetros
+      # vêm do settings do estágio/pipeline e do handoff sugerido pela IA.
+      def select_agent
+        Crm::Ai::HandoffMemberSelector.new(
+          inbox: @conversation.inbox,
+          account_id: @card.account_id,
+          mode: settings[:mode],
+          prefer_online: settings[:prefer_online],
+          suggested_name: @handoff[:suggested_agent]
+        ).perform
+      end
+
+      def assign!(agent)
+        ActiveRecord::Base.transaction do
+          @conversation.update!(assignee: agent)
+          stamp_handoff_metadata!
+          log_activity!(agent)
+        end
+        # Stop the AgentBot: transitions pending->open and signals handoff.
+        @conversation.bot_handoff!
+      end
+
+      def stamp_handoff_metadata!
+        metadata = (@card.metadata || {}).deep_dup
+        metadata['ai'] = (metadata['ai'] || {}).merge('last_handoff_at' => Time.current.iso8601)
+        @card.update!(metadata: metadata)
+      end
+
+      def log_activity!(agent)
+        Crm::ActivityLogger.new(
+          card: @card,
+          actor: nil,
+          event_type: 'ai_handoff',
+          conversation: @conversation,
+          payload: {
+            assignee_id: agent.id,
+            reason: @handoff[:reason].to_s[0, 300],
+            mode: settings[:mode]
+          }
+        ).perform
+      end
+
+      def skip(reason)
+        Result.new(status: :skipped, error: reason)
+      end
+    end
+  end
+end

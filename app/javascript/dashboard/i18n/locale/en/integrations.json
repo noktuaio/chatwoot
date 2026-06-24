@@ -1,5 +1,32 @@
 {
   "INTEGRATION_SETTINGS": {
+    "CRM_N8N": {
+      "HEADER": "n8n (CRM Connections)",
+      "POWERED_BY": "Powered by your account Webhooks — this is a guided setup, not a separate connection.",
+      "SETUP": {
+        "TITLE": "Set up your automation",
+        "DESCRIPTION": "Two steps connect your CRM to n8n: mint a scoped API token so n8n can create and move cards, then create an account webhook subscribing to the CRM events you want n8n to react to.",
+        "TOKENS_CTA": "Create CRM API token",
+        "WEBHOOK_CTA": "Create webhook for CRM events",
+        "ADMIN_ONLY": "Only administrators can mint API tokens and create webhooks. Ask an administrator to complete the setup."
+      },
+      "EVENTS": {
+        "TITLE": "Events you can subscribe to",
+        "DESCRIPTION": "Subscribe an account webhook to any of these card lifecycle events. Each delivery is signed with HMAC and carries a stable event id for deduplication.",
+        "LIST": {
+          "CRM_CARD_CREATED": "A card was created.",
+          "CRM_CARD_MOVED": "A card moved to a different stage.",
+          "CRM_CARD_WON": "A card was marked as won.",
+          "CRM_CARD_LOST": "A card was marked as lost.",
+          "CRM_CARD_REOPENED": "A closed card was reopened.",
+          "CRM_CARD_ARCHIVED": "A card was archived."
+        }
+      },
+      "REQUIREMENTS": {
+        "TITLE": "Requirements",
+        "PUBLIC_URL": "Outbound webhooks require a publicly reachable HTTPS URL. Self-hosted n8n on a private network or local IP is blocked for security (SSRF protection). Expose n8n through a public HTTPS endpoint (for example a tunnel or reverse proxy) before subscribing."
+      }
+    },
     "SHOPIFY": {
       "HEADER": "Shopify",
       "DELETE": {
@@ -59,6 +86,15 @@
             "CONVERSATION_TYPING_ON": "Conversation Typing On",
             "CONVERSATION_TYPING_OFF": "Conversation Typing Off",
             "INBOX_UPDATED": "Inbox updated"
+          },
+          "CRM_EVENTS": {
+            "LABEL": "CRM events",
+            "CRM_CARD_CREATED": "CRM card created",
+            "CRM_CARD_MOVED": "CRM card moved to another stage",
+            "CRM_CARD_WON": "CRM card won",
+            "CRM_CARD_LOST": "CRM card lost",
+            "CRM_CARD_REOPENED": "CRM card reopened",
+            "CRM_CARD_ARCHIVED": "CRM card archived"
           }
         },
         "NAME": {

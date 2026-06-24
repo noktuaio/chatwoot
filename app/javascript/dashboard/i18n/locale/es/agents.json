@@ -1,0 +1,314 @@
+{
+  "AGENTS": {
+    "HUB": {
+      "TITLE": "Mis agentes",
+      "SUBTITLE": "Tus agentes de IA responden a los clientes automáticamente y transfieren a una persona cuando es necesario.",
+      "CREATE": "Crear agente con IA",
+      "LOADING": "Cargando tus agentes…",
+      "ERROR": "No pudimos cargar tus agentes. Inténtalo de nuevo.",
+      "EMPTY": {
+        "TITLE": "Crea tu primer agente",
+        "SUBTITLE": "Crea un agente en 3 minutos — tú conversas, él aprende. Sin configuración técnica."
+      },
+      "STATUS": {
+        "DRAFT": "Borrador",
+        "ACTIVE": "Activo",
+        "PAUSED": "Pausado"
+      },
+      "CHANNELS_COUNT": "Sin canales | 1 canal | {count} canales",
+      "NO_METRICS": "—",
+      "OPEN": "Abrir agente"
+    },
+    "TYPES": {
+      "PICK_TITLE": "¿Qué debe hacer tu agente?",
+      "PICK_SUBTITLE": "Elige un punto de partida. Puedes ajustarlo todo después.",
+      "SUPPORT": {
+        "TITLE": "Soporte",
+        "SUBTITLE": "Responde preguntas y resuelve solicitudes comunes."
+      },
+      "SDR": {
+        "TITLE": "Calificador de leads",
+        "SUBTITLE": "Califica leads y agenda oportunidades para tu equipo."
+      },
+      "RECEPTIONIST": {
+        "TITLE": "Recepcionista",
+        "SUBTITLE": "Recibe, clasifica y deriva cada conversación."
+      },
+      "POST_SALE": {
+        "TITLE": "Posventa",
+        "SUBTITLE": "Incorpora a nuevos clientes y gestiona los seguimientos."
+      },
+      "SCHEDULER": {
+        "TITLE": "Agendamiento",
+        "SUBTITLE": "Ayuda a los clientes a reservar, confirmar y reprogramar."
+      },
+      "REACTIVATION": {
+        "TITLE": "Reactivación",
+        "SUBTITLE": "Vuelve a captar a contactos inactivos y los trae de vuelta."
+      },
+      "SCRATCH": {
+        "TITLE": "Empezar desde cero",
+        "SUBTITLE": "Describe lo que necesitas y créalo desde una página en blanco."
+      }
+    },
+    "BUILDER": {
+      "TITLE": "Constructor de agentes",
+      "BUILDER_NAME": "Constructor",
+      "YOU": "Tú",
+      "INTRO": "Cuéntanos qué debe hacer este agente — describe tu negocio y cómo debe ayudar. Te haremos algunas preguntas y lo crearemos por ti.",
+      "FAILED": "Algo salió mal al crear tu agente. Envía otro mensaje para volver a intentarlo.",
+      "TIMEOUT": "Esto está tardando más de lo esperado. Envía tu mensaje de nuevo.",
+      "PLACEHOLDER": "Escribe tu respuesta…",
+      "SEND": "Enviar",
+      "ATTACH": {
+        "LABEL": "Adjuntar archivo",
+        "KNOWLEDGE": "Para que sepa",
+        "KNOWLEDGE_HINT": "Se convierte en conocimiento del agente (PDF, DOCX, XLSX, TXT, JSON, imagen)",
+        "MEDIA": "Para que envíe",
+        "MEDIA_HINT": "Material que el agente envía al cliente",
+        "ATTACHED": "Archivo adjuntado al agente.",
+        "INVALID_EXT": "Formato no compatible.",
+        "IMAGE_PENDING": "Imágenes adjuntas a tu próximo mensaje",
+        "IMAGE_REMOVE": "Quitar imagen",
+        "IMAGE_TOO_LARGE": "Imagen mayor de 5 MB.",
+        "IMAGE_TOO_MANY": "Máximo 4 imágenes por mensaje.",
+        "IMAGE_INVALID_TYPE": "Formato de imagen no compatible."
+      },
+      "STARTING": "Comenzando…",
+      "GENERATING": "Creando tu agente…",
+      "THINKING": "Pensando…",
+      "ADD_KNOWLEDGE": "Agregar conocimiento",
+      "EXIT": "Salir",
+      "CLOSE": "Cerrar",
+      "RETRY": "Reintentar",
+      "START_ERROR": "No pudimos iniciar el constructor. Inténtalo de nuevo.",
+      "SEND_ERROR": "No se pudo enviar tu mensaje. Inténtalo de nuevo.",
+      "READY": {
+        "TITLE": "Tu agente está listo"
+      },
+      "GREETING_LABEL": "Primer mensaje",
+      "STARTERS_LABEL": "Preguntas sugeridas",
+      "CONFIRM": "Confirmar y crear",
+      "KEEP_TUNING": "Seguir ajustando",
+      "NO_MATERIALS_SIGNAL": "No tengo materiales para incluir ahora.",
+      "MATERIALS_DONE_SIGNAL": "Ya incluí los materiales, puedes finalizar.",
+      "CONVERSATION": "Conversación del creador"
+    },
+    "WIZARD": {
+      "PROGRESS": "Progreso de la creación",
+      "STEPS": {
+        "CONVERSA": "Conversación",
+        "MATERIAIS": "Materiales",
+        "REVISAO": "Revisión",
+        "CONECTAR": "Conectar"
+      },
+      "STATE": {
+        "DONE": "completado",
+        "CURRENT": "paso actual",
+        "UPCOMING": "próximo"
+      },
+      "STEP_STATUS": "{label} — {state}"
+    },
+    "REVIEW": {
+      "TITLE": "Revisa tu agente",
+      "FIRST_MESSAGE_LABEL": "Primer mensaje",
+      "FIRST_MESSAGE_HINT": "Esto es una sugerencia. Ajústala como quieras, no es fija.",
+      "SAVE_FIRST_MESSAGE": "Guardar primer mensaje",
+      "SAVED": "Primer mensaje guardado.",
+      "STARTERS": "Preguntas sugeridas",
+      "APPROVED_SUMMARY": "{count} materiales aprobados · confianza {pct}%",
+      "TEST_FIRST": "Probar antes",
+      "CONNECT_TITLE": "Conectar a una bandeja",
+      "SELECT_INBOX": "Elige una bandeja de entrada",
+      "CONNECT_ACTIVATE": "Conectar y activar",
+      "BACK": "Volver"
+    },
+    "PANEL": {
+      "LOADING": "Cargando agente…",
+      "ERROR": "No pudimos cargar este agente. Inténtalo de nuevo.",
+      "TABS": {
+        "TEST": "Probar",
+        "KNOWLEDGE": "Conocimiento",
+        "CHANNELS": "Canales",
+        "PERFORMANCE": "Rendimiento",
+        "TUNE": "Ajustar"
+      }
+    },
+    "TEST": {
+      "DESCRIPTION": "Prueba tu agente aquí. Los clientes no verán estos mensajes.",
+      "PLACEHOLDER": "Envía un mensaje para probar…",
+      "EMPTY": "Envía un mensaje para ver cómo responde tu agente.",
+      "THINKING": "Pensando…",
+      "RESET": "Limpiar conversación",
+      "ERROR": "El agente no pudo responder. Inténtalo de nuevo.",
+      "CONFIDENCE": "Confianza",
+      "HANDOFF_NOTICE": "Transferiría a una persona: {reason}",
+      "KNOWLEDGE_USED": "Conocimiento utilizado ({count})",
+      "SOURCE": "Fuente: {source}",
+      "CONVERSATION": "Conversación de prueba"
+    },
+    "KNOWLEDGE": {
+      "TITLE": "Conocimiento",
+      "SUBTITLE": "Agrega enlaces y archivos para que tu agente responda con tu propio contenido.",
+      "EMPTY": "Aún no se agregó conocimiento. Agrega un enlace o archivo para empezar.",
+      "ADD": "Agregar conocimiento",
+      "ADD_LINK": "Agregar un enlace",
+      "ADD_FILE": "Subir un archivo",
+      "LINK_LABEL": "Enlace",
+      "LINK_PLACEHOLDER": "https://ejemplo.com/pagina",
+      "FILE_PLACEHOLDER": "Ningún archivo seleccionado",
+      "CHOOSE_FILE": "Elegir archivo",
+      "FORMATS_HINT": "PDF, TXT, MD, JSON y enlaces funcionan bien. XLSX y DOCX están en beta y pueden extraer menos contenido.",
+      "BETA": "beta",
+      "REMOVE": "Eliminar",
+      "RESYNC": "Volver a sincronizar",
+      "ADD_SUCCESS": "Conocimiento agregado. Lo estamos procesando ahora.",
+      "ADD_ERROR": "No pudimos agregar ese conocimiento. Inténtalo de nuevo.",
+      "REMOVE_ERROR": "No pudimos eliminar ese elemento. Inténtalo de nuevo.",
+      "RESYNC_ERROR": "No pudimos volver a sincronizar ese elemento. Inténtalo de nuevo.",
+      "STATUS": {
+        "IN_PROGRESS": "Procesando",
+        "READY": "Listo",
+        "FAILED": "Falló"
+      }
+    },
+    "MATERIALS": {
+      "TITLE": "Materiales",
+      "SUBTITLE": "Sube lo que tu agente necesita saber y lo que puede enviar a los clientes. Revisamos cada archivo y le damos una nota de calidad.",
+      "TABS": {
+        "KNOWLEDGE": "Lo que sabe",
+        "MEDIA": "Lo que puede enviar"
+      },
+      "CONFIDENCE_OVERALL": "Confianza general",
+      "DROP_HINT": "Arrastra archivos o haz clic para subir",
+      "EMPTY": "Aún no hay materiales. Arrastra un archivo o haz clic arriba para empezar.",
+      "CONTINUE": "Continuar",
+      "SKIP": "Omitir materiales",
+      "HAVE_MATERIALS": "Tengo materiales para incluir",
+      "NO_MATERIALS": "No tengo materiales",
+      "STATUS": {
+        "SENDING": "Subiendo",
+        "ANALYZING": "Analizando",
+        "READY": "Listo",
+        "REVIEW": "Revisar",
+        "FAILED": "No se pudo leer"
+      },
+      "LABEL": {
+        "OTIMA": "Excelente",
+        "BOA": "Buena",
+        "FRACA": "Débil"
+      },
+      "CONFIDENCE": {
+        "ALTA": "Confianza alta",
+        "MEDIA": "Confianza media",
+        "BAIXA": "Confianza baja"
+      },
+      "SCORE": "Nota {score}",
+      "PERCENT": "{value}%",
+      "SUMMARY": "Resumen",
+      "REASON": "Motivo",
+      "RESEND": "Volver a subir",
+      "REMOVE": "Eliminar",
+      "UPLOAD_ERROR": "No pudimos subir ese archivo. Inténtalo de nuevo.",
+      "RESEND_ERROR": "No pudimos volver a subir ese material. Inténtalo de nuevo.",
+      "REMOVE_ERROR": "No pudimos eliminar ese material. Inténtalo de nuevo.",
+      "CLOSING": "Cerrando la instrucción con tus materiales…",
+      "BLOCKED_RESEND": "Algún material necesita tu atención antes de continuar.",
+      "BLOCKED_REVIEWING": "Revisando tus materiales… solo toma un momento.",
+      "BLOCKED_EMPTY": "Agrega un material o usa 'Omitir' si Iris no necesita una base.",
+      "FAILED_REASON": "No pudimos procesar este archivo. Intenta volver a subirlo.",
+      "STEP_PROMPT": "¿Puedo usar tus materiales para que Iris aprenda? Adjunta archivos u omite este paso."
+    },
+    "CHANNELS": {
+      "ELIGIBLE": "Canales disponibles",
+      "CONNECTED": "Canales conectados",
+      "EMPTY": "Aún no hay canales conectados.",
+      "NO_ELIGIBLE": "No hay canales disponibles para conectar.",
+      "CONNECT": "Conectar",
+      "DISCONNECT": "Desconectar",
+      "OCCUPIED": "Ya lo usa otro agente",
+      "ONE_PER_INBOX": "Cada bandeja de entrada solo puede tener 1 agente.",
+      "CONNECT_ERROR": "No pudimos conectar ese canal. Inténtalo de nuevo.",
+      "DISCONNECT_ERROR": "No pudimos desconectar ese canal. Inténtalo de nuevo."
+    },
+    "TUNE": {
+      "MODE_TITLE": "Cómo editas",
+      "GUIDED": "Guiado",
+      "ADVANCED": "Avanzado",
+      "ADVANCED_HINT": "Actívalo para escribir la instrucción tú mismo.",
+      "RECONVERSE": "Ajustar con IA",
+      "RECONVERSE_TITLE": "Ajustar con IA",
+      "RECONVERSE_CLOSE": "Hecho",
+      "CURRENT_CARD": "Lo que hace tu agente hoy",
+      "NO_CARD": "Aún no hay un resumen disponible.",
+      "INSTRUCTION_LABEL": "Instrucción",
+      "INSTRUCTION_PLACEHOLDER": "Escribe la instrucción para tu agente…",
+      "MANUAL_WARNING": "Aquí escribes la instrucción. Seguimos aplicando medidas de seguridad en segundo plano.",
+      "SAVE_INSTRUCTION": "Guardar instrucción",
+      "EMPTY_INSTRUCTION": "La instrucción no puede estar vacía.",
+      "SIMPLE_TITLE": "Configuración rápida",
+      "GREETING": "Primer mensaje",
+      "GREETING_PLACEHOLDER": "¡Hola! ¿En qué puedo ayudarte hoy?",
+      "FALLBACK": "Mensaje de respaldo",
+      "FALLBACK_PLACEHOLDER": "Lo siento, no lo entendí. Voy a traer a un compañero del equipo.",
+      "TONE": "Tono",
+      "TONE_OPTIONS": {
+        "FRIENDLY": "Amigable",
+        "PROFESSIONAL": "Profesional",
+        "NEUTRAL": "Neutral",
+        "PLAYFUL": "Desenfadado"
+      },
+      "HANDOFF_STRATEGY": "Transferir a una persona",
+      "HANDOFF_OPTIONS": {
+        "LOW_CONFIDENCE": "Cuando haya dudas",
+        "ALWAYS_ASK": "Ofrecer siempre una persona",
+        "NEVER": "Nunca"
+      },
+      "CONFIDENCE_THRESHOLD": "Umbral de confianza",
+      "SAVE": "Guardar cambios",
+      "SAVE_SUCCESS": "Cambios guardados.",
+      "SAVE_ERROR": "No pudimos guardar tus cambios. Inténtalo de nuevo."
+    },
+    "PERFORMANCE": {
+      "RANGE": {
+        "7D": "Últimos 7 días",
+        "30D": "Últimos 30 días"
+      },
+      "STATS": {
+        "CONVERSATIONS": "Conversaciones atendidas",
+        "REPLIES": "Respuestas enviadas",
+        "HANDOFF_RATE": "Tasa de transferencia",
+        "AVG_CONFIDENCE": "Confianza promedio",
+        "KNOWLEDGE_RATE": "Tasa de respuestas con conocimiento"
+      },
+      "TIMELINE": {
+        "TITLE": "Actividad",
+        "REPLIES": "Respuestas",
+        "HANDOFFS": "Transferencias",
+        "BAR_ARIA": "{date}: {replies} respuestas, {handoffs} transferencias"
+      },
+      "REASONS": {
+        "TITLE": "Principales motivos de transferencia",
+        "OTHER": "Otro / sin especificar",
+        "EMPTY": "No hubo transferencias en este período.",
+        "CODES": {
+          "low_confidence": "Baja confianza",
+          "ai_unavailable": "IA no disponible",
+          "human_requested": "Persona solicitada",
+          "missing_knowledge": "Falta conocimiento",
+          "policy": "Política",
+          "other": "Otro / sin especificar"
+        }
+      },
+      "INSIGHT": {
+        "HIGH_HANDOFF_TITLE": "Se están transfiriendo muchas conversaciones",
+        "LOW_KNOWLEDGE_TITLE": "Pocas respuestas vinieron de tu base de conocimiento",
+        "BODY": "Considera agregar conocimiento sobre los temas de abajo para que el agente resuelva más por sí solo:",
+        "BODY_GENERIC": "Considera agregar más conocimiento para que el agente resuelva más conversaciones por sí solo."
+      },
+      "EMPTY": "Aún no hay actividad. Cuando tu agente empiece a responder, las métricas aparecerán aquí.",
+      "ERROR": "No pudimos cargar los datos de rendimiento.",
+      "RETRY": "Reintentar"
+    }
+  }
+}

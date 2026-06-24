@@ -1,0 +1,7 @@
+<p><%= t('crm.follow_up_reminder.greeting', name: @agent.available_name) %></p>
+<p><strong><%= @follow_up.title %></strong></p>
+<% if @card.present? %>
+  <p><%= t('crm.follow_up_reminder.card', card: @card.title) %></p>
+<% end %>
+<p><%= t('crm.follow_up_reminder.due_at', time: l(@due_at, format: :long)) %></p>
+<p><a href="<%= @action_url %>"><%= t('crm.follow_up_reminder.cta') %></a></p>

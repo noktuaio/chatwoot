@@ -73,6 +73,43 @@ class Channel::Email < ApplicationRecord
     imap_enabled && imap_address == 'imap.gmail.com'
   end
 
+  def calendar_enabled?
+    calendar_enabled == true
+  end
+
+  # True when several agents share this mailbox (e.g. one comercial@ for the whole
+  # sales team). Then booking availability is computed PER AGENT from CRM meetings
+  # instead of this mailbox's free/busy, which would be everyone's union.
+  def calendar_shared?
+    calendar_shared == true
+  end
+
+  def calendar_scope_granted?
+    calendar_scope_granted == true
+  end
+
+  def can_enable_calendar?
+    microsoft? || google?
+  end
+
+  def calendar_provider
+    return 'microsoft' if microsoft?
+    return 'google' if google?
+
+    nil
+  end
+
+  def calendar_organizer_email
+    calendar_identity.presence || email
+  end
+
+  def calendar_provider_label
+    return I18n.t('crm.providers.teams') if microsoft?
+    return I18n.t('crm.providers.google_meet') if google?
+
+    nil
+  end
+
   private
 
   def ensure_forward_to_email

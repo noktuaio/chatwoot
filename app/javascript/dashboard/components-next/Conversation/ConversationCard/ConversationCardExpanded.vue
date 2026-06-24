@@ -12,6 +12,9 @@ import SLACardLabel from 'dashboard/components-next/Conversation/Sla/SLACardLabe
 import CardStatusIcon from './CardStatusIcon.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import CrmConversationStageChip from './CrmConversationStageChip.vue';
+import { useCrmPermissions } from 'dashboard/routes/dashboard/crm/composables/useCrmPermissions';
+import { useCrmConversationStage } from 'dashboard/routes/dashboard/crm/composables/useCrmConversationStages';
 
 const props = defineProps({
   chat: { type: Object, required: true },
@@ -34,6 +37,20 @@ const emit = defineEmits([
 
 const lastMessageInChat = computed(() => getLastMessage(props.chat));
 const showLabelsSection = computed(() => props.chat.labels?.length > 0);
+
+// Virtual CRM stage chip (no real Label). Gated by CRM-on + view permission;
+// resolves the conversation's open-card stage via a batched lookup.
+const { canViewCrm } = useCrmPermissions();
+const crmChipEnabled = computed(
+  () => canViewCrm.value && window.globalConfig?.CRM_KANBAN_ENABLED === 'true'
+);
+const crmStage = useCrmConversationStage(
+  computed(() => (crmChipEnabled.value ? props.chat?.id : null))
+);
+const hasCrmStage = computed(() => !!crmStage.value?.stage_name);
+const showLabelsOrStage = computed(
+  () => showLabelsSection.value || hasCrmStage.value
+);
 
 const voiceCallData = computed(() => {
   const last = lastMessageInChat.value;
@@ -74,8 +91,8 @@ const selectedModel = computed({
         isActiveChat,
       'selected bg-n-slate-2 dark:bg-n-slate-3 !border-n-surface-1': selected,
       'hover:bg-n-alpha-1': !isActiveChat && !selected,
-      'grid-cols-[minmax(0,2fr)_minmax(0,1fr)]': showLabelsSection,
-      'grid-cols-[minmax(0,2fr)_max-content]': !showLabelsSection,
+      'grid-cols-[minmax(0,2fr)_minmax(0,1fr)]': showLabelsOrStage,
+      'grid-cols-[minmax(0,2fr)_max-content]': !showLabelsOrStage,
     }"
     @click="$emit('click', $event)"
     @contextmenu="$emit('contextmenu', $event)"
@@ -167,12 +184,16 @@ const selectedModel = computed({
 
     <!-- RIGHT SECTION -->
     <div class="flex items-center justify-end gap-1.5 flex-shrink-0">
-      <div v-if="showLabelsSection" class="min-w-0 w-full">
+      <div v-if="showLabelsOrStage" class="min-w-0 w-full">
         <CardLabels
           :labels="chat.labels"
           disable-toggle
           class="my-0 [&>div]:justify-end justify-end"
-        />
+        >
+          <template v-if="hasCrmStage" #before>
+            <CrmConversationStageChip :conversation-id="chat.id" />
+          </template>
+        </CardLabels>
       </div>
 
       <div v-if="hasSlaPolicyId" class="flex-shrink-0">

@@ -17,6 +17,9 @@ module AccessTokenAuthHelper
 
     # NOTE: This ensures that current_user is set and available for the rest of the controller actions
     @resource = @access_token.owner
+
+    return if handle_integration_token_auth!
+
     Current.user = @resource if allowed_current_user_type?(@resource)
   end
 
@@ -36,5 +39,39 @@ module AccessTokenAuthHelper
 
   def agent_bot_accessible?
     BOT_ACCESSIBLE_ENDPOINTS.fetch(params[:controller], []).include?(params[:action])
+  end
+
+  # CRM integration token auth (plan §3.2, B-T3). Guarded by defined? so CE builds
+  # — which never autoload the EE-only Crm::IntegrationToken — skip this entirely
+  # and never NameError on the api_access_token path. Returns true when the
+  # request was handled (authorized OR rejected) so the caller stops.
+  def handle_integration_token_auth!
+    return false unless defined?(Crm::IntegrationToken) && @resource.is_a?(Crm::IntegrationToken)
+
+    token = @resource
+
+    # Fail-closed: revoked token, or a token whose managed account_user/custom_role
+    # was nullified (revocation race) must NEVER fall through to the blank-role
+    # CRM superuser path (B-T2).
+    if token.revoked? || token.account_user.blank? || token.account_user.custom_role.blank?
+      render_unauthorized('Invalid Access Token')
+      return true
+    end
+
+    # Resolve to the backing human User + managed AccountUser so Pundit / the EE
+    # CrmPermissions policy see a real account_user with the granular custom_role.
+    Current.user = token.account_user.user
+    Current.account_user = token.account_user
+    @current_integration_token = token
+
+    true
+  end
+
+  def current_integration_token
+    @current_integration_token
+  end
+
+  def integration_token_request?
+    current_integration_token.present?
   end
 end

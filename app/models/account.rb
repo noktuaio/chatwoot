@@ -37,6 +37,21 @@ class Account < ApplicationRecord
     check_for_column: false
   }.freeze
 
+  has_flags 28 => :crm_calendar_meetings_enabled,
+            column: 'flags', # bit 28 = crm_calendar_meetings
+            flag_query_mode: :bit_operator,
+            check_for_column: false
+
+  alias crm_calendar_meetings_enabled_without_column_guard? crm_calendar_meetings_enabled?
+
+  def crm_calendar_meetings_enabled?
+    return false unless has_attribute?(:flags)
+
+    crm_calendar_meetings_enabled_without_column_guard?
+  rescue ActiveModel::MissingAttributeError, NoMethodError
+    false
+  end
+
   validates :name, presence: true
   # `domain` is the inbound email domain used to construct reply addresses
   # (see `inbound_email_domain`). Do not repurpose it for a website or any
@@ -61,11 +76,31 @@ class Account < ApplicationRecord
   has_many :agent_bot_inboxes, dependent: :destroy_async
   has_many :agent_bots, dependent: :destroy_async
   has_many :api_channels, dependent: :destroy_async, class_name: '::Channel::Api'
+  has_many :email_oauth_apps, dependent: :destroy_async, class_name: '::AccountEmailOauthApp'
   has_many :articles, dependent: :destroy_async, class_name: '::Article'
   has_many :assignment_policies, dependent: :destroy_async
   has_many :automation_rules, dependent: :destroy_async
   has_many :macros, dependent: :destroy_async
   has_many :campaigns, dependent: :destroy_async
+  has_many :campaign_imports, dependent: :destroy_async
+  has_many :crm_pipelines, class_name: 'Crm::Pipeline', dependent: :destroy_async
+  has_many :crm_pipeline_stages, class_name: 'Crm::PipelineStage', dependent: :destroy_async
+  has_many :crm_pipeline_inboxes, class_name: 'Crm::PipelineInbox', dependent: :destroy_async
+  has_many :crm_inbox_settings, class_name: 'Crm::InboxSetting', dependent: :destroy_async
+  has_many :crm_cards, class_name: 'Crm::Card', dependent: :destroy_async
+  has_many :crm_card_conversations, class_name: 'Crm::CardConversation', dependent: :destroy_async
+  has_many :crm_follow_ups, class_name: 'Crm::FollowUp', dependent: :destroy_async
+  has_many :crm_meetings, class_name: 'Crm::Meeting', dependent: :destroy_async
+  has_many :crm_stage_automations, class_name: 'Crm::StageAutomation', dependent: :destroy_async
+  has_many :crm_stage_automation_steps, class_name: 'Crm::StageAutomationStep', dependent: :destroy_async
+  has_many :crm_stage_automation_executions, class_name: 'Crm::StageAutomationExecution', dependent: :destroy_async
+  has_many :crm_activities, class_name: 'Crm::Activity', dependent: :destroy_async
+  has_many :crm_ai_stage_suggestions, class_name: 'Crm::AiStageSuggestion', dependent: :destroy_async
+  has_many :crm_agent_booking_profiles, class_name: 'Crm::AgentBookingProfile', dependent: :destroy_async
+  has_many :crm_agent_booking_links, class_name: 'Crm::AgentBookingLink', dependent: :destroy_async
+  has_many :crm_calendar_sync_states, class_name: 'Crm::CalendarSyncState', dependent: :destroy_async
+  has_many :whatsapp_api_campaigns, dependent: :destroy_async
+  has_many :whatsapp_api_message_templates, dependent: :destroy_async
   has_many :canned_responses, dependent: :destroy_async
   has_many :categories, dependent: :destroy_async, class_name: '::Category'
   has_many :contacts, dependent: :destroy_async
@@ -113,7 +148,12 @@ class Account < ApplicationRecord
   after_destroy :remove_account_sequences
 
   def agents
-    users.where(account_users: { role: :agent })
+    # integration: false excludes hidden AccountUsers that back Crm::IntegrationToken
+    # so they never leak into pickers / assignment / round-robin / reports (B-T4).
+    # NÃO filtrar por role: administradores TAMBÉM são membros do roster (aparecem na lista de agentes,
+    # são atribuíveis e contam como assento). O `role: :agent` (adicionado por engano junto do B-T4)
+    # escondia TODO admin -> quebrava contas só-admin. Excluímos apenas os tokens de integração.
+    users.where(account_users: { integration: false })
   end
 
   def administrators

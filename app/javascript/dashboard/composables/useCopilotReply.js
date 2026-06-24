@@ -158,6 +158,8 @@ export function useCopilotReply() {
       updateUISettings({
         is_contact_sidebar_open: false,
         is_copilot_panel_open: true,
+        // exclusão mútua: nunca deixar o painel do copiloto Autonom.ia aberto junto do Captain nativo.
+        is_autonomia_copilot_panel_open: false,
       });
       return;
     }

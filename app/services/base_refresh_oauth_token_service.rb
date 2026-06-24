@@ -28,10 +28,15 @@ class BaseRefreshOauthTokenService
     oauth_strategy = build_oauth_strategy
     token_service = build_token_service(oauth_strategy)
 
-    new_tokens = token_service.refresh!.to_hash.slice(:access_token, :refresh_token, :expires_at)
+    new_tokens = token_service.refresh!(refresh_params).to_hash.slice(:access_token, :refresh_token, :expires_at)
 
     update_channel_provider_config(new_tokens)
     channel.reload.provider_config
+  end
+
+  # Provedores multi-recurso (Microsoft v2) fixam o escopo do recurso no refresh.
+  def refresh_params
+    {}
   end
 
   def update_channel_provider_config(new_tokens)

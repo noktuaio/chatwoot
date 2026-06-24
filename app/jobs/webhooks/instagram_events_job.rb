@@ -11,7 +11,9 @@ class Webhooks::InstagramEventsJob < MutexApplicationJob
   retry_on_lock_conflict wait: ->(executions) { executions.seconds }, attempts: 3, on_exhaustion: :process_without_lock
 
   # @return [Array] We will support further events like reaction or seen in future
-  SUPPORTED_EVENTS = [:message, :read].freeze
+  # `:reaction` é tratado pela Autonom.ia (operate): #reaction só materializa em inbox com agente ativo +
+  # flag on; demais inboxes seguem ignorando reações (zero regressão).
+  SUPPORTED_EVENTS = [:message, :read, :reaction].freeze
 
   def perform(entries)
     @entries = entries
@@ -126,7 +128,10 @@ class Webhooks::InstagramEventsJob < MutexApplicationJob
   end
 
   def event_name(messaging)
-    @event_name ||= SUPPORTED_EVENTS.find { |key| messaging.key?(key) }
+    # NÃO memoizar: roda por-`messaging` no loop. Memoizar fazia o 1º evento do batch ditar o dispatch
+    # de todos os seguintes -> num batch misto, mensagem real seria roteada a `reaction` (perdida) ou
+    # reaction a `message` (quebra em agent_message_via_echo?). Bug latente exposto ao incluir :reaction.
+    SUPPORTED_EVENTS.find { |key| messaging.key?(key) }
   end
 
   def message(messaging, channel)
@@ -140,6 +145,30 @@ class Webhooks::InstagramEventsJob < MutexApplicationJob
   def read(messaging, channel)
     # Use a single service to handle read status for both channel types since the params are same
     ::Instagram::ReadStatusService.new(params: messaging, channel: channel).perform
+  end
+
+  # AUTONOMIA (Onda 2b): reação no Instagram. Payload Meta: reaction={mid,action,reaction,emoji}.
+  # Só 'react' (ignora 'unreact'). Materializa via ReactionMaterializer (channel-agnóstico): só em inbox
+  # com agente ativo + flag on; senão no-op. Fail-safe. Dedup pelo event_source_id (mid+timestamp), já
+  # que o evento de reação do IG não tem id próprio.
+  def reaction(messaging, channel)
+    return unless ::Autonomia::Agents::Config.operate_reactions_enabled?
+
+    data = messaging[:reaction] || {}
+    return unless data[:action].to_s == 'react'
+
+    inbox = ::Inbox.find_by(channel: channel)
+    return if inbox.nil?
+
+    ::Autonomia::Agents::Operate::ReactionMaterializer.call(
+      inbox: inbox,
+      reacted_source_id: data[:mid],
+      emoji: data[:emoji],
+      event_source_id: "ig_reaction:#{data[:mid]}:#{messaging[:timestamp]}"
+    )
+  rescue StandardError => e
+    Rails.logger.warn("[autonomia][operate] ig_reaction_failed #{e.class}")
+    nil
   end
 
   def messages(entry)

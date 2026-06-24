@@ -61,6 +61,10 @@ class Integrations::Hook < ApplicationRecord
     app_id == 'openai'
   end
 
+  def crm_kanban_ai?
+    app_id == 'crm_kanban_ai'
+  end
+
   def notion?
     app_id == 'notion'
   end
@@ -103,7 +107,7 @@ class Integrations::Hook < ApplicationRecord
   # TODO: When adding credential validation for other integrations (dialogflow, dyte, etc.),
   # extract this into an app-level config flag in apps.yml instead of hardcoding app_id checks.
   def validate_openai_api_key?
-    openai? && enabled? && (new_record? || openai_api_key_changed? || will_save_change_to_status?)
+    (openai? || crm_kanban_ai?) && enabled? && (new_record? || openai_api_key_changed? || will_save_change_to_status?)
   end
 
   def openai_api_key_changed?

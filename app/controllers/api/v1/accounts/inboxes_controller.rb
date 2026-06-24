@@ -74,6 +74,25 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
     @inbox.channel.reset_secret!
   end
 
+  def enable_whatsapp_api_campaigns
+    return head :not_found unless WhatsappApiCampaigns::Config.enabled?
+    return head :not_found unless @inbox.api?
+
+    @inbox.channel.enable_whatsapp_api_campaigns!
+    @inbox.reload
+    render :show
+  end
+
+  def disable_whatsapp_api_campaigns
+    return head :not_found unless WhatsappApiCampaigns::Config.enabled?
+    return head :not_found unless @inbox.api?
+    return render json: { error: 'whatsapp_api_campaigns.inbox_has_active_campaigns' }, status: :unprocessable_entity if whatsapp_api_campaigns_active_for_inbox?
+
+    @inbox.channel.disable_whatsapp_api_campaigns!
+    @inbox.reload
+    render :show
+  end
+
   def destroy
     ::DeleteObjectJob.perform_later(@inbox, Current.user, request.ip) if @inbox.present?
     render status: :ok, json: { message: I18n.t('messages.inbox_deletetion_response') }
@@ -88,6 +107,10 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
 
   def fetch_agent_bot
     @agent_bot = AgentBot.accessible_to(Current.account).find(params[:agent_bot]) if params[:agent_bot]
+  end
+
+  def whatsapp_api_campaigns_active_for_inbox?
+    Current.account.whatsapp_api_campaigns.where(inbox: @inbox, status: %i[scheduled running paused]).exists?
   end
 
   def create_channel

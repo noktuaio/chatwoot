@@ -8,9 +8,11 @@ json.contact do
   json.name conversation.contact.name
 end
 json.inbox do
-  json.id conversation.inbox.id
-  json.name conversation.inbox.name
-  json.channel_type conversation.inbox.channel_type
+  if conversation.inbox
+    json.id conversation.inbox.id
+    json.name conversation.inbox.name
+    json.channel_type conversation.inbox.channel_type
+  end
 end
 json.messages do
   json.array! conversation.messages do |message|

@@ -11,7 +11,9 @@ class AsyncDispatcher < BaseDispatcher
   def listeners
     [
       AutomationRuleListener.instance,
+      Autonomia::Agents::Operate::MessageListener.instance,
       CampaignListener.instance,
+      Crm::ConversationObserverListener.instance,
       CsatSurveyListener.instance,
       HookListener.instance,
       InstallationWebhookListener.instance,

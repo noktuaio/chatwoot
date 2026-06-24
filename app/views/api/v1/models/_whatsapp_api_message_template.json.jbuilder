@@ -1,0 +1,9 @@
+json.id resource.id
+json.account_id resource.account_id
+json.inbox_id resource.inbox_id
+json.name resource.name
+json.body resource.body
+json.variables resource.variables
+json.archived_at resource.archived_at
+json.created_at resource.created_at
+json.updated_at resource.updated_at

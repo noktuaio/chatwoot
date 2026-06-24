@@ -1,0 +1,59 @@
+class Crm::FollowUps::Broadcaster
+  include Events::Types
+
+  REMINDER_MODES = %w[reminder_only snooze_conversation].freeze
+
+  def self.broadcast_due(follow_up)
+    new(follow_up).perform
+  end
+
+  def initialize(follow_up)
+    @follow_up = follow_up
+  end
+
+  def perform
+    return unless ::Crm::Config.enabled?
+    return unless REMINDER_MODES.include?(@follow_up.automation_mode)
+    return unless @follow_up.overdue?
+
+    recipient_users.each do |user|
+      next if user.pubsub_token.blank?
+      next if Crm::FollowUps::ReminderDismisser.dismissed_for?(follow_up: @follow_up, user: user)
+
+      ActionCableBroadcastJob.perform_later(
+        [user.pubsub_token],
+        CRM_FOLLOW_UP_DUE,
+        payload_for(user)
+      )
+    end
+  end
+
+  private
+
+  def payload_for(_user)
+    card = @follow_up.card
+    {
+      account_id: @follow_up.account_id,
+      id: @follow_up.id,
+      title: @follow_up.title,
+      description: @follow_up.description,
+      automation_mode: @follow_up.automation_mode,
+      due_at: @follow_up.due_at&.iso8601,
+      card_id: card&.id,
+      card: card.present? ? { id: card.id, title: card.title, pipeline_id: card.pipeline_id } : nil,
+      assignee_id: @follow_up.assignee_id
+    }
+  end
+
+  def recipient_users
+    users = card_recipient_users
+    users << @follow_up.assignee if @follow_up.assignee.present?
+    users.compact.index_by(&:id).values
+  end
+
+  def card_recipient_users
+    return [] if @follow_up.card.blank?
+
+    Crm::Cards::Broadcaster.recipient_users_for(@follow_up.card)
+  end
+end

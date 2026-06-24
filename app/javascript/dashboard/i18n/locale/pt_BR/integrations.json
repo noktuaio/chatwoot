@@ -1,5 +1,32 @@
 {
   "INTEGRATION_SETTINGS": {
+    "CRM_N8N": {
+      "HEADER": "n8n (Conexões do CRM)",
+      "POWERED_BY": "Funciona com os Webhooks da sua conta — esta é uma configuração guiada, não uma conexão separada.",
+      "SETUP": {
+        "TITLE": "Configure sua automação",
+        "DESCRIPTION": "Dois passos conectam seu CRM ao n8n: gere um token de API com escopo para que o n8n possa criar e mover cards, depois crie um webhook da conta inscrito nos eventos de CRM aos quais você quer que o n8n reaja.",
+        "TOKENS_CTA": "Criar token de API do CRM",
+        "WEBHOOK_CTA": "Criar webhook para eventos do CRM",
+        "ADMIN_ONLY": "Apenas administradores podem gerar tokens de API e criar webhooks. Peça a um administrador para concluir a configuração."
+      },
+      "EVENTS": {
+        "TITLE": "Eventos que você pode assinar",
+        "DESCRIPTION": "Inscreva um webhook da conta em qualquer um destes eventos do ciclo de vida do card. Cada entrega é assinada com HMAC e carrega um id de evento estável para deduplicação.",
+        "LIST": {
+          "CRM_CARD_CREATED": "Um card foi criado.",
+          "CRM_CARD_MOVED": "Um card foi movido para outra etapa.",
+          "CRM_CARD_WON": "Um card foi marcado como ganho.",
+          "CRM_CARD_LOST": "Um card foi marcado como perdido.",
+          "CRM_CARD_REOPENED": "Um card fechado foi reaberto.",
+          "CRM_CARD_ARCHIVED": "Um card foi arquivado."
+        }
+      },
+      "REQUIREMENTS": {
+        "TITLE": "Requisitos",
+        "PUBLIC_URL": "Webhooks de saída exigem uma URL HTTPS acessível publicamente. O n8n auto-hospedado em uma rede privada ou IP local é bloqueado por segurança (proteção contra SSRF). Exponha o n8n por meio de um endpoint HTTPS público (por exemplo, um túnel ou proxy reverso) antes de assinar."
+      }
+    },
     "SHOPIFY": {
       "HEADER": "Shopify",
       "DELETE": {
@@ -59,6 +86,15 @@
             "CONVERSATION_TYPING_ON": "Status de Digitação ativado",
             "CONVERSATION_TYPING_OFF": "Status de Digitação desativado",
             "INBOX_UPDATED": "Caixa de entrada atualizada"
+          },
+          "CRM_EVENTS": {
+            "LABEL": "Eventos do CRM",
+            "CRM_CARD_CREATED": "Card do CRM criado",
+            "CRM_CARD_MOVED": "Card do CRM movido para outra etapa",
+            "CRM_CARD_WON": "Card do CRM ganho",
+            "CRM_CARD_LOST": "Card do CRM perdido",
+            "CRM_CARD_REOPENED": "Card do CRM reaberto",
+            "CRM_CARD_ARCHIVED": "Card do CRM arquivado"
           }
         },
         "NAME": {

@@ -139,10 +139,10 @@
       }
     },
     "WHATSAPP": {
-      "HEADER_TITLE": "WhatsApp campaigns",
+      "HEADER_TITLE": "Campanhas WhatsApp Oficial",
       "NEW_CAMPAIGN": "Create campaign",
       "EMPTY_STATE": {
-        "TITLE": "No WhatsApp campaigns are available",
+        "TITLE": "Nenhuma campanha WhatsApp Oficial está disponível",
         "SUBTITLE": "Launch a WhatsApp campaign to reach your customers directly. Send offers or make announcements with ease. Click 'Create campaign' to get started."
       },
       "CARD": {
@@ -157,7 +157,7 @@
         }
       },
       "CREATE": {
-        "TITLE": "Create WhatsApp campaign",
+        "TITLE": "Criar campanha WhatsApp Oficial",
         "CANCEL_BUTTON_TEXT": "Cancelar",
         "CREATE_BUTTON_TEXT": "Criar",
         "FORM": {
@@ -200,6 +200,114 @@
             "SUCCESS_MESSAGE": "WhatsApp campaign created successfully",
             "ERROR_MESSAGE": "Ocorreu um erro. Por favor, tente novamente."
           }
+        }
+      }
+    },
+    "WHATSAPP_API": {
+      "HEADER_TITLE": "Campanhas WhatsApp API",
+      "NEW_CAMPAIGN": "Criar campanha",
+      "EMPTY_STATE": {
+        "TITLE": "Nenhuma campanha WhatsApp API ainda",
+        "SUBTITLE": "Crie campanhas para caixas API marcadas como WhatsApp API. O envio acontece uma mensagem por vez e aparece na conversa do contato."
+      },
+      "INFO": {
+        "INBOX_TITLE": "Caixa API marcada",
+        "INBOX_BODY": "Somente caixas API habilitadas para WhatsApp API aparecem aqui.",
+        "CADENCE_TITLE": "Cadência interna",
+        "CADENCE_BODY": "O intervalo entre envios vem do ambiente e não fica exposto na tela.",
+        "MESSAGE_TITLE": "Mensagem na conversa",
+        "MESSAGE_BODY": "Cada envio cria uma mensagem no Chatwoot para o WAHA entregar."
+      },
+      "STATUS": {
+        "SCHEDULED": "Agendada",
+        "RUNNING": "Enviando",
+        "PAUSED": "Pausada",
+        "COMPLETED": "Concluída",
+        "COMPLETED_WITH_FAILURES": "Concluída com falhas",
+        "CANCELLED": "Cancelada",
+        "FAILED": "Falhou",
+        "UNKNOWN": "Desconhecido"
+      },
+      "TABLE": {
+        "CAMPAIGN": "Campanha",
+        "STATUS": "Status",
+        "AUDIENCE": "Envios",
+        "INBOX": "Caixa",
+        "SCHEDULED_AT": "Agendada para",
+        "ACTIONS": "Ações",
+        "MEDIA_ONLY": "Somente mídia",
+        "FAILURES": "{count} falhas"
+      },
+      "ACTIONS": {
+        "PAUSE_SUCCESS": "Campanha pausada",
+        "RESUME_SUCCESS": "Campanha retomada",
+        "CANCEL_SUCCESS": "Campanha cancelada",
+        "ERROR": "Não foi possível atualizar a campanha"
+      },
+      "CREATE": {
+        "TITLE": "Criar campanha WhatsApp API",
+        "DESCRIPTION": "Use texto, mídia ou texto com mídia. As variáveis disponíveis são fixas para evitar mapeamentos manuais.",
+        "GUIDE": {
+          "INBOX_TITLE": "Escolha a caixa",
+          "INBOX_BODY": "A caixa precisa ser API e estar marcada como WhatsApp API.",
+          "MESSAGE_TITLE": "Monte a mensagem",
+          "MESSAGE_BODY": "Modelos salvam somente texto; a mídia fica no snapshot da campanha.",
+          "SEND_TITLE": "Agende e acompanhe",
+          "SEND_BODY": "O público usa o mesmo seletor por etiquetas das campanhas atuais."
+        },
+        "FORM": {
+          "TITLE": {
+            "LABEL": "Título",
+            "PLACEHOLDER": "Ex: Reativação Junho"
+          },
+          "INBOX": {
+            "LABEL": "Caixa WhatsApp API",
+            "PLACEHOLDER": "Selecione uma caixa",
+            "EMPTY": "Nenhuma caixa API marcada"
+          },
+          "TEMPLATE": {
+            "LABEL": "Modelo de texto",
+            "PLACEHOLDER": "Selecione um modelo",
+            "NONE": "Sem modelo",
+            "FETCH_ERROR": "Não foi possível carregar os modelos",
+            "SAVE_SUCCESS": "Modelo salvo",
+            "SAVE_ERROR": "Não foi possível salvar o modelo"
+          },
+          "MESSAGE": {
+            "LABEL": "Mensagem",
+            "PLACEHOLDER": "Olá {contactFirstName}, tudo bem?",
+            "HELP": "Use somente {contactName} e {contactFirstName}."
+          },
+          "VARIABLES": {
+            "TITLE": "Variáveis aceitas",
+            "HELP": "Não há caixa de mapeamento nesta versão. O sistema substitui estes dois campos automaticamente por contato."
+          },
+          "TEMPLATE_NAME": {
+            "LABEL": "Salvar texto como modelo",
+            "PLACEHOLDER": "Nome do modelo",
+            "SAVE": "Salvar"
+          },
+          "MEDIA": {
+            "LABEL": "Mídia da campanha",
+            "PLACEHOLDER": "Nenhum arquivo selecionado",
+            "CHOOSE": "Escolher",
+            "HELP": "A mídia pertence ao snapshot desta campanha, não ao modelo."
+          },
+          "AUDIENCE": {
+            "LABEL": "Público",
+            "PLACEHOLDER": "Selecionar etiquetas dos contatos"
+          },
+          "SCHEDULED_AT": {
+            "LABEL": "Horário agendado"
+          },
+          "BUTTONS": {
+            "CREATE": "Criar campanha",
+            "CANCEL": "Cancelar"
+          }
+        },
+        "API": {
+          "SUCCESS_MESSAGE": "Campanha WhatsApp API criada",
+          "ERROR_MESSAGE": "Não foi possível criar a campanha"
         }
       }
     },

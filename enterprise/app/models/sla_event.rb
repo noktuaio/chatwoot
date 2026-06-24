@@ -46,7 +46,9 @@ class SlaEvent < ApplicationRecord
   private
 
   def ensure_applied_sla_id
-    self.applied_sla_id ||= AppliedSla.find_by(conversation_id: conversation_id)&.last&.id
+    # find_by returns a single record (or nil); calling .last on it raised NoMethodError. Use a
+    # relation so .last is valid and we pick the most recent applied_sla for the conversation.
+    self.applied_sla_id ||= AppliedSla.where(conversation_id: conversation_id).last&.id
   end
 
   def ensure_account_id

@@ -21,6 +21,7 @@ import PreChatFormSettings from './PreChatForm/Settings.vue';
 import WeeklyAvailability from './components/WeeklyAvailability.vue';
 import GreetingsEditor from 'shared/components/GreetingsEditor.vue';
 import ConfigurationPage from './settingsPage/ConfigurationPage.vue';
+import ConnectionPage from './settingsPage/ConnectionPage.vue';
 import VoiceConfigurationPage from './settingsPage/VoiceConfigurationPage.vue';
 import WhatsappCallingPage from './settingsPage/WhatsappCallingPage.vue';
 import CustomerSatisfactionPage from './settingsPage/CustomerSatisfactionPage.vue';
@@ -48,6 +49,7 @@ export default {
     BotConfiguration,
     CollaboratorsPage,
     ConfigurationPage,
+    ConnectionPage,
     VoiceConfigurationPage,
     WhatsappCallingPage,
     CustomerSatisfactionPage,
@@ -120,6 +122,9 @@ export default {
       uiFlags: 'inboxes/getUIFlags',
       portals: 'portals/allPortals',
     }),
+    isWahaInbox() {
+      return Boolean(this.inbox?.waha_provider);
+    },
     isInboundEmailEnabled() {
       return this.isFeatureEnabledonAccount(
         this.accountId,
@@ -173,6 +178,13 @@ export default {
         },
       ];
 
+      if (this.isWahaInbox) {
+        visibleToAllChannelTabs.splice(1, 0, {
+          key: 'connection',
+          name: this.$t('INBOX_MGMT.TABS.CONNECTION'),
+        });
+      }
+
       visibleToAllChannelTabs = [
         ...visibleToAllChannelTabs,
         {
@@ -198,8 +210,8 @@ export default {
       if (
         this.isATwilioChannel ||
         this.isALineChannel ||
-        this.isAPIInbox ||
-        (this.isAnEmailChannel && !this.inbox.provider) ||
+        (this.isAPIInbox && !this.isWahaInbox) ||
+        this.isAnEmailChannel ||
         this.shouldShowWhatsAppConfiguration ||
         this.isAWebWidgetInbox
       ) {
@@ -779,7 +791,7 @@ export default {
               />
             </SettingsFieldSection>
             <SettingsFieldSection
-              v-if="isAPIInbox"
+              v-if="isAPIInbox && !isWahaInbox"
               :label="
                 $t('INBOX_MGMT.ADD.WEBSITE_CHANNEL.CHANNEL_WEBHOOK_URL.LABEL')
               "
@@ -1264,6 +1276,9 @@ export default {
           </div>
         </div>
 
+        <div v-if="selectedTabKey === 'connection'" class="mx-6 max-w-4xl">
+          <ConnectionPage :inbox="inbox" />
+        </div>
         <div v-if="selectedTabKey === 'collaborators'" class="mx-6 max-w-4xl">
           <CollaboratorsPage :inbox="inbox" />
         </div>

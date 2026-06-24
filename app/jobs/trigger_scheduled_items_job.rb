@@ -8,6 +8,8 @@ class TriggerScheduledItemsJob < ApplicationJob
       Campaigns::TriggerOneoffCampaignJob.perform_later(campaign)
     end
 
+    WhatsappApiCampaigns::ScheduleDueCampaignsJob.perform_later if WhatsappApiCampaigns::Config.enabled?
+
     # Job to reopen snoozed conversations
     Conversations::ReopenSnoozedConversationsJob.perform_later
 

@@ -1,0 +1,60 @@
+module EmailCampaigns
+  module Ai
+    # Submete a geração de e-mail à OpenAI em modo BACKGROUND (retorna na hora um response_id que
+    # a OpenAI processa do lado dela) e agenda o PollJob. Não segura thread por minutos; sobrevive
+    # a deploy/restart (a OpenAI continua gerando e o poll recupera pelo response_id). Carrega o
+    # `token` da geração: todas as escritas no model são guardadas por ele (anti-supersede).
+    class SubmitJob < ApplicationJob
+      queue_as :medium
+
+      INITIAL_POLL_WAIT = 5.seconds
+
+      # params: { 'brief' =>, 'placeholders' => [], 'assets' => [], 'base_mjml' => }
+      def perform(campaign_id, token, params)
+        campaign = EmailCampaign.find_by(id: campaign_id)
+        return if campaign.blank? || !active?(campaign, token)
+
+        credential = Crm::Ai::CredentialResolver.new(account: campaign.account).resolve
+        return fail_generation(campaign, token, 'ai_not_configured') if credential.blank?
+
+        generator = Generator.new(account: campaign.account, brief: params['brief'], placeholders: params['placeholders'],
+                                  assets: params['assets'], base_mjml: params['base_mjml'])
+        return fail_generation(campaign, token, 'base_mjml_too_large') if generator.base_mjml_too_large?
+
+        req = generator.build
+        client = Crm::Ai::ResponsesClient.new(credential: credential)
+        result = client.create_background(
+          model: Crm::Ai::Config::MODEL_EMAIL, instructions: req[:instructions], input: req[:input],
+          schema: Generator::GENERATE_SCHEMA, reasoning_effort: 'high', tools: Crm::Ai::WebSearch.tools
+        )
+        # Resposta sem id (provedor devolveu algo malformado): falha rápido em vez de esperar ~10min.
+        return fail_generation(campaign, token, 'empty_response') if result[:id].blank?
+
+        if campaign.ai_attach_response!(token, result[:id])
+          PollJob.set(wait: INITIAL_POLL_WAIT).perform_later(campaign.id, token, result[:id], 0)
+        else
+          # Substituída no meio do caminho (token mudou): apaga a resposta órfã p/ não reter à toa.
+          client.delete(result[:id])
+        end
+      rescue Crm::Ai::ResponsesClient::Error => e
+        fail_generation(campaign, token, e.message)
+      rescue StandardError => e
+        Rails.logger.error("[EmailCampaigns::Ai::SubmitJob] campaign=#{campaign_id} #{e.class}: #{e.message}")
+        fail_generation(campaign, token, 'generation_error')
+      end
+
+      private
+
+      def active?(campaign, token)
+        campaign.ai_processing? && campaign.ai_generation_token == token
+      end
+
+      # Só dispara o toast de falha se ESTA geração ainda era a ativa (ganhou o update guardado).
+      def fail_generation(campaign, token, message)
+        return if campaign.blank?
+
+        Broadcaster.failed(campaign) if campaign.ai_fail!(token, message)
+      end
+    end
+  end
+end

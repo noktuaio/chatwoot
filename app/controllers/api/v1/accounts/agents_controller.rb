@@ -84,7 +84,10 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
   end
 
   def agents
-    @agents ||= Current.account.users.order_by_full_name.includes(:account_users, { avatar_attachment: [:blob] })
+    # Source from Account#agents (integration: false) = roster humano (agentes + administradores),
+    # excluindo só os AccountUsers de integração (Crm::IntegrationToken), que nunca devem vazar para a
+    # lista, picker de @menções, dropdowns ou contagem de assento (B-T4). Admins SÃO membros do roster.
+    @agents ||= Current.account.agents.order_by_full_name.includes(:account_users, { avatar_attachment: [:blob] })
   end
 
   def validate_limit_for_bulk_create

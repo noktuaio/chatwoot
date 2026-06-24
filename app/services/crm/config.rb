@@ -1,0 +1,29 @@
+module Crm
+  class Config
+    BOOLEAN = ActiveModel::Type::Boolean.new
+
+    def self.enabled?
+      BOOLEAN.cast(ENV.fetch('CRM_KANBAN_ENABLED', false))
+    end
+
+    # Meetings are available to EVERY account when the install-level flag is on —
+    # each account is a separate client that schedules through its OWN connected
+    # Google/Microsoft calendar mailbox (no per-account rollout flag). The `account`
+    # arg is kept for call-site stability but no longer gates availability.
+    def self.calendar_meetings_enabled?(_account = nil)
+      BOOLEAN.cast(ENV.fetch('CRM_CALENDAR_MEETINGS_ENABLED', false))
+    end
+
+    def self.calendar_ms_simulate?
+      return BOOLEAN.cast(ENV['CRM_CALENDAR_MS_SIMULATE']) == true if ENV.key?('CRM_CALENDAR_MS_SIMULATE')
+
+      !Rails.env.production?
+    end
+
+    def self.calendar_google_simulate?
+      return BOOLEAN.cast(ENV['CRM_CALENDAR_GOOGLE_SIMULATE']) == true if ENV.key?('CRM_CALENDAR_GOOGLE_SIMULATE')
+
+      !Rails.env.production?
+    end
+  end
+end

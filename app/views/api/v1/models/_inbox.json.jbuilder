@@ -32,6 +32,9 @@ end
 
 json.tweets_enabled resource.channel.try(:tweets_enabled) if resource.twitter?
 
+## WhatsApp API (conector via motor externo) — sinaliza a aba/conexão dedicada
+json.waha_provider resource.channel.try(:waha_provider?) || false
+
 ## WebWidget Attributes
 json.allowed_domains resource.channel.try(:allowed_domains)
 json.widget_color resource.channel.try(:widget_color)
@@ -122,6 +125,12 @@ if resource.api?
 end
 
 json.provider resource.channel.try(:provider)
+
+if resource.channel_type == 'Channel::Email'
+  json.calendar_enabled resource.channel.try(:calendar_enabled?)
+  json.calendar_scope_granted resource.channel.try(:calendar_scope_granted?)
+  json.calendar_identity resource.channel.try(:calendar_organizer_email)
+end
 
 ## Telegram Attributes
 json.bot_name resource.channel.try(:bot_name) if resource.telegram?

@@ -1,0 +1,18 @@
+<p><%= t('crm.follow_up_reminder.greeting', name: @agent.available_name) %></p>
+<p><strong><%= @meeting.title %></strong></p>
+<% if @card.present? %>
+  <p><%= t('crm.follow_up_reminder.card', card: @card.title) %></p>
+<% end %>
+<p><%= t('crm.meetings.reminder.starts_at', time: @meeting_starts_at_text, default: 'Horário da reunião: %{time}') %></p>
+
+<% if @join_url.present? %>
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+    <tr>
+      <td bgcolor="#2781F6" style="border-radius: 8px; background-color: #2781F6;">
+        <a href="<%= @join_url %>" style="display: inline-block; padding: 12px 18px; color: #FFFFFF; text-decoration: none; font-weight: 600;">
+          <%= t('crm.meetings.reminder.join_cta', default: 'Entrar na reunião') %>
+        </a>
+      </td>
+    </tr>
+  </table>
+<% end %>

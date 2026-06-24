@@ -23,6 +23,19 @@ const SUPPORTED_WEBHOOK_EVENTS = [
   'conversation_typing_off',
 ];
 
+// CRM Kanban "Conexões" outgoing webhook events. Canonical dotted strings MUST
+// match the backend Webhook::CRM_WEBHOOK_EVENTS (app/models/webhook.rb) exactly,
+// since the stored value IS the subscription string the listener filters on.
+// Dotted (not underscored) so they cannot collide with the core EVENTS i18n map.
+const CRM_WEBHOOK_EVENTS = [
+  { value: 'crm.card.created', labelKey: 'CRM_CARD_CREATED' },
+  { value: 'crm.card.moved', labelKey: 'CRM_CARD_MOVED' },
+  { value: 'crm.card.won', labelKey: 'CRM_CARD_WON' },
+  { value: 'crm.card.lost', labelKey: 'CRM_CARD_LOST' },
+  { value: 'crm.card.reopened', labelKey: 'CRM_CARD_REOPENED' },
+  { value: 'crm.card.archived', labelKey: 'CRM_CARD_ARCHIVED' },
+];
+
 export default {
   components: {
     NextButton,
@@ -65,11 +78,15 @@ export default {
       supportedWebhookEvents: inboxEventsEnabled
         ? [...SUPPORTED_WEBHOOK_EVENTS, 'inbox_updated']
         : SUPPORTED_WEBHOOK_EVENTS,
+      crmWebhookEvents: CRM_WEBHOOK_EVENTS,
     };
   },
   computed: {
     hasSecret() {
       return !!this.value.secret;
+    },
+    isCrmKanbanEnabled() {
+      return window.globalConfig?.CRM_KANBAN_ENABLED === 'true';
     },
     webhookURLInputPlaceholder() {
       return this.$t(
@@ -183,6 +200,39 @@ export default {
           </label>
         </div>
       </div>
+
+      <template v-if="isCrmKanbanEnabled">
+        <label class="mb-2">
+          {{
+            $t(
+              'INTEGRATION_SETTINGS.WEBHOOK.FORM.SUBSCRIPTIONS.CRM_EVENTS.LABEL'
+            )
+          }}
+        </label>
+        <div class="flex flex-col gap-2.5 mb-4">
+          <div
+            v-for="crmEvent in crmWebhookEvents"
+            :key="crmEvent.value"
+            class="flex items-center"
+          >
+            <input
+              :id="crmEvent.value"
+              v-model="subscriptions"
+              type="checkbox"
+              :value="crmEvent.value"
+              name="subscriptions"
+              class="mr-2"
+            />
+            <label :for="crmEvent.value" class="text-sm">
+              {{
+                `${$t(
+                  `INTEGRATION_SETTINGS.WEBHOOK.FORM.SUBSCRIPTIONS.CRM_EVENTS.${crmEvent.labelKey}`
+                )} (${crmEvent.value})`
+              }}
+            </label>
+          </div>
+        </div>
+      </template>
     </div>
 
     <div class="flex flex-row justify-end w-full gap-2 px-0 py-2">
