@@ -22,10 +22,14 @@ module Autonomia
       def perform
         return unavailable if @message.strip.blank?
 
-        # AUTO-ON: o Guia nasce sozinho em conta elegível (Autonomia habilitada + chave de IA). Se a
-        # conta não é elegível, o seed devolve nil e o Guia fica indisponível (sem expor nada).
-        agent = ::Autonomia::Guide::Seed.ensure_for(@account)
-        return unavailable if agent.nil?
+        # AUTO-ON async: o Guia nasce sozinho em conta elegível, mas a preparação da KB roda em job.
+        # A rota de chat nunca gera embeddings no request do usuário, evitando rack-timeout.
+        agent = ::Autonomia::Guide::Seed.ready_agent_for(@account)
+        if agent.nil?
+          return preparing if ::Autonomia::Guide::Seed.ensure_async_for(@account)
+
+          return unavailable
+        end
 
         # V3: se o melhor fluxo recuperado é de diagnóstico (campo `diagnostic:`), lê o ESTADO REAL da
         # conta (read-only) e injeta como contexto — o Answerer explica com base no estado, não inventa.
@@ -163,6 +167,13 @@ module Autonomia
       def unavailable
         Result.new(text: nil, navigation: nil, grounded: false, confidence: nil,
                    available: false, escalate: false)
+      end
+
+      def preparing
+        Result.new(
+          text: 'Estou preparando o Guia da Plataforma para esta conta. Tente novamente em alguns instantes.',
+          navigation: nil, grounded: false, confidence: nil, available: true, escalate: false
+        )
       end
     end
   end

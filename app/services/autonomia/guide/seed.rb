@@ -36,8 +36,38 @@ module Autonomia
         new(account).ensure!
       end
 
+      def self.ready_agent_for(account)
+        new(account).ready_agent
+      end
+
+      def self.ensure_async_for(account)
+        return false unless eligible?(account)
+        return true if ready_agent_for(account).present?
+
+        cache_key = "autonomia:guide:ensure:account:#{account.id}:#{kb_version}"
+        Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
+          ::Autonomia::Guide::EnsureJob.perform_later(account.id)
+          true
+        end
+      rescue StandardError => e
+        Rails.logger.warn("[autonomia][guide][seed] enqueue_failed account=#{account&.id} #{e.class}: #{e.message}")
+        false
+      end
+
       def initialize(account)
         @account = account
+      end
+
+      def ready_agent
+        return nil unless self.class.eligible?(@account)
+
+        agent = guide_agent_scope.first
+        return agent if agent && fresh?(agent)
+
+        nil
+      rescue StandardError => e
+        Rails.logger.warn("[autonomia][guide][seed] ready_check_failed account=#{@account&.id} #{e.class}: #{e.message}")
+        nil
       end
 
       # Retorna o agente Guia pronto (com KB), ou nil se a conta não é elegível (sem Autonomia/chave).
