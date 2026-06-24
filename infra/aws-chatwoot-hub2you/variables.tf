@@ -65,6 +65,12 @@ variable "existing_ec2_subnet_id" {
   default     = ""
 }
 
+variable "rds_backup_retention_period" {
+  type        = number
+  description = "RDS automated backup retention in days. hub2you Free Tier currently rejects 7 days, so keep 0 unless the account plan changes."
+  default     = 0
+}
+
 variable "github_repo_url" {
   type    = string
   default = "https://github.com/autonom-ia/chat.git"
