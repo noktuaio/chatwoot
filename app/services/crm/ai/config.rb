@@ -12,10 +12,10 @@ module Crm
 
       MODEL_SUMMARY = 'gpt-5.4-mini'.freeze
       MODEL_CLASSIFY = 'gpt-5.4-mini'.freeze
-      MODEL_AUTO_MOVE = 'gpt-5.5'.freeze
+      MODEL_AUTO_MOVE = 'gpt-5.4'.freeze
       MODEL_FOLLOWUP = 'gpt-5.4-mini'.freeze
       # E-mail builder copilot (multimodal generate). Full model — sees images/PDFs and writes MJML.
-      MODEL_EMAIL = 'gpt-5.5'.freeze
+      MODEL_EMAIL = 'gpt-5.4'.freeze
 
       # REASONING EFFORT por tarefa (modelos seguem mini). Decisões que FALAM com o cliente
       # (follow-up composer + envio do callback) usam 'xhigh' — mais segurança, baixa frequência.

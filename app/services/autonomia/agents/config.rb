@@ -3,7 +3,7 @@ module Autonomia
     class Config
       BOOLEAN = ActiveModel::Type::Boolean.new
 
-      BUILDER_MODEL = Crm::Ai::Config::MODEL_EMAIL # gpt-5.5
+      BUILDER_MODEL = Crm::Ai::Config::MODEL_EMAIL # gpt-5.4
       # Construtor é um CHAT: chamada SÍNCRONA (ResponsesClient#create). O reasoning é ESCOLHIDO POR
       # FASE (Builder#run! decide) para atacar a latência (~24s/turno na campanha real):
       #   - COLETA (turnos de entrevista): 'low'. São perguntas curtas, sem geração da instruction
@@ -24,13 +24,13 @@ module Autonomia
       # Revisor v2 — IA Revisora de Qualidade (structured output por fonte + agregação da base).
       # Chamada SÍNCRONA dentro do ProcessJob (após embed). 'low' basta: structured output objetivo
       # sobre trechos curtos; mantém a ingestão rápida.
-      REVIEWER_MODEL = Crm::Ai::Config::MODEL_EMAIL # gpt-5.5
+      REVIEWER_MODEL = Crm::Ai::Config::MODEL_EMAIL # gpt-5.4
       REVIEWER_REASONING_EFFORT = 'low'.freeze
 
       # #3 INSTRUÇÃO VIVA — Refresh automático da instrução quando a KB muda (add/remove). Reusa o
       # modelo do Construtor (redação de instrução, como o fechamento) com effort 'medium'. NÃO é
       # entrevista: só reescreve o bloco de escopo/conhecimento da instrução de agentes JÁ FECHADOS.
-      INSTRUCTION_REFRESH_MODEL = BUILDER_MODEL # gpt-5.5
+      INSTRUCTION_REFRESH_MODEL = BUILDER_MODEL # gpt-5.4
       INSTRUCTION_REFRESH_REASONING_EFFORT = BUILDER_REASONING_EFFORT_FINAL # 'medium'
 
       # KILL-SWITCH do refresh automático da instrução (#3). Default LIGADO; desligar via ENV
@@ -64,7 +64,7 @@ module Autonomia
       MAX_AUDIO_PER_MESSAGE = 2
 
       # Fase B — motor de resposta (RAG + portão de confiança / Testar / Copiloto)
-      ANSWERER_MODEL = Crm::Ai::Config::MODEL_AUTO_MOVE # 'gpt-5.5'
+      ANSWERER_MODEL = Crm::Ai::Config::MODEL_AUTO_MOVE # 'gpt-5.4'
       ANSWERER_REASONING_EFFORT = 'low'.freeze
       DEFAULT_CONFIDENCE_THRESHOLD = 0.55
       ANSWER_TOP_K = 8
