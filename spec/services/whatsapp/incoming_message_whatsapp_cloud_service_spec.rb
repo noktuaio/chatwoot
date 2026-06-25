@@ -224,6 +224,68 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
       end
     end
 
+    context 'when WhatsApp Flow nfm_reply is received' do
+      let(:flow_response_json) do
+        {
+          destino: 'Sao Paulo',
+          data_ida: '2026-07-10',
+          passageiros: 2,
+          flow_token: 'flow-token-inside-json'
+        }.to_json
+      end
+
+      let(:flow_params) do
+        {
+          phone_number: whatsapp_channel.phone_number,
+          object: 'whatsapp_business_account',
+          entry: [{
+            changes: [{
+              value: {
+                contacts: [{ profile: { name: 'Flow User' }, wa_id: '2423423243' }],
+                messages: [{
+                  from: '2423423243',
+                  id: 'wamid.cloud-flow-nfm-reply',
+                  timestamp: '1778579582',
+                  type: 'interactive',
+                  interactive: {
+                    type: 'nfm_reply',
+                    nfm_reply: {
+                      body: 'Sent',
+                      name: 'flow',
+                      response_json: flow_response_json,
+                      flow_token: 'flow-token-from-payload'
+                    }
+                  }
+                }]
+              }
+            }]
+          }]
+        }.with_indifferent_access
+      end
+
+      it 'preserves the raw flow response in content attributes and sets a safe content placeholder' do
+        described_class.new(inbox: whatsapp_channel.inbox, params: flow_params).perform
+
+        message = whatsapp_channel.inbox.messages.first
+        flow_response = message.content_attributes['flow_response']
+
+        expect(message.content).to eq('[Flow] Formulário recebido')
+        expect(flow_response).to include(
+          'type' => 'nfm_reply',
+          'flow_token' => 'flow-token-from-payload',
+          'response_json' => flow_response_json
+        )
+        expect(flow_response['raw']).to include(
+          'type' => 'nfm_reply',
+          'nfm_reply' => include(
+            'body' => 'Sent',
+            'name' => 'flow',
+            'response_json' => flow_response_json
+          )
+        )
+      end
+    end
+
     context 'when invalid params' do
       it 'will not throw error' do
         described_class.new(inbox: whatsapp_channel.inbox, params: { phone_number: whatsapp_channel.phone_number,
