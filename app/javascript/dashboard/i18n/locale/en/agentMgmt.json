@@ -45,8 +45,16 @@
       "API": {
         "SUCCESS_MESSAGE": "Agent added successfully",
         "INVITATION_SENT": "Invitation sent successfully. The agent will access the platform after accepting the invitation and signing in.",
+        "INVITATION_MANUAL_SHARE": "The invitation was created, but the email was not sent. Copy the link and share it manually.",
         "EXIST_MESSAGE": "Agent email already in use, Please try another email address",
         "ERROR_MESSAGE": "Could not connect to Woot Server, Please try again later"
+      },
+      "MANUAL_INVITATION": {
+        "TITLE": "Share invitation manually",
+        "DESC": "The invitation was created, but the email was not delivered. Send this link to the agent so they can finish registration.",
+        "COPY": "Copy link",
+        "COPY_SUCCESS": "Invitation link copied.",
+        "COPY_ERROR": "Could not copy the link. Select it and copy manually."
       }
     },
     "DELETE": {

@@ -8,6 +8,7 @@ import { required, email } from '@vuelidate/validators';
 import Button from 'dashboard/components-next/button/Button.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import CrmScheduleEditor from 'dashboard/routes/dashboard/crm/components/sla/CrmScheduleEditor.vue';
+import { copyTextToClipboard } from 'shared/helpers/clipboard';
 
 const emit = defineEmits(['close']);
 
@@ -48,10 +49,25 @@ const showSlaSchedule = computed(
 const defineSchedule = ref(false);
 const createdAgent = ref(null);
 const showScheduleEditor = ref(false);
+const manualInvitation = ref(null);
 
 const finishAndClose = () => {
   showScheduleEditor.value = false;
   emit('close');
+};
+
+const shouldShowManualInvitation = invitation =>
+  invitation?.pending_invitation &&
+  invitation?.invitation_url &&
+  (invitation?.email_delivery_failed || invitation?.manual_share_required);
+
+const copyManualInvitation = async () => {
+  try {
+    await copyTextToClipboard(manualInvitation.value?.invitation_url);
+    useAlert(t('AGENT_MGMT.ADD.MANUAL_INVITATION.COPY_SUCCESS'));
+  } catch {
+    useAlert(t('AGENT_MGMT.ADD.MANUAL_INVITATION.COPY_ERROR'));
+  }
 };
 
 const roles = computed(() => {
@@ -87,6 +103,7 @@ const selectedRole = computed(() =>
 const addAgent = async () => {
   v$.value.$touch();
   if (v$.value.$invalid) return;
+  manualInvitation.value = null;
 
   try {
     const payload = {
@@ -101,6 +118,12 @@ const addAgent = async () => {
     }
 
     const newAgent = await store.dispatch('agents/create', payload);
+    if (shouldShowManualInvitation(newAgent)) {
+      manualInvitation.value = newAgent;
+      useAlert(t('AGENT_MGMT.ADD.API.INVITATION_MANUAL_SHARE'));
+      return;
+    }
+
     useAlert(
       newAgent?.pending_invitation
         ? t('AGENT_MGMT.ADD.API.INVITATION_SENT')
@@ -177,6 +200,32 @@ const addAgent = async () => {
             @input="v$.agentEmail.$touch"
           />
         </label>
+      </div>
+
+      <div
+        v-if="manualInvitation"
+        class="w-full p-3 my-2 border rounded-lg border-n-amber-5 bg-n-amber-2 text-n-slate-12"
+      >
+        <p class="mb-1 text-sm font-medium">
+          {{ $t('AGENT_MGMT.ADD.MANUAL_INVITATION.TITLE') }}
+        </p>
+        <p class="mb-3 text-sm text-n-slate-11">
+          {{ $t('AGENT_MGMT.ADD.MANUAL_INVITATION.DESC') }}
+        </p>
+        <div class="flex items-center gap-2">
+          <input
+            readonly
+            class="flex-1 !mb-0 text-sm"
+            :value="manualInvitation.invitation_url"
+          />
+          <Button
+            slate
+            type="button"
+            icon="i-lucide-copy"
+            :label="$t('AGENT_MGMT.ADD.MANUAL_INVITATION.COPY')"
+            @click.prevent="copyManualInvitation"
+          />
+        </div>
       </div>
 
       <div v-if="showSlaSchedule" class="flex flex-col w-full gap-1 py-2">

@@ -18,6 +18,7 @@ class Autonomia::ProductInvitations::Client
     end
     body = JSON.parse(response.body.presence || '{}')
     return body if response.is_a?(Net::HTTPSuccess)
+    return email_delivery_fallback(body) if recoverable_invitation?(body)
 
     raise Error, error_message(body)
   rescue JSON::ParserError
@@ -28,6 +29,29 @@ class Autonomia::ProductInvitations::Client
 
   def endpoint
     ENV.fetch('AUTONOMIA_PRODUCT_INVITATIONS_ENDPOINT', 'https://auth.api-autonomia.com/auth/product-invitations')
+  end
+
+  def email_delivery_fallback(body)
+    body.merge(
+      'emailDeliveryFailed' => true,
+      'manualShareRequired' => true,
+      'emailDeliveryError' => error_message(body)
+    )
+  end
+
+  def invitation_url(body)
+    return if body.blank?
+
+    body.dig('invitation', 'invitationUrl') ||
+      body.dig('invitation', 'invitation_url') ||
+      body['invitationUrl'] ||
+      body['invitation_url']
+  end
+
+  def recoverable_invitation?(body)
+    invitation_url(body).present? ||
+      body['token'].present? ||
+      body.dig('invitation', 'token').present?
   end
 
   def error_message(body)

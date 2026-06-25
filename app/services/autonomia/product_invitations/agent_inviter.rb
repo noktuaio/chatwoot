@@ -1,9 +1,20 @@
 # frozen_string_literal: true
 
+require 'cgi'
+
 class Autonomia::ProductInvitations::AgentInviter
   class Error < StandardError; end
 
-  Result = Struct.new(:email, :name, :role, :invitation_url, keyword_init: true)
+  Result = Struct.new(
+    :email,
+    :name,
+    :role,
+    :invitation_url,
+    :email_delivery_failed,
+    :manual_share_required,
+    :email_delivery_error,
+    keyword_init: true
+  )
 
   pattr_initialize [:account!, :inviter!, :agent_params!]
 
@@ -19,7 +30,15 @@ class Autonomia::ProductInvitations::AgentInviter
       payload: invitation_payload(user_link)
     )
     store_pending_invitation!(response)
-    Result.new(email: email, name: name, role: role, invitation_url: response.dig('invitation', 'invitationUrl') || response['invitationUrl'])
+    Result.new(
+      email: email,
+      name: name,
+      role: role,
+      invitation_url: invitation_url(response),
+      email_delivery_failed: email_delivery_failed?(response),
+      manual_share_required: manual_share_required?(response),
+      email_delivery_error: response['emailDeliveryError'] || response['email_delivery_error']
+    )
   rescue Autonomia::ProductInvitations::Client::Error => e
     raise Error, e.message
   end
@@ -45,6 +64,8 @@ class Autonomia::ProductInvitations::AgentInviter
         'custom_role_id' => custom_role_id,
         'invited_by_user_id' => inviter.id,
         'auth_invitation_id' => response.dig('invitation', 'id') || response['id'],
+        'invitation_url' => invitation_url(response),
+        'email_delivery_failed' => email_delivery_failed?(response),
         'created_at' => Time.current.iso8601
       }
     )
@@ -58,6 +79,33 @@ class Autonomia::ProductInvitations::AgentInviter
 
   def pending_invitations
     (account.custom_attributes || {}).fetch('autonomia_pending_agent_invitations', {})
+  end
+
+  def invitation_url(response)
+    response.dig('invitation', 'invitationUrl') ||
+      response.dig('invitation', 'invitation_url') ||
+      response['invitationUrl'] ||
+      response['invitation_url'] ||
+      invitation_url_from_token(response)
+  end
+
+  def invitation_url_from_token(response)
+    token = response['token'] || response.dig('invitation', 'token')
+    return if token.blank?
+
+    "#{product_base_url}/accept-invitation?client_id=#{CGI.escape(client_id)}&token=#{CGI.escape(token)}"
+  end
+
+  def email_delivery_failed?(response)
+    truthy?(response['emailDeliveryFailed'] || response['email_delivery_failed'])
+  end
+
+  def manual_share_required?(response)
+    email_delivery_failed?(response) || truthy?(response['manualShareRequired'] || response['manual_share_required'])
+  end
+
+  def truthy?(value)
+    ActiveModel::Type::Boolean.new.cast(value)
   end
 
   def email
