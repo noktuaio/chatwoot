@@ -26,6 +26,13 @@ const routes = [...publicRoutes, ...dashboard.routes];
 
 export const router = createRouter({ history: createWebHistory(), routes });
 
+const syncDocumentTitle = () => {
+  const installationName = window.globalConfig?.INSTALLATION_NAME;
+  if (installationName) {
+    document.title = installationName;
+  }
+};
+
 const getSsoCredentials = to => {
   const { email, sso_auth_token: ssoAuthToken } = to.query || {};
   if (!email || !ssoAuthToken) return null;
@@ -104,6 +111,7 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
 
 export const initalizeRouter = () => {
   const userAuthentication = store.dispatch('setUser');
+  syncDocumentTitle();
 
   router.beforeEach(async (to, _from, next) => {
     AnalyticsHelper.page(to.name || '', {
@@ -114,6 +122,8 @@ export const initalizeRouter = () => {
     await userAuthentication;
     await validateAuthenticateRoutePermission(to, next, store);
   });
+
+  router.afterEach(syncDocumentTitle);
 };
 
 export default router;
