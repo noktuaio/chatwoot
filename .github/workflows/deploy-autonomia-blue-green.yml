@@ -300,13 +300,44 @@ jobs:
           command_id=$(aws ssm send-command \
             --instance-ids "$GREEN_INSTANCE_ID" \
             --document-name AWS-RunShellScript \
-            --parameters 'commands=["for i in $(seq 1 60); do curl -fsS http://127.0.0.1:3000/ && exit 0; sleep 10; done; journalctl -u chatwoot-web.service --no-pager -n 120; exit 1"]' \
+            --parameters 'commands=["cloud-init status --wait || true","for i in $(seq 1 90); do curl -fsS http://127.0.0.1:3000/ && exit 0; sleep 10; done; journalctl -u chatwoot-web.service --no-pager -n 160; tail -160 /var/log/cloud-init-output.log; exit 1"]' \
             --query 'Command.CommandId' \
             --output text)
 
-          aws ssm wait command-executed \
-            --command-id "$command_id" \
-            --instance-id "$GREEN_INSTANCE_ID"
+          for attempt in $(seq 1 80); do
+            command_status=$(aws ssm get-command-invocation \
+              --command-id "$command_id" \
+              --instance-id "$GREEN_INSTANCE_ID" \
+              --query Status \
+              --output text 2>/dev/null || true)
+
+            case "$command_status" in
+              Success)
+                break
+                ;;
+              Failed|Cancelled|TimedOut|Cancelling)
+                aws ssm get-command-invocation \
+                  --command-id "$command_id" \
+                  --instance-id "$GREEN_INSTANCE_ID" \
+                  --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' \
+                  --output json
+                exit 1
+                ;;
+              *)
+                echo "Waiting for green local health command, attempt $attempt, status=${command_status:-unknown}"
+                sleep 15
+                ;;
+            esac
+          done
+
+          if [ "${command_status:-}" != "Success" ]; then
+            aws ssm get-command-invocation \
+              --command-id "$command_id" \
+              --instance-id "$GREEN_INSTANCE_ID" \
+              --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' \
+              --output json
+            exit 1
+          fi
 
           aws ssm get-command-invocation \
             --command-id "$command_id" \
