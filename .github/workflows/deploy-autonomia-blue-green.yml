@@ -66,6 +66,7 @@ jobs:
         run: |
           echo "Autonomia blue/green deploy triggered by: $GITHUB_EVENT_NAME"
           echo "Deploying SHA: $GITHUB_SHA"
+          echo "Workflow run: $GITHUB_RUN_ID"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
