@@ -146,6 +146,7 @@ jobs:
             echo "AMI_ID=$ami_id"
             echo "ROOT_DEVICE_NAME=$root_device_name"
             echo "TRAFFIC_SHIFT_DONE=false"
+            echo "GREEN_TG_ATTACHED=false"
           } >> "$GITHUB_ENV"
 
       - name: Create green user data
@@ -370,6 +371,12 @@ jobs:
             --target-group-arn "$green_tg_arn" \
             --targets "Id=$GREEN_INSTANCE_ID,Port=3000"
 
+          aws elbv2 modify-listener \
+            --listener-arn "$LISTENER_ARN" \
+            --default-actions "Type=forward,ForwardConfig={TargetGroups=[{TargetGroupArn=$BLUE_TG_ARN,Weight=100},{TargetGroupArn=$green_tg_arn,Weight=0}]}"
+
+          echo "GREEN_TG_ATTACHED=true" >> "$GITHUB_ENV"
+
           aws elbv2 wait target-in-service \
             --target-group-arn "$green_tg_arn" \
             --targets "Id=$GREEN_INSTANCE_ID,Port=3000"
@@ -465,6 +472,12 @@ jobs:
           fi
 
           if [ -n "${GREEN_TG_ARN:-}" ]; then
+            if [ "${GREEN_TG_ATTACHED:-false}" = "true" ] && [ -n "${BLUE_TG_ARN:-}" ]; then
+              aws elbv2 modify-listener \
+                --listener-arn "$LISTENER_ARN" \
+                --default-actions "Type=forward,TargetGroupArn=$BLUE_TG_ARN" || true
+            fi
+
             aws elbv2 deregister-targets \
               --target-group-arn "$GREEN_TG_ARN" \
               --targets "Id=$GREEN_INSTANCE_ID,Port=3000" || true
