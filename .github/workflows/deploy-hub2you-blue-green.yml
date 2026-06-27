@@ -1,9 +1,9 @@
 name: Deploy Hub2You Chatwoot Blue Green
 
 on:
-  push:
-    branches:
-      - main
+  pull_request_review:
+    types:
+      - submitted
   workflow_dispatch:
     inputs:
       action:
@@ -47,13 +47,20 @@ env:
 jobs:
   deploy:
     name: Deploy Green
-    if: github.event_name == 'push' || github.event.inputs.action == 'deploy'
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy') ||
+      (github.event_name == 'pull_request_review' &&
+        github.event.review.state == 'approved' &&
+        github.event.pull_request.base.ref == 'main' &&
+        github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request_review' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Log deployment trigger context
         run: |
