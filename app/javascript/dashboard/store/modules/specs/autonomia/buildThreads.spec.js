@@ -113,6 +113,7 @@ describe('#autonomiaBuildThreads store', () => {
         threadId: 3,
         content: 'materiais prontos',
         echo: false,
+        extra: { force_close: true },
       });
     });
 
