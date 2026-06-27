@@ -1410,20 +1410,43 @@ onMounted(async () => {
 <template>
   <main class="flex h-full min-w-0 flex-col overflow-hidden bg-n-background">
     <header
-      class="flex flex-col gap-3 border-b border-n-weak px-8 py-5 lg:flex-row lg:items-start lg:justify-between"
+      class="flex flex-col gap-3 border-b border-n-weak px-8 py-3 lg:flex-row lg:items-center lg:justify-between"
     >
-      <div class="min-w-0">
-        <h1 class="mb-1 text-2xl font-medium text-n-slate-12">
+      <div class="flex min-w-0 flex-wrap items-center gap-3">
+        <h1 class="mb-0 text-2xl font-medium text-n-slate-12">
           {{
             isCalendarOnly ? t('SIDEBAR.CRM_CALENDAR') : t('CRM_KANBAN.TITLE')
           }}
         </h1>
-        <p
-          v-if="!isCalendarOnly"
-          class="mb-0 max-w-3xl text-sm leading-5 text-n-slate-11"
-        >
-          {{ t('CRM_KANBAN.SUBTITLE') }}
-        </p>
+        <template v-if="!isCalendarOnly && viewMode !== 'calendar'">
+          <label class="flex items-center gap-2">
+            <span class="text-xs font-medium text-n-slate-11">
+              {{ t('CRM_KANBAN.FILTERS.PIPELINE') }}
+            </span>
+            <select
+              v-model="currentPipelineId"
+              class="reset-base !mb-0 h-9 w-48 rounded-lg border-0 bg-n-alpha-black2 px-3 text-sm text-n-slate-12 outline outline-1 outline-n-weak focus:outline-n-brand"
+              :disabled="!hasPipelines"
+            >
+              <option
+                v-for="pipeline in pipelineOptions"
+                :key="pipeline.value"
+                :value="pipeline.value"
+              >
+                {{ pipeline.label }}
+              </option>
+            </select>
+          </label>
+          <Button
+            v-if="selectedPipeline && (canManagePipelines || canManageAi)"
+            :label="t('CRM_KANBAN.ACTIONS.EDIT_PIPELINE')"
+            icon="i-lucide-settings"
+            blue
+            faded
+            sm
+            @click="openEditPipelineDrawer"
+          />
+        </template>
       </div>
       <div class="flex shrink-0 flex-wrap items-center gap-2">
         <div
@@ -1495,27 +1518,10 @@ onMounted(async () => {
       v-if="viewMode !== 'calendar'"
       class="flex flex-col gap-3 border-b border-n-weak px-8 py-4"
     >
-      <!-- Compact toolbar: pipeline + 3 high-frequency controls inline + Filters popover -->
-      <div class="flex flex-wrap items-end gap-3">
-        <label class="grid gap-1">
-          <span class="text-xs font-medium text-n-slate-11">
-            {{ t('CRM_KANBAN.FILTERS.PIPELINE') }}
-          </span>
-          <select
-            v-model="currentPipelineId"
-            class="reset-base !mb-0 h-10 w-56 rounded-lg border-0 bg-n-alpha-black2 px-3 text-sm text-n-slate-12 outline outline-1 outline-n-weak focus:outline-n-brand"
-            :disabled="!hasPipelines"
-          >
-            <option
-              v-for="pipeline in pipelineOptions"
-              :key="pipeline.value"
-              :value="pipeline.value"
-            >
-              {{ pipeline.label }}
-            </option>
-          </select>
-        </label>
-
+      <!-- Slim filter row: search + 2 high-frequency selects + Filters popover, with
+           live pipeline status badges pushed to the right. Pipeline picker + Edit
+           pipeline live in the header band above. -->
+      <div class="flex flex-wrap items-center gap-3">
         <div v-if="viewMode !== 'calendar'" class="min-w-[12rem] flex-1">
           <Input
             v-model="filters.search"
@@ -1822,6 +1828,32 @@ onMounted(async () => {
           :title="t('CRM_KANBAN.ACTIONS.CLEAR_FILTERS')"
           @click="clearFilters"
         />
+
+        <!-- Live pipeline status, absorbed from the old meta row to save vertical space. -->
+        <div
+          v-if="selectedPipeline"
+          class="ml-auto flex items-center gap-3 text-xs text-n-slate-11"
+        >
+          <span
+            class="inline-flex items-center gap-1.5 rounded-md bg-n-alpha-2 px-2 py-1"
+            :class="realtimeStatusMeta.textClass"
+            :title="realtimeStatusMeta.label"
+          >
+            <span
+              class="h-2 w-2 rounded-full"
+              :class="realtimeStatusMeta.dotClass"
+            />
+            {{ realtimeStatusMeta.label }}
+          </span>
+          <span>
+            {{ t('CRM_KANBAN.STATUS.STAGES_COUNT', { count: stages.length }) }}
+          </span>
+          <span>
+            {{
+              t('CRM_KANBAN.STATUS.CARDS_LOADED', { count: loadedCardsCount })
+            }}
+          </span>
+        </div>
       </div>
 
       <!-- Active-filter chips -->
@@ -1839,55 +1871,6 @@ onMounted(async () => {
           {{ chip.label }}
           <span class="i-lucide-x size-3 text-n-slate-10" />
         </button>
-      </div>
-    </section>
-
-    <section
-      v-if="selectedPipeline && viewMode !== 'calendar'"
-      class="flex items-center justify-between gap-4 border-b border-n-weak px-8 py-3 text-sm"
-    >
-      <div class="min-w-0">
-        <p class="mb-0 truncate font-medium text-n-slate-12">
-          {{ selectedPipeline.name }}
-        </p>
-        <p
-          v-if="selectedPipeline.description"
-          class="mb-0 truncate text-xs text-n-slate-11"
-        >
-          {{ selectedPipeline.description }}
-        </p>
-      </div>
-      <div class="flex shrink-0 items-center gap-3 text-xs text-n-slate-11">
-        <span
-          class="inline-flex items-center gap-1.5 rounded-md bg-n-alpha-2 px-2 py-1"
-          :class="realtimeStatusMeta.textClass"
-          :title="realtimeStatusMeta.label"
-        >
-          <span
-            class="h-2 w-2 rounded-full"
-            :class="realtimeStatusMeta.dotClass"
-          />
-          {{ realtimeStatusMeta.label }}
-        </span>
-        <Button
-          v-if="canManagePipelines || canManageAi"
-          :label="t('CRM_KANBAN.ACTIONS.EDIT_PIPELINE')"
-          icon="i-lucide-settings"
-          slate
-          ghost
-          sm
-          @click="openEditPipelineDrawer"
-        />
-        <span>
-          {{ t('CRM_KANBAN.STATUS.STAGES_COUNT', { count: stages.length }) }}
-        </span>
-        <span>
-          {{
-            t('CRM_KANBAN.STATUS.CARDS_LOADED', {
-              count: loadedCardsCount,
-            })
-          }}
-        </span>
       </div>
     </section>
 
