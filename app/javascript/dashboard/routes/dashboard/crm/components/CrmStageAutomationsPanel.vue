@@ -15,29 +15,6 @@ const props = defineProps({
 const { t } = useI18n();
 const store = useStore();
 
-const automations = ref([]);
-const isLoading = ref(false);
-const editingId = ref(null);
-const draft = reactive(emptyDraft());
-
-const uiFlags = computed(() => store.getters['crmKanban/getUIFlags']);
-const stageOptions = computed(() =>
-  props.pipelineStages.filter(stage => stage.id)
-);
-const agentOptions = computed(() =>
-  props.agents.map(agent => ({ id: agent.id, name: agent.name }))
-);
-
-function emptyDraft() {
-  return {
-    name: '',
-    description: '',
-    trigger_event: 'on_enter',
-    enabled: true,
-    steps: [emptyStep()],
-  };
-}
-
 function emptyStep() {
   return {
     position: 0,
@@ -51,6 +28,29 @@ function emptyStep() {
     },
   };
 }
+
+function emptyDraft() {
+  return {
+    name: '',
+    description: '',
+    trigger_event: 'on_enter',
+    enabled: true,
+    steps: [emptyStep()],
+  };
+}
+
+const automations = ref([]);
+const isLoading = ref(false);
+const editingId = ref(null);
+const draft = reactive(emptyDraft());
+
+const uiFlags = computed(() => store.getters['crmKanban/getUIFlags']);
+const stageOptions = computed(() =>
+  props.pipelineStages.filter(stage => stage.id)
+);
+const agentOptions = computed(() =>
+  props.agents.map(agent => ({ id: agent.id, name: agent.name }))
+);
 
 const loadAutomations = async () => {
   if (!props.stage?.id) return;
@@ -156,7 +156,9 @@ const saveAutomation = async () => {
 
 const deleteAutomation = async automation => {
   await store.dispatch('crmKanban/deleteStageAutomation', automation.id);
-  automations.value = automations.value.filter(item => item.id !== automation.id);
+  automations.value = automations.value.filter(
+    item => item.id !== automation.id
+  );
   if (editingId.value === automation.id) resetDraft();
 };
 
@@ -406,7 +408,9 @@ watch(
                 type="checkbox"
                 class="h-4 w-4 rounded border-n-weak"
               />
-              <span>{{ t('CRM_KANBAN.STAGE_AUTOMATIONS.USE_CARD_OWNER') }}</span>
+              <span>{{
+                t('CRM_KANBAN.STAGE_AUTOMATIONS.USE_CARD_OWNER')
+              }}</span>
             </label>
             <label v-if="!step.action_config.use_card_owner" class="grid gap-1">
               <span class="text-[11px] text-n-slate-10">

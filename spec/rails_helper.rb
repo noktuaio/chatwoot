@@ -5,6 +5,11 @@ abort('The Rails environment is running in production mode!') if Rails.env.produ
 
 require 'rspec/rails'
 require 'active_job/test_helper'
+# Pundit's `permissions` matcher (policy specs) and test-prof's `let_it_be`
+# (builder specs) are used by specs but were never required, so those specs
+# failed to load and aborted their CI shard. Both gems are already bundled.
+require 'pundit/rspec'
+require 'test_prof/recipes/rspec/let_it_be'
 
 Dir[Rails.root.join('spec/support/**/*.rb')].sort.each { |file| require file }
 

@@ -58,7 +58,9 @@ class Inboxes extends CacheEnabledApiClient {
   }
 
   disableWhatsappApiCampaigns(inboxId) {
-    return axios.delete(`${this.url}/${inboxId}/disable_whatsapp_api_campaigns`);
+    return axios.delete(
+      `${this.url}/${inboxId}/disable_whatsapp_api_campaigns`
+    );
   }
 
   enableWhatsappCalling(inboxId) {
