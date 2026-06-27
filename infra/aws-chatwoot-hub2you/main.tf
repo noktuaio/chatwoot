@@ -11,6 +11,7 @@ locals {
   github_actions_subjects = flatten([
     for repository in local.github_actions_repositories : [
       "repo:${repository}:ref:refs/heads/${var.github_branch}",
+      "repo:${repository}:pull_request",
       "repo:${repository}:environment:production"
     ]
   ])
@@ -241,7 +242,9 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
         Effect = "Allow"
         Action = [
           "ssm:GetCommandInvocation",
+          "ssm:GetParameter",
           "ssm:ListCommandInvocations",
+          "ssm:DescribeInstanceInformation",
           "ssm:SendCommand"
         ]
         Resource = "*"
@@ -252,6 +255,47 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
           "ssm:PutParameter"
         ]
         Resource = aws_ssm_parameter.chatwoot_ec2_runtime_image.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:PutParameter"
+        ]
+        Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/chatwoot/${var.environment}/blue-green/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:CreateTags",
+          "ec2:DescribeImages",
+          "ec2:DescribeInstances",
+          "ec2:RunInstances",
+          "ec2:StartInstances",
+          "ec2:StopInstances",
+          "ec2:TerminateInstances"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:PassRole"
+        ]
+        Resource = aws_iam_role.ec2_app.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticloadbalancing:CreateTargetGroup",
+          "elasticloadbalancing:DeleteTargetGroup",
+          "elasticloadbalancing:DeregisterTargets",
+          "elasticloadbalancing:DescribeListeners",
+          "elasticloadbalancing:DescribeLoadBalancers",
+          "elasticloadbalancing:DescribeTargetHealth",
+          "elasticloadbalancing:ModifyListener",
+          "elasticloadbalancing:RegisterTargets"
+        ]
+        Resource = "*"
       }
     ]
   })
