@@ -1,6 +1,9 @@
 name: Deploy Hub2You Chatwoot Blue Green
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       action:
@@ -44,7 +47,7 @@ env:
 jobs:
   deploy:
     name: Deploy Green
-    if: github.event.inputs.action == 'deploy'
+    if: github.event_name == 'push' || github.event.inputs.action == 'deploy'
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
