@@ -19,7 +19,10 @@ export const defaultFilters = () => ({
   priority: '',
   standalone: '',
   followUpStatus: '',
-  result: '',
+  // Default the List to in-funnel deals ('open' card status, NOT conversation
+  // status). The board ignores `result` (fetchBoard strips it), so this only
+  // shapes the List default — surfaced by the status tabs in the list toolbar.
+  result: 'open',
   // PR14.7b/c high-value filters. Realtime contract per filter:
   //  - stageIds / teamId / valueMin / valueMax / staleDays are evaluable from a
   //    single card payload and ARE mirrored in cardMatchesFilters below.
