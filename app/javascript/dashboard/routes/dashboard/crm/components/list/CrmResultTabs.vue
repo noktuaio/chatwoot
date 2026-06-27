@@ -35,6 +35,7 @@ const isActive = value => (props.modelValue || 'open') === value;
       v-for="tab in tabs"
       :key="tab.value"
       type="button"
+      :data-value="tab.value"
       class="px-3 py-1 text-xs font-medium transition-colors"
       :class="
         isActive(tab.value)

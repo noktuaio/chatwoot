@@ -31,7 +31,7 @@ describe('CrmResultTabs', () => {
 
   it('emits update:modelValue with the clicked tab value', async () => {
     const wrapper = mount(CrmResultTabs, { props: { modelValue: 'open' } });
-    await wrapper.findAll('button')[2].trigger('click');
+    await wrapper.get('button[data-value="lost"]').trigger('click');
     expect(wrapper.emitted('update:modelValue')[0]).toEqual(['lost']);
   });
 });
