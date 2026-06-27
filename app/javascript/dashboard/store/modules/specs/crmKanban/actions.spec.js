@@ -376,7 +376,10 @@ describe('#crmKanban board filters', () => {
         },
       },
       // card just marked won while the List shows the "Em andamento" (open) tab
-      { event: 'crm.card.updated', card: { id: 1, pipeline_id: 7, status: 'won' } }
+      {
+        event: 'crm.card.updated',
+        card: { id: 1, pipeline_id: 7, status: 'won' },
+      }
     );
 
     expect(emitter.emit).toHaveBeenCalledWith(BUS_EVENTS.CRM_BOARD_REFETCH);
@@ -396,7 +399,10 @@ describe('#crmKanban board filters', () => {
           filters: { ...defaultFilters(), result: 'open' },
         },
       },
-      { event: 'crm.card.updated', card: { id: 1, pipeline_id: 7, status: 'open' } }
+      {
+        event: 'crm.card.updated',
+        card: { id: 1, pipeline_id: 7, status: 'open' },
+      }
     );
 
     expect(emitter.emit).not.toHaveBeenCalled();
@@ -417,7 +423,10 @@ describe('#crmKanban board filters', () => {
           filters: { ...defaultFilters(), result: 'won' },
         },
       },
-      { event: 'crm.card.updated', card: { id: 1, pipeline_id: 7, status: 'won' } }
+      {
+        event: 'crm.card.updated',
+        card: { id: 1, pipeline_id: 7, status: 'won' },
+      }
     );
 
     expect(emitter.emit).toHaveBeenCalledWith(BUS_EVENTS.CRM_BOARD_REFETCH);
