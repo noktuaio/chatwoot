@@ -1044,10 +1044,25 @@ export const actions = {
     const isArchived =
       event === 'crm.card.archived' || card.status === 'archived';
 
+    // `result` is the List-only status filter (board strips it on fetch). A
+    // status change (won/lost/reopen) moves a card in/out of the filtered view,
+    // but cardMatchesFilters intentionally never evaluates status. Defer to
+    // server truth so the List drops/keeps the card correctly instead of leaving
+    // a stale row. Archived is already handled by the removal branch below.
+    const resultMismatch =
+      Boolean($state.filters.result) &&
+      !isArchived &&
+      card.status != null &&
+      !stringMatches(card.status, $state.filters.result);
+
     // Server-only filters cannot be evaluated from this single card payload, so
     // trusting cardMatchesFilters would reintroduce the status-style realtime bug.
     // Defer to server truth: refetch the active view (the page handles the event).
-    if (isSamePipeline && !isArchived && hasServerOnlyFilters($state.filters)) {
+    if (
+      isSamePipeline &&
+      !isArchived &&
+      (resultMismatch || hasServerOnlyFilters($state.filters))
+    ) {
       emitter.emit(BUS_EVENTS.CRM_BOARD_REFETCH);
       return;
     }

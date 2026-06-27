@@ -24,9 +24,9 @@ describe('CrmResultTabs', () => {
     expect(activeButton(wrapper).text()).toBe('CRM_KANBAN.RESULT_FILTER.WON');
   });
 
-  it('falls back to the open tab when modelValue is empty', () => {
+  it('marks no tab active when result is empty ("Todos")', () => {
     const wrapper = mount(CrmResultTabs, { props: { modelValue: '' } });
-    expect(activeButton(wrapper).text()).toBe('CRM_KANBAN.RESULT_FILTER.OPEN');
+    expect(activeButton(wrapper)).toBeUndefined();
   });
 
   it('emits update:modelValue with the clicked tab value', async () => {

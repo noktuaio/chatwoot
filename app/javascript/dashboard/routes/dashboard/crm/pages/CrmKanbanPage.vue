@@ -2042,7 +2042,7 @@ onMounted(async () => {
       <div class="mb-3 flex items-center justify-between gap-2">
         <div class="flex items-center gap-3">
           <CrmResultTabs
-            :model-value="filters.result || 'open'"
+            :model-value="filters.result"
             @update:model-value="selectResult"
           />
           <p class="mb-0 text-xs text-n-slate-10">

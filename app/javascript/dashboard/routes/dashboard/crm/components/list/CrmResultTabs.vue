@@ -23,7 +23,9 @@ const tabs = computed(() => [
   { value: 'lost', label: t('CRM_KANBAN.RESULT_FILTER.LOST') },
 ]);
 
-const isActive = value => (props.modelValue || 'open') === value;
+// No fallback to 'open' here: when result is '' (Filtros "Todos" / a legacy
+// saved view) or 'archived', no everyday-outcome tab should read as active.
+const isActive = value => props.modelValue === value;
 </script>
 
 <template>
