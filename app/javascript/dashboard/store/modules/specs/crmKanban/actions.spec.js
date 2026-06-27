@@ -407,6 +407,26 @@ describe('#crmKanban board filters', () => {
     });
   });
 
+  it('refetches a non-open card even when it matches result, since the board is open-only', () => {
+    const commit = vi.fn();
+    actions.handleRealtimeCardEvent(
+      {
+        commit,
+        state: {
+          board: { pipeline: { id: 7 } },
+          filters: { ...defaultFilters(), result: 'won' },
+        },
+      },
+      { event: 'crm.card.updated', card: { id: 1, pipeline_id: 7, status: 'won' } }
+    );
+
+    expect(emitter.emit).toHaveBeenCalledWith(BUS_EVENTS.CRM_BOARD_REFETCH);
+    expect(commit).not.toHaveBeenCalledWith(
+      types.UPSERT_CRM_KANBAN_CARD,
+      expect.anything()
+    );
+  });
+
   it('upserts client-evaluable cards on realtime without refetching', () => {
     const commit = vi.fn();
     actions.handleRealtimeCardEvent(
