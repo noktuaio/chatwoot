@@ -1,6 +1,9 @@
-name: Deploy Autonomia Chatwoot Blue Green
+name: Deploy Hub2You Chatwoot Blue Green
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       action:
@@ -18,7 +21,7 @@ on:
         type: string
 
 concurrency:
-  group: deploy-autonomia-blue-green
+  group: deploy-hub2you-blue-green
   cancel-in-progress: false
 
 permissions:
@@ -26,12 +29,12 @@ permissions:
   id-token: write
 
 env:
-  AWS_ACCOUNT_ID: '140023375763'
+  AWS_ACCOUNT_ID: '354307071110'
   AWS_REGION: us-east-1
-  AWS_ROLE_ARN: arn:aws:iam::140023375763:role/chatwoot-autonomia-prod-github-actions-deploy
+  AWS_ROLE_ARN: arn:aws:iam::354307071110:role/chatwoot-autonomia-prod-github-actions-deploy
   ALB_NAME: chatwoot-autonomia-prod-ec2
-  DOMAIN_NAME: agents.autonomia.site
-  EC2_ALB_DNS_NAME: chatwoot-autonomia-prod-ec2-1353010243.us-east-1.elb.amazonaws.com
+  DOMAIN_NAME: chat.hub2you.ai
+  EC2_ALB_DNS_NAME: chatwoot-autonomia-prod-ec2-741519072.us-east-1.elb.amazonaws.com
   ECR_REPOSITORY: chatwoot-autonomia-prod
   ENV_PARAMETER: /chatwoot/prod/env
   RUNTIME_IMAGE_PARAMETER: /chatwoot/prod/runtime-image
@@ -44,7 +47,7 @@ env:
 jobs:
   deploy:
     name: Deploy Green
-    if: github.event.inputs.action == 'deploy'
+    if: github.event_name == 'push' || github.event.inputs.action == 'deploy'
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
@@ -54,7 +57,7 @@ jobs:
 
       - name: Log deployment trigger context
         run: |
-          echo "Autonomia blue/green deploy triggered by: $GITHUB_EVENT_NAME"
+          echo "Hub2You blue/green deploy triggered by: $GITHUB_EVENT_NAME"
           echo "Deploying SHA: $GITHUB_SHA"
 
       - name: Configure AWS credentials
@@ -86,8 +89,8 @@ jobs:
           tags: |
             ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
             ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.STABLE_IMAGE_TAG }}
-          cache-from: type=gha,scope=chatwoot-autonomia-prod-linux-amd64
-          cache-to: type=gha,mode=max,scope=chatwoot-autonomia-prod-linux-amd64
+          cache-from: type=gha,scope=chatwoot-autonomia-hub2you-linux-amd64
+          cache-to: type=gha,mode=max,scope=chatwoot-autonomia-hub2you-linux-amd64
 
       - name: Publish runtime image parameter
         env:
@@ -282,7 +285,7 @@ jobs:
             --iam-instance-profile "Name=$IAM_PROFILE_NAME" \
             --user-data file://green-user-data.sh \
             --block-device-mappings "[{\"DeviceName\":\"$ROOT_DEVICE_NAME\",\"Ebs\":{\"VolumeSize\":50,\"VolumeType\":\"gp3\",\"Encrypted\":true,\"DeleteOnTermination\":true}}]" \
-            --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=chatwoot-autonomia-prod-ec2-green-${GITHUB_RUN_ID}},{Key=Project,Value=chatwoot-autonomia},{Key=Environment,Value=prod},{Key=ManagedBy,Value=github-actions},{Key=BlueGreenRole,Value=green}]" \
+            --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=chatwoot-hub2you-prod-ec2-green-${GITHUB_RUN_ID}},{Key=Project,Value=chatwoot-autonomia},{Key=Environment,Value=prod},{Key=ManagedBy,Value=github-actions},{Key=BlueGreenRole,Value=green}]" \
             --query 'Instances[0].InstanceId' \
             --output text)
 
@@ -353,7 +356,7 @@ jobs:
 
       - name: Register green target group
         run: |
-          green_tg_name="cw-auto-green-${GITHUB_RUN_NUMBER}"
+          green_tg_name="cw-hub2-green-${GITHUB_RUN_NUMBER}"
           green_tg_arn=$(aws elbv2 create-target-group \
             --name "$green_tg_name" \
             --protocol HTTP \
@@ -445,8 +448,8 @@ jobs:
             location=$(printf '%s\n' "$headers" | awk 'BEGIN{IGNORECASE=1} /^location:/ {print $2}' | tr -d '\r')
 
             if [ -n "$location" ] \
-              && printf '%s\n' "$location" | grep -F 'client_id=talkai' \
-              && printf '%s\n' "$location" | grep -F 'redirect_uri=https%3A%2F%2Fagents.autonomia.site%2Fauth%2Fautonomia%2Fcallback'; then
+              && printf '%s\n' "$location" | grep -F 'client_id=chat2you' \
+              && printf '%s\n' "$location" | grep -F 'redirect_uri=https%3A%2F%2Fchat.hub2you.ai%2Fauth%2Fautonomia%2Fcallback'; then
               echo "$location"
               exit 0
             fi
@@ -609,7 +612,7 @@ jobs:
               "https://${DOMAIN_NAME}/auth/autonomia" || true)
             location=$(printf '%s\n' "$headers" | awk 'BEGIN{IGNORECASE=1} /^location:/ {print $2}' | tr -d '\r')
 
-            if [ -n "$location" ] && printf '%s\n' "$location" | grep -F 'client_id=talkai'; then
+            if [ -n "$location" ] && printf '%s\n' "$location" | grep -F 'client_id=chat2you'; then
               echo "$location"
               exit 0
             fi
