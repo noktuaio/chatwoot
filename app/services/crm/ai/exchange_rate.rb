@@ -2,15 +2,23 @@ require 'json'
 require 'net/http'
 
 class Crm::Ai::ExchangeRate
-  API_URL = 'https://economia.awesomeapi.com.br/last/USD-BRL'.freeze
+  # open.er-api.com is free and keyless with no per-IP quota. AwesomeAPI (the
+  # previous source) rate-limited the prod egress IP with HTTP 429, so the rate
+  # never resolved and the page fell back to USD.
+  API_URL = 'https://open.er-api.com/v6/latest/USD'.freeze
   CURRENT_CACHE_KEY = 'crm:ai:usd_brl:current'.freeze
   LAST_CACHE_KEY = 'crm:ai:usd_brl:last'.freeze
   CURRENT_TTL = 30.minutes
-  HTTP_TIMEOUT = 2
+  HTTP_TIMEOUT = 5
 
   class << self
+    # Reads the cached rate; on a cold cache (e.g. right after a deploy, before
+    # the hourly refresh job runs) it fetches live so the page shows BRL instead
+    # of falling back to USD until the next cron tick. Once LAST_CACHE_KEY is
+    # populated it never goes cold again, so the live fetch happens at most once
+    # per empty cache.
     def current
-      cached_rate(CURRENT_CACHE_KEY) || cached_rate(LAST_CACHE_KEY) || unavailable_payload
+      cached_rate(CURRENT_CACHE_KEY) || cached_rate(LAST_CACHE_KEY) || refresh!
     end
 
     def refresh!
@@ -52,8 +60,9 @@ class Crm::Ai::ExchangeRate
       return unless response.is_a?(Net::HTTPSuccess)
 
       body = JSON.parse(response.body)
-      bid = body.dig('USDBRL', 'bid')
-      rate = BigDecimal(bid.to_s)
+      return unless body['result'] == 'success'
+
+      rate = BigDecimal(body.dig('rates', 'BRL').to_s)
       rate.positive? ? rate : nil
     rescue JSON::ParserError, ArgumentError, TypeError, Net::OpenTimeout, Net::ReadTimeout, SocketError, SystemCallError => e
       Rails.logger.warn("[crm][ai][exchange_rate] fetch failed: #{e.class}: #{e.message}")

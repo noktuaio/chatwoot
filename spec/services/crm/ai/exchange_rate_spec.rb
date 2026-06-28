@@ -8,7 +8,7 @@ RSpec.describe Crm::Ai::ExchangeRate do
   end
 
   describe '.current' do
-    it 'uses the current cache without hitting AwesomeAPI' do
+    it 'uses the current cache without hitting the FX API' do
       cache.write(described_class::CURRENT_CACHE_KEY, { rate: BigDecimal('5.12'), fetched_at: '2026-06-28T10:00:00Z' })
       stub_request(:get, described_class::API_URL).to_raise('should not be called')
 
@@ -29,9 +29,19 @@ RSpec.describe Crm::Ai::ExchangeRate do
       expect(result[:rate_unavailable]).to be(false)
     end
 
-    it 'returns rate_unavailable without HTTP when cache is empty' do
+    it 'fetches live and populates the cache when both caches are empty' do
       stub_request(:get, described_class::API_URL)
-        .to_raise('should not be called')
+        .to_return(status: 200, body: { result: 'success', rates: { BRL: 5.4321 } }.to_json)
+
+      result = described_class.current
+
+      expect(result[:rate]).to eq(BigDecimal('5.4321'))
+      expect(result[:rate_unavailable]).to be(false)
+      expect(cache.read(described_class::CURRENT_CACHE_KEY)[:rate]).to eq(BigDecimal('5.4321'))
+    end
+
+    it 'returns rate_unavailable when the cache is empty and the live fetch fails' do
+      stub_request(:get, described_class::API_URL).to_return(status: 500, body: '')
 
       result = described_class.current
 
@@ -41,7 +51,7 @@ RSpec.describe Crm::Ai::ExchangeRate do
 
     it 'reads the cache populated by the refresh path' do
       stub_request(:get, described_class::API_URL)
-        .to_return(status: 200, body: { USDBRL: { bid: '5.4321', timestamp: '1782662400' } }.to_json)
+        .to_return(status: 200, body: { result: 'success', rates: { BRL: 5.4321 } }.to_json)
 
       described_class.refresh!
 
@@ -54,10 +64,10 @@ RSpec.describe Crm::Ai::ExchangeRate do
   end
 
   describe '.refresh!' do
-    it 'fetches AwesomeAPI bid and writes current and last cache keys' do
+    it 'fetches the USD->BRL rate and writes current and last cache keys' do
       travel_to Time.zone.parse('2026-06-28 12:00:00') do
         stub_request(:get, described_class::API_URL)
-          .to_return(status: 200, body: { USDBRL: { bid: '5.6789', timestamp: '1782662400' } }.to_json)
+          .to_return(status: 200, body: { result: 'success', rates: { BRL: 5.6789 } }.to_json)
 
         result = described_class.refresh!
 
