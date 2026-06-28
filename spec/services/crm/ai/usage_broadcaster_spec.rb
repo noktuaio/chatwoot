@@ -20,7 +20,10 @@ RSpec.describe Crm::Ai::UsageBroadcaster do
     described_class.broadcast(event)
 
     streams = broadcast_calls.map(&:first)
-    expect(streams).to contain_exactly(admin.pubsub_token, plain_agent.pubsub_token)
+    # Report-viewers receive a per-user broadcast. Exact recipient gating differs
+    # by edition (EE adds custom-role filtering — see spec/enterprise), so here we
+    # only assert authorized users are reached and the account stream never is.
+    expect(streams).to include(admin.pubsub_token, plain_agent.pubsub_token)
     expect(streams).not_to include("account_#{account.id}")
     broadcast_calls.each do |(_, message)|
       expect(message[:event]).to eq('crm.ai_usage.created')
