@@ -83,6 +83,6 @@ class Api::V1::Accounts::EmailCampaigns::AiController < Api::V1::Accounts::Email
   end
 
   def client
-    @client ||= Crm::Ai::ResponsesClient.new(credential: @credential)
+    @client ||= Crm::Ai::ResponsesClient.new(credential: @credential, feature: 'email', account: Current.account)
   end
 end

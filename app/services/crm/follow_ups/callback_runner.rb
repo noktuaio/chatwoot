@@ -76,7 +76,10 @@ module Crm
       end
 
       def compose
-        client = Crm::Ai::ResponsesClient.new(credential: Crm::Ai::CredentialResolver.new(account: @card.account).resolve)
+        client = Crm::Ai::ResponsesClient.new(
+          credential: Crm::Ai::CredentialResolver.new(account: @card.account).resolve,
+          feature: 'follow_up', account: @card.account, pipeline: @card.pipeline
+        )
         context = Crm::Ai::ContextBuilder.new(card: @card).perform
 
         Crm::Ai::FollowUpComposer.new(
