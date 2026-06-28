@@ -91,7 +91,6 @@ const inboxSettings = ref([]);
 const inboxSettingStagesByPipeline = ref({});
 const dragSnapshot = ref(null);
 const loadError = ref('');
-const realtimeStatus = ref('connected');
 const confirmModal = ref(null);
 const confirmConfig = ref({
   title: '',
@@ -112,26 +111,6 @@ const selectedPipeline = computed(() =>
 const loadedCardsCount = computed(() =>
   stages.value.reduce((sum, stage) => sum + (stage.cards || []).length, 0)
 );
-const realtimeStatusMeta = computed(() => {
-  const states = {
-    connected: {
-      label: t('CRM_KANBAN.REALTIME.CONNECTED'),
-      dotClass: 'bg-n-teal-9',
-      textClass: 'text-n-teal-11',
-    },
-    reconnecting: {
-      label: t('CRM_KANBAN.REALTIME.RECONNECTING'),
-      dotClass: 'bg-n-amber-9',
-      textClass: 'text-n-amber-11',
-    },
-    disconnected: {
-      label: t('CRM_KANBAN.REALTIME.DISCONNECTED'),
-      dotClass: 'bg-n-ruby-9',
-      textClass: 'text-n-ruby-11',
-    },
-  };
-  return states[realtimeStatus.value] || states.connected;
-});
 
 const pipelineOptions = computed(() =>
   pipelines.value.map(pipeline => ({
@@ -408,16 +387,7 @@ const loadActiveView = async (includeCounts = false) => {
   return loadCurrentBoard(includeCounts);
 };
 
-const handleRealtimeDisconnected = () => {
-  realtimeStatus.value = 'disconnected';
-};
-
-const handleRealtimeReconnecting = () => {
-  realtimeStatus.value = 'reconnecting';
-};
-
 const handleRealtimeConnected = async () => {
-  realtimeStatus.value = 'connected';
   await loadCurrentBoard(true);
 };
 
@@ -1392,8 +1362,6 @@ const setViewMode = mode => {
   viewMode.value = mode;
 };
 
-useEmitter(BUS_EVENTS.WEBSOCKET_DISCONNECT, handleRealtimeDisconnected);
-useEmitter(BUS_EVENTS.WEBSOCKET_RECONNECT, handleRealtimeReconnecting);
 useEmitter(BUS_EVENTS.WEBSOCKET_RECONNECT_COMPLETED, handleRealtimeConnected);
 useEmitter(BUS_EVENTS.CRM_BOARD_REFETCH, handleServerFilterRefetch);
 
@@ -1412,41 +1380,12 @@ onMounted(async () => {
     <header
       class="flex flex-col gap-3 border-b border-n-weak px-8 py-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between"
     >
-      <div class="flex shrink-0 items-center gap-3">
+      <div class="min-w-0">
         <h1 class="mb-0 text-2xl font-medium text-n-slate-12">
           {{
             isCalendarOnly ? t('SIDEBAR.CRM_CALENDAR') : t('CRM_KANBAN.TITLE')
           }}
         </h1>
-        <template v-if="!isCalendarOnly && viewMode !== 'calendar'">
-          <label class="flex items-center gap-2">
-            <span class="text-xs font-medium text-n-slate-11">
-              {{ t('CRM_KANBAN.FILTERS.PIPELINE') }}
-            </span>
-            <select
-              v-model="currentPipelineId"
-              class="reset-base !mb-0 h-9 w-48 rounded-lg border-0 bg-n-alpha-black2 px-3 text-sm text-n-slate-12 outline outline-1 outline-n-weak focus:outline-n-brand"
-              :disabled="!hasPipelines"
-            >
-              <option
-                v-for="pipeline in pipelineOptions"
-                :key="pipeline.value"
-                :value="pipeline.value"
-              >
-                {{ pipeline.label }}
-              </option>
-            </select>
-          </label>
-          <Button
-            v-if="selectedPipeline && (canManagePipelines || canManageAi)"
-            :label="t('CRM_KANBAN.ACTIONS.EDIT_PIPELINE')"
-            icon="i-lucide-settings"
-            blue
-            faded
-            sm
-            @click="openEditPipelineDrawer"
-          />
-        </template>
       </div>
       <div class="flex shrink-0 flex-wrap items-center gap-2">
         <div
@@ -1518,11 +1457,43 @@ onMounted(async () => {
       v-if="viewMode !== 'calendar'"
       class="flex flex-col gap-3 border-b border-n-weak px-8 py-4"
     >
-      <!-- Slim filter row: search + 2 high-frequency selects + Filters popover, with
-           live pipeline status badges pushed to the right. Pipeline picker + Edit
-           pipeline live in the header band above. -->
+      <!-- Single control row: pipeline picker + Edit pipeline + search + 2
+           high-frequency selects + Filters popover, with stage/card counts pushed
+           to the right. Keeps the header band to just the title + global actions. -->
       <div class="flex flex-wrap items-end gap-3">
-        <div v-if="viewMode !== 'calendar'" class="min-w-[12rem] flex-1">
+        <label v-if="viewMode !== 'calendar'" class="grid gap-1">
+          <span class="text-xs font-medium text-n-slate-11">
+            {{ t('CRM_KANBAN.FILTERS.PIPELINE') }}
+          </span>
+          <select
+            v-model="currentPipelineId"
+            class="reset-base !mb-0 h-10 w-44 rounded-lg border-0 bg-n-alpha-black2 px-3 text-sm text-n-slate-12 outline outline-1 outline-n-weak focus:outline-n-brand"
+            :disabled="!hasPipelines"
+          >
+            <option
+              v-for="pipeline in pipelineOptions"
+              :key="pipeline.value"
+              :value="pipeline.value"
+            >
+              {{ pipeline.label }}
+            </option>
+          </select>
+        </label>
+
+        <Button
+          v-if="
+            viewMode !== 'calendar' &&
+            selectedPipeline &&
+            (canManagePipelines || canManageAi)
+          "
+          :label="t('CRM_KANBAN.ACTIONS.EDIT_PIPELINE')"
+          icon="i-lucide-settings"
+          blue
+          faded
+          @click="openEditPipelineDrawer"
+        />
+
+        <div v-if="viewMode !== 'calendar'" class="w-60">
           <Input
             v-model="filters.search"
             :placeholder="t('CRM_KANBAN.FILTERS.SEARCH_PLACEHOLDER')"
@@ -1834,17 +1805,6 @@ onMounted(async () => {
           v-if="selectedPipeline"
           class="ml-auto flex h-10 items-center gap-3 text-xs text-n-slate-11"
         >
-          <span
-            class="inline-flex items-center gap-1.5 rounded-md bg-n-alpha-2 px-2 py-1"
-            :class="realtimeStatusMeta.textClass"
-            :title="realtimeStatusMeta.label"
-          >
-            <span
-              class="h-2 w-2 rounded-full"
-              :class="realtimeStatusMeta.dotClass"
-            />
-            {{ realtimeStatusMeta.label }}
-          </span>
           <span>
             {{ t('CRM_KANBAN.STATUS.STAGES_COUNT', { count: stages.length }) }}
           </span>
