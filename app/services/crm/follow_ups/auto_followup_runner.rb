@@ -141,7 +141,10 @@ module Crm
       # @send_mode is decided in #perform (free_form inside 24h, choose_template
       # outside) so the composer gets the right mode + candidate list.
       def compose
-        client = Crm::Ai::ResponsesClient.new(credential: credential_resolver.resolve)
+        client = Crm::Ai::ResponsesClient.new(
+          credential: credential_resolver.resolve,
+          feature: 'follow_up', account: @card.account, pipeline: @card.pipeline
+        )
         context = Crm::Ai::ContextBuilder.new(card: @card).perform
 
         Crm::Ai::FollowUpComposer.new(

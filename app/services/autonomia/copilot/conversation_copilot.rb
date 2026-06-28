@@ -36,7 +36,7 @@ module Autonomia
         credential = Crm::Ai::CredentialResolver.new(account: account).resolve
         return unavailable if credential.blank?
 
-        @client = Crm::Ai::ResponsesClient.new(credential: credential)
+        @client = Crm::Ai::ResponsesClient.new(credential: credential, feature: 'copilot', account: account)
         run_task
       rescue StandardError => e
         Rails.logger.error("Autonomia conversation copilot failed (conv #{@conversation&.id}): #{e.class.name}")

@@ -49,7 +49,10 @@ module Crm
 
       def classify_stage
         MediaEnricher.new(card: @card).perform if Config.media_enabled?
-        client = ResponsesClient.new(credential: credential_resolver.resolve)
+        client = ResponsesClient.new(
+          credential: credential_resolver.resolve,
+          feature: 'avaliacao_card', account: @account, pipeline: @card.pipeline
+        )
         context = ContextBuilder.new(card: @card).perform
         model = auto_move_allowed? ? Config::MODEL_AUTO_MOVE : Config::MODEL_CLASSIFY
         effort = Config::CLASSIFY_REASONING_EFFORT

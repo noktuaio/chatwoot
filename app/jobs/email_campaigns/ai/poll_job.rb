@@ -37,7 +37,7 @@ module EmailCampaigns
       def handle_status(campaign, client, token, response_id, attempt, result)
         case result[:status]
         when 'completed'
-          finish_completed(campaign, client, token, response_id, result[:text])
+          finish_completed(campaign, client, token, response_id, result[:text], result[:usage])
         when 'failed', 'cancelled', 'incomplete'
           finish_failed(campaign, token, response_id, result[:error].presence || result[:status], client)
         else # queued, in_progress
@@ -59,7 +59,7 @@ module EmailCampaigns
         self.class.set(wait: POLL_INTERVAL).perform_later(campaign_id, token, response_id, attempt + 1)
       end
 
-      def finish_completed(campaign, client, token, response_id, text)
+      def finish_completed(campaign, client, token, response_id, text, usage = {})
         parsed = parse_output(text)
         # Resposta completa mas sem mjml utilizável: NÃO marca pronto (o Sanitizer transformaria
         # nil num e-mail só com rodapé). Trata como falha p/ o usuário poder tentar de novo.
@@ -72,6 +72,14 @@ module EmailCampaigns
 
         won = campaign.ai_succeed!(token, subject: parsed['subject'], preheader: parsed['preheader'],
                                           body_mjml: mjml, subject_variants: parsed['subject_variants'])
+        # Telemetria de consumo só na transição idempotente vencedora (evita evento duplicado
+        # se dois ticks vissem 'completed'). Os tokens já foram gastos na geração concluída.
+        if won
+          Crm::Ai::UsageRecorder.record(
+            account: campaign.account, feature: 'email', model: Crm::Ai::Config::MODEL_EMAIL,
+            usage: usage, reasoning_effort: 'high'
+          )
+        end
         client.delete(response_id)
         Broadcaster.ready(campaign) if won
       end

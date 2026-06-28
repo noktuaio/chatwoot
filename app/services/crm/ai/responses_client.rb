@@ -6,15 +6,21 @@ module Crm
     class ResponsesClient
       class Error < StandardError; end
 
-      def initialize(credential:)
+      # feature/account/pipeline são OPCIONAIS e só servem à telemetria de consumo (Gestão IA):
+      # quando ambos feature+account estão presentes, cada chamada bem-sucedida grava 1 evento de uso
+      # (só metadados — nunca prompt/resposta). Sem eles, comportamento idêntico ao anterior.
+      def initialize(credential:, feature: nil, account: nil, pipeline: nil)
         @credential = credential
+        @feature = feature
+        @account = account
+        @pipeline = pipeline
       end
 
       def create(model:, instructions:, input:, schema: nil, reasoning_effort: 'low', tools: nil, timeout: 120)
         body = base_body(model, instructions, input, schema, reasoning_effort, tools).merge(store: false)
         started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         response = post_responses(body, timeout: timeout, operation: 'responses.create', started_at: started_at)
-        parse_response(response, model: model, requested_tools: tools, started_at: started_at)
+        parse_response(response, model: model, requested_tools: tools, started_at: started_at, reasoning_effort: reasoning_effort)
       end
 
       # Background mode: a OpenAI aceita o pedido e processa do lado dela; retorna na hora um
@@ -39,6 +45,7 @@ module Crm
         {
           status: payload['status'],
           text: payload['output_text'].presence || extract_output_text(payload),
+          usage: payload['usage'] || {},
           error: payload.dig('error', 'message') || payload.dig('incomplete_details', 'reason')
         }
       end
@@ -134,7 +141,7 @@ module Crm
         }
       end
 
-      def parse_response(response, model: nil, requested_tools: nil, started_at: nil)
+      def parse_response(response, model: nil, requested_tools: nil, started_at: nil, reasoning_effort: nil)
         unless response.success?
           log_http_error(response, operation: 'responses.create', model: model, started_at: started_at)
           raise Error, extract_error_message(response)
@@ -156,12 +163,25 @@ module Crm
 
         used = tools_used(payload)
         log_call(model, requested_tools, used, started_at)
+        record_usage(payload['usage'], model, reasoning_effort, started_at)
         {
           text: text,
           usage: payload['usage'] || {},
           response_id: payload['id'],
           tools_used: used
         }
+      end
+
+      # Telemetria de consumo (Gestão IA). Só dispara quando o cliente foi construído com
+      # feature+account; o próprio UsageRecorder é best-effort e nunca levanta.
+      def record_usage(usage, model, reasoning_effort, started_at)
+        return if @feature.blank? || @account.blank?
+
+        latency = started_at ? ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round : nil
+        UsageRecorder.record(
+          account: @account, feature: @feature, model: model, usage: usage,
+          reasoning_effort: reasoning_effort, latency_ms: latency, pipeline: @pipeline
+        )
       end
 
       # Tipos de item de output que representam uso de ferramenta (sufixo _call). SÓ metadados —

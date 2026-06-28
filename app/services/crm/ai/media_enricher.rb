@@ -72,7 +72,10 @@ module Crm
       end
 
       def caption(attachment, credential)
-        client = ResponsesClient.new(credential: credential)
+        client = ResponsesClient.new(
+          credential: credential,
+          feature: 'midia', account: @card.account, pipeline: @card.pipeline
+        )
         text = VisionCaptioner.new(client: client).caption(attachment)
         store(attachment, 'ai_caption', text, done_key: 'crm_ai_image_done')
       rescue StandardError => e

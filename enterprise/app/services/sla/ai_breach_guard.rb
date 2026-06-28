@@ -67,7 +67,9 @@ class Sla::AiBreachGuard
   end
 
   def fresh_decision(credential)
-    response = Crm::Ai::ResponsesClient.new(credential: credential).create(
+    response = Crm::Ai::ResponsesClient.new(
+      credential: credential, feature: 'sla', account: @applied_sla.account
+    ).create(
       model: Crm::Ai::Config::MODEL_CLASSIFY,
       instructions: INSTRUCTIONS,
       input: transcript,
