@@ -69,7 +69,7 @@ Rails.application.configure do
     reconnect_attempts: 2,
     timeout: 1,
     namespace: 'cache',
-    error_handler: lambda { |method:, returning:, exception:|
+    error_handler: lambda { |method:, exception:, **|
       Rails.logger.warn("[cache][redis] #{method} failed: #{exception.class}: #{exception.message}")
     }
   }
