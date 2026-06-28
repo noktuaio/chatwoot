@@ -33,7 +33,7 @@ class Autonomia::AuthController < ApplicationController
     context = client.fetch_context!(token.context_token)
     user = Autonomia::Sso::Provisioner.new(context: context, token: token).perform
 
-    redirect_to login_page_url(email: ERB::Util.url_encode(user.email), sso_auth_token: user.generate_sso_auth_token)
+    redirect_to login_page_url(email: user.email, sso_auth_token: user.generate_sso_auth_token)
   rescue StandardError => e
     Rails.logger.error("[Autonomia SSO] #{e.class}: #{e.message}")
     redirect_to login_page_url(error: 'autonomia-sso-error')

@@ -4,14 +4,18 @@ require 'rails_helper'
 
 RSpec.describe 'Autonomia::RegistrationCallbacksController', type: :request do
   let(:frontend_url) { 'https://agents.autonomia.site' }
-  let(:user) { create(:user, email: 'admin@autonomia.solutions') }
+  let(:user) { create(:user, email: 'admin+sales@autonomia.solutions') }
   let(:account) { create(:account) }
   let(:result) { Autonomia::RegistrationCheckout::Provisioner::Result.new(user: user, account: account) }
   let(:provisioner) { instance_double(Autonomia::RegistrationCheckout::Provisioner, perform: result) }
 
+  # Production serves this callback and the frontend on the same host, so the
+  # login_page_url redirect is same-host. Drive the request from the
+  # FRONTEND_URL host so the spec mirrors that and the redirect is allowed.
+  before { host! URI.parse(frontend_url).host }
+
   describe 'GET /register/callback' do
     it 'provisions the registration checkout callback and redirects through SSO token login' do
-      skip 'QUARANTINE: pre-existing legacy failure, harness-restore PR; real fix tracked for follow-up PR2'
       allow(Autonomia::RegistrationCheckout::Provisioner).to receive(:new).and_return(provisioner)
 
       with_modified_env FRONTEND_URL: frontend_url do
@@ -32,13 +36,15 @@ RSpec.describe 'Autonomia::RegistrationCallbacksController', type: :request do
           'email' => 'admin@autonomia.solutions'
         )
       )
-      expect(response).to redirect_to(
-        %r{\A#{frontend_url}/app/login\?email=#{Regexp.escape(ERB::Util.url_encode(user.email))}&sso_auth_token=}
-      )
+      params = Rack::Utils.parse_query(URI.parse(response.location).query)
+      expect(response.location).to start_with("#{frontend_url}/app/login?")
+      # Email must be encoded exactly once; double-encoding would break login for
+      # addresses containing '+' or other reserved characters.
+      expect(params['email']).to eq(user.email)
+      expect(params['sso_auth_token']).to be_present
     end
 
     it 'redirects to login with an invalid registration error when callback is rejected' do
-      skip 'QUARANTINE: pre-existing legacy failure, harness-restore PR; real fix tracked for follow-up PR2'
       allow(Autonomia::RegistrationCheckout::Provisioner).to receive(:new).and_return(provisioner)
       allow(provisioner).to receive(:perform).and_raise(
         Autonomia::RegistrationCheckout::Provisioner::InvalidCallback,

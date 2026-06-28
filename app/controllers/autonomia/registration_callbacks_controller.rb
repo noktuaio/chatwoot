@@ -7,7 +7,7 @@ class Autonomia::RegistrationCallbacksController < ApplicationController
     result = Autonomia::RegistrationCheckout::Provisioner.new(params: callback_params).perform
 
     redirect_to login_page_url(
-      email: ERB::Util.url_encode(result.user.email),
+      email: result.user.email,
       sso_auth_token: result.user.generate_sso_auth_token
     )
   rescue Autonomia::RegistrationCheckout::Provisioner::InvalidCallback => e

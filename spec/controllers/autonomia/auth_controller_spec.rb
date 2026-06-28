@@ -46,13 +46,17 @@ RSpec.describe 'Autonomia::AuthController', type: :request do
 
   describe 'GET /auth/autonomia/callback' do
     let(:code) { SecureRandom.urlsafe_base64(24) }
-    let(:user) { create(:user) }
+    let(:user) { create(:user, email: 'maria+vip@example.com') }
     let(:token) { Autonomia::Sso::Client::Token.new(access_token: 'identity-access-token', id_token: 'identity-id-token') }
     let(:client) { instance_double(Autonomia::Sso::Client) }
     let(:provisioner) { instance_double(Autonomia::Sso::Provisioner, perform: user) }
 
+    # In production the SSO callback and the frontend share a host, so the
+    # redirect to login_page_url is same-host. Drive the request from the
+    # FRONTEND_URL host so the spec mirrors that and the redirect is allowed.
+    before { host! URI.parse(frontend_url).host }
+
     it 'exchanges the code when the Rails session state is preserved' do
-      skip 'QUARANTINE: pre-existing legacy failure, harness-restore PR; real fix tracked for follow-up PR2'
       with_modified_env sso_env do
         get '/auth/autonomia'
       end
@@ -62,7 +66,7 @@ RSpec.describe 'Autonomia::AuthController', type: :request do
       allow(Autonomia::Sso::Client).to receive(:new).and_return(client)
       allow(client).to receive(:exchange_code!).and_return(token)
       allow(client).to receive(:fetch_context!).with('identity-id-token').and_return({})
-      allow(Autonomia::Sso::Provisioner).to receive(:new).with(context: {}).and_return(provisioner)
+      allow(Autonomia::Sso::Provisioner).to receive(:new).and_return(provisioner)
 
       with_modified_env sso_env do
         get '/auth/autonomia/callback', params: { code: code, state: state }
@@ -73,13 +77,16 @@ RSpec.describe 'Autonomia::AuthController', type: :request do
         redirect_uri: callback_url,
         code_verifier: be_present
       )
-      expect(response).to redirect_to(
-        %r{\A#{frontend_url}/app/login\?email=#{Regexp.escape(ERB::Util.url_encode(user.email))}&sso_auth_token=}
-      )
+      redirect = URI.parse(response.location)
+      params = Rack::Utils.parse_query(redirect.query)
+      expect(redirect.to_s).to start_with("#{frontend_url}/app/login?")
+      # Email must be encoded exactly once; double-encoding would break login for
+      # addresses containing '+' or other reserved characters.
+      expect(params['email']).to eq(user.email)
+      expect(params['sso_auth_token']).to be_present
     end
 
     it 'falls back to the access token when Identity does not return an ID token' do
-      skip 'QUARANTINE: pre-existing legacy failure, harness-restore PR; real fix tracked for follow-up PR2'
       with_modified_env sso_env do
         get '/auth/autonomia'
       end
@@ -91,15 +98,15 @@ RSpec.describe 'Autonomia::AuthController', type: :request do
         Autonomia::Sso::Client::Token.new(access_token: 'identity-access-token')
       )
       allow(client).to receive(:fetch_context!).with('identity-access-token').and_return({})
-      allow(Autonomia::Sso::Provisioner).to receive(:new).with(context: {}).and_return(provisioner)
+      allow(Autonomia::Sso::Provisioner).to receive(:new).and_return(provisioner)
 
       with_modified_env sso_env do
         get '/auth/autonomia/callback', params: { code: code, state: state }
       end
 
-      expect(response).to redirect_to(
-        %r{\A#{frontend_url}/app/login\?email=#{Regexp.escape(ERB::Util.url_encode(user.email))}&sso_auth_token=}
-      )
+      params = Rack::Utils.parse_query(URI.parse(response.location).query)
+      expect(params['email']).to eq(user.email)
+      expect(params['sso_auth_token']).to be_present
     end
 
     it 'rejects an invalid state before exchanging the code' do
