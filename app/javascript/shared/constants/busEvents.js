@@ -14,6 +14,7 @@ export const BUS_EVENTS = {
   INSERT_INTO_RICH_EDITOR: 'insertIntoRichEditor',
   INSERT_INTO_NORMAL_EDITOR: 'insertIntoNormalEditor',
   CRM_FOLLOW_UP_DUE: 'CRM_FOLLOW_UP_DUE',
+  CRM_AI_USAGE_CREATED: 'CRM_AI_USAGE_CREATED',
   // Geração de e-mail por IA (assíncrona) concluída/falhou — toast global + atualização do selo.
   EMAIL_CAMPAIGN_AI_READY: 'EMAIL_CAMPAIGN_AI_READY',
   EMAIL_CAMPAIGN_AI_FAILED: 'EMAIL_CAMPAIGN_AI_FAILED',

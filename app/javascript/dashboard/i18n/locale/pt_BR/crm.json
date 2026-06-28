@@ -73,6 +73,66 @@
       "TITLE": "Comparativo de campanhas"
     }
   },
+  "CRM_AI_USAGE": {
+    "HEADER": {
+      "TITLE": "Gestão de IA",
+      "DESCRIPTION": "Acompanhe quanto a IA custa por recurso, período e usos recentes.",
+      "LIVE": "ao vivo"
+    },
+    "PERIOD_LABEL": "Período",
+    "PERIOD": {
+      "TODAY": "Hoje",
+      "WEEK": "Semana",
+      "MONTH": "Mês"
+    },
+    "ACTIONS": {
+      "DOWNLOAD": "Baixar relatório",
+      "RETRY": "Tentar novamente"
+    },
+    "KPI": {
+      "SPEND": "Gasto na semana",
+      "SPEND_BY_PERIOD": {
+        "TODAY": "Gasto hoje",
+        "WEEK": "Gasto na semana",
+        "MONTH": "Gasto no mês"
+      },
+      "SPEND_INFO": "Custo total da IA no período selecionado.",
+      "USAGE": "Usos da IA",
+      "USAGE_INFO": "Quantidade de usos da IA no período selecionado.",
+      "SAVINGS": "Economia automática",
+      "SAVINGS_INFO": "Economia estimada pelo reaproveitamento de contexto da IA. Economia atual: {percentage}%.",
+      "AVERAGE": "Custo médio por uso",
+      "AVERAGE_INFO": "Gasto total dividido pelos usos da IA no período selecionado."
+    },
+    "SECTIONS": {
+      "SPEND_BY_RESOURCE": "Gasto por recurso",
+      "WEEKLY_SPEND": "Gasto na semana (por dia)",
+      "SPEND_BY_PERIOD": {
+        "TODAY": "Gasto hoje (por hora)",
+        "WEEK": "Gasto na semana (por dia)",
+        "MONTH": "Gasto no mês (por dia)"
+      },
+      "HISTORY": "Histórico de uso"
+    },
+    "TABLE": {
+      "WHEN": "Quando",
+      "RESOURCE": "Recurso",
+      "ACCOUNT": "Conta",
+      "TOKENS": "Tokens",
+      "COST": "Custo"
+    },
+    "EMPTY": {
+      "RESOURCE": "Nenhum gasto de IA registrado neste período.",
+      "SERIES": "Nenhum gasto de IA registrado neste período.",
+      "HISTORY": "Nenhum uso de IA registrado neste período."
+    },
+    "TABLE_NOTICE": "Mostramos só o uso. O conteúdo das conversas nunca aparece aqui.",
+    "PRIVACY_FOOTER": "Nunca mostramos o conteúdo das conversas com a IA.",
+    "RATE_UNAVAILABLE": "A cotação em BRL está indisponível agora; mostrando valores em USD.",
+    "RESOURCE_FALLBACK": "Outros",
+    "LOADING": "Carregando uso de IA…",
+    "ERROR": "Não foi possível carregar o uso de IA. Tente novamente."
+  },
   "CRM_KANBAN": {
     "TITLE": "CRM Kanban",
     "SUBTITLE": "Funis operacionais com cards próprios, independentes de conversa, contato ou inbox.",

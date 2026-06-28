@@ -6,6 +6,7 @@ import {
 } from 'dashboard/constants/permissions.js';
 import CrmKanbanPage from './pages/CrmKanbanPage.vue';
 import CrmDashboardPage from './pages/CrmDashboardPage.vue';
+import CrmAiUsagePage from './pages/CrmAiUsagePage.vue';
 import CrmSlaPage from './pages/CrmSlaPage.vue';
 import CrmIntegrationTokensPage from './pages/CrmIntegrationTokensPage.vue';
 import CrmCampaignManagementPage from './pages/CrmCampaignManagementPage.vue';
@@ -28,6 +29,17 @@ const adminMeta = {
 
 const ensureCrmEnabled = (to, _from, next) => {
   if (window.globalConfig?.CRM_KANBAN_ENABLED === 'true') {
+    next();
+    return;
+  }
+  next({ name: 'home', params: to.params });
+};
+
+const ensureCrmAiEnabled = (to, _from, next) => {
+  if (
+    window.globalConfig?.CRM_KANBAN_ENABLED === 'true' &&
+    window.globalConfig?.CRM_AI_ENABLED === 'true'
+  ) {
     next();
     return;
   }
@@ -57,6 +69,13 @@ export const routes = [
     meta: reportsMeta,
     beforeEnter: ensureCrmEnabled,
     component: CrmDashboardPage,
+  },
+  {
+    path: frontendURL('accounts/:accountId/crm/ai-usage'),
+    name: 'crm_ai_usage_index',
+    meta: reportsMeta,
+    beforeEnter: ensureCrmAiEnabled,
+    component: CrmAiUsagePage,
   },
   {
     path: frontendURL('accounts/:accountId/crm/sla'),

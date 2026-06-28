@@ -27,6 +27,8 @@ class Crm::AiUsageEvent < ApplicationRecord
   # só metadados de uso (feature, modelo, tokens, custo, latência) p/ o dashboard Gestão IA.
   belongs_to :account
 
+  after_create_commit :broadcast_usage_created
+
   validates :feature, presence: true
   validates :model, presence: true
 
@@ -34,7 +36,7 @@ class Crm::AiUsageEvent < ApplicationRecord
   scope :for_account, ->(account_id) { where(account_id: account_id) }
 
   # Agrega gasto por feature numa janela: { feature => { calls:, cost:, ...tokens } }.
-  # Usado pelo dashboard (Fase 3.2). Modelo só é exposto na camada de view p/ super-admin.
+  # Modelo é usado internamente para preço/economia, mas nunca é serializado no dashboard/export.
   def self.spend_by_feature(scope = all)
     grouped = scope.group(:feature)
     calls = grouped.count
@@ -51,5 +53,11 @@ class Crm::AiUsageEvent < ApplicationRecord
         output_tokens: output[feature] || 0
       }
     end
+  end
+
+  private
+
+  def broadcast_usage_created
+    Crm::Ai::UsageBroadcastJob.perform_later(id)
   end
 end

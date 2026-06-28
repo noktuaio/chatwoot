@@ -1,5 +1,7 @@
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 import ActionCableConnector from '../actionCable';
+import { BUS_EVENTS } from 'shared/constants/busEvents';
+import { emitter } from 'shared/helpers/mitt';
 
 vi.mock('shared/helpers/mitt', () => ({
   emitter: {
@@ -202,6 +204,31 @@ describe('ActionCableConnector - Copilot Tests', () => {
       expect(mockDispatch).not.toHaveBeenCalledWith(
         'crmKanban/handleRealtimeCardEvent',
         expect.anything()
+      );
+    });
+  });
+
+  describe('crm ai usage event handlers', () => {
+    it('registers and emits CRM AI usage realtime events', () => {
+      const usage = {
+        id: 9,
+        account_id: 1,
+        resource: 'Assistente de respostas',
+        created_at: '2026-06-28T12:01:00Z',
+        total_tokens: 90,
+        cost_usd: 0.01,
+      };
+
+      expect(Object.keys(actionCable.events)).toContain('crm.ai_usage.created');
+
+      actionCable.onReceived({
+        event: 'crm.ai_usage.created',
+        data: usage,
+      });
+
+      expect(emitter.emit).toHaveBeenCalledWith(
+        BUS_EVENTS.CRM_AI_USAGE_CREATED,
+        usage
       );
     });
   });

@@ -62,6 +62,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       'crm.card.archived': data =>
         this.onCrmCardChanged('crm.card.archived', data),
       'crm.follow_up.due': this.onCrmFollowUpDue,
+      'crm.ai_usage.created': this.onCrmAiUsageCreated,
       'email_campaign.ai.ready': this.onEmailCampaignAiReady,
       'email_campaign.ai.failed': this.onEmailCampaignAiFailed,
     };
@@ -289,6 +290,12 @@ class ActionCableConnector extends BaseActionCableConnector {
     if (!this.isAValidEvent(data)) return;
 
     emitter.emit(BUS_EVENTS.CRM_FOLLOW_UP_DUE, data);
+  };
+
+  onCrmAiUsageCreated = data => {
+    if (!this.isAValidEvent(data)) return;
+
+    emitter.emit(BUS_EVENTS.CRM_AI_USAGE_CREATED, data);
   };
 
   // Geração de e-mail por IA concluída/falhou: atualiza os selos (refetch) e emite o bus para o
