@@ -73,6 +73,56 @@
       "TITLE": "Campaign comparison"
     }
   },
+  "CRM_AI_USAGE": {
+    "HEADER": {
+      "TITLE": "AI Management",
+      "DESCRIPTION": "Track how much AI costs by resource, period, and recent usage.",
+      "LIVE": "live"
+    },
+    "PERIOD_LABEL": "Period",
+    "PERIOD": {
+      "TODAY": "Today",
+      "WEEK": "Week",
+      "MONTH": "Month"
+    },
+    "ACTIONS": {
+      "DOWNLOAD": "Download report",
+      "RETRY": "Try again"
+    },
+    "KPI": {
+      "SPEND": "Weekly spend",
+      "SPEND_INFO": "Total AI cost in the selected period.",
+      "USAGE": "AI uses",
+      "USAGE_INFO": "Number of AI usage events in the selected period.",
+      "SAVINGS": "Automatic savings",
+      "SAVINGS_INFO": "Estimated savings from reused AI context. Current savings: {percentage}%.",
+      "AVERAGE": "Average cost per use",
+      "AVERAGE_INFO": "Total spend divided by AI uses in the selected period."
+    },
+    "SECTIONS": {
+      "SPEND_BY_RESOURCE": "Spend by resource",
+      "WEEKLY_SPEND": "Weekly spend (by day)",
+      "HISTORY": "Usage history"
+    },
+    "TABLE": {
+      "WHEN": "When",
+      "RESOURCE": "Resource",
+      "ACCOUNT": "Account",
+      "TOKENS": "Tokens",
+      "COST": "Cost"
+    },
+    "EMPTY": {
+      "RESOURCE": "No AI spend recorded in this period.",
+      "SERIES": "No AI spend recorded in this period.",
+      "HISTORY": "No AI usage recorded in this period."
+    },
+    "TABLE_NOTICE": "We only show usage. Conversation content never appears here.",
+    "PRIVACY_FOOTER": "We never show the content of conversations with AI.",
+    "RATE_UNAVAILABLE": "BRL exchange rate is unavailable right now; showing values in USD.",
+    "RESOURCE_FALLBACK": "Other",
+    "LOADING": "Loading AI usage…",
+    "ERROR": "Could not load AI usage. Try again."
+  },
   "CRM_KANBAN": {
     "TITLE": "CRM Kanban",
     "SUBTITLE": "Operational pipelines with cards that can work independently from conversations, contacts, or inboxes.",

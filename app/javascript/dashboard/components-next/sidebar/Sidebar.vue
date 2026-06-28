@@ -729,6 +729,12 @@ const menuItems = computed(() => {
                       to: accountScopedRoute('crm_dashboard_index'),
                       activeOn: ['crm_dashboard_index'],
                     },
+                    {
+                      name: 'CRM AI Usage',
+                      label: t('CRM_AI_USAGE.HEADER.TITLE'),
+                      to: accountScopedRoute('crm_ai_usage_index'),
+                      activeOn: ['crm_ai_usage_index'],
+                    },
                   ]
                 : []),
               ...(canManageCrmSla.value
