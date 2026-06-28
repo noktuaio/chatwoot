@@ -93,6 +93,10 @@ Hoje NÃO há acompanhamento centralizado de custo/consumo de IA:
 3. Custo estimado por tabela de preço por modelo (config), distinguindo input
    cacheado (desconto) de não-cacheado.
 
+> REGRA (PO): a página Gestão IA só começa a ser codada APÓS mockups reais
+> aprovados pelo Rodrigo. Construção usando a skill **frontend-design** (regra
+> máxima de qualidade visual).
+
 ### 3.2 Página "Gestão IA" (CRM → sub-página)
 Nova sub-página dentro do CRM (ao lado de Kanban/Calendário/Dashboard/SLA):
 nav em `crm.routes.js` + item no menu CRM. Dashboard de gasto **em tempo real**,
