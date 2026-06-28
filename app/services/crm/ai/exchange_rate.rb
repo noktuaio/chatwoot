@@ -9,8 +9,13 @@ class Crm::Ai::ExchangeRate
   HTTP_TIMEOUT = 2
 
   class << self
+    # Reads the cached rate; on a cold cache (e.g. right after a deploy, before
+    # the hourly refresh job runs) it fetches live so the page shows BRL instead
+    # of falling back to USD until the next cron tick. Once LAST_CACHE_KEY is
+    # populated it never goes cold again, so the live fetch happens at most once
+    # per empty cache.
     def current
-      cached_rate(CURRENT_CACHE_KEY) || cached_rate(LAST_CACHE_KEY) || unavailable_payload
+      cached_rate(CURRENT_CACHE_KEY) || cached_rate(LAST_CACHE_KEY) || refresh!
     end
 
     def refresh!

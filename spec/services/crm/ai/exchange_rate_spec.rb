@@ -29,9 +29,19 @@ RSpec.describe Crm::Ai::ExchangeRate do
       expect(result[:rate_unavailable]).to be(false)
     end
 
-    it 'returns rate_unavailable without HTTP when cache is empty' do
+    it 'fetches live and populates the cache when both caches are empty' do
       stub_request(:get, described_class::API_URL)
-        .to_raise('should not be called')
+        .to_return(status: 200, body: { USDBRL: { bid: '5.4321', timestamp: '1782662400' } }.to_json)
+
+      result = described_class.current
+
+      expect(result[:rate]).to eq(BigDecimal('5.4321'))
+      expect(result[:rate_unavailable]).to be(false)
+      expect(cache.read(described_class::CURRENT_CACHE_KEY)[:rate]).to eq(BigDecimal('5.4321'))
+    end
+
+    it 'returns rate_unavailable when the cache is empty and the live fetch fails' do
+      stub_request(:get, described_class::API_URL).to_return(status: 500, body: '')
 
       result = described_class.current
 
