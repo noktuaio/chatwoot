@@ -37,9 +37,10 @@ RSpec.describe 'Crm Enterprise permission overlay', type: :policy do # rubocop:d
       expect(Crm::ReportPolicy.new(ctx(account, plain.first, plain.last), %i[crm report]).view?).to be(true)
     end
 
-    it 'denies admin-grade config (pipelines, automations, integration tokens)' do
+    it 'denies admin-grade config (pipelines, automations, AI settings, integration tokens)' do
       expect(Crm::PipelinePolicy.new(context, pipeline).create?).to be(false)
       expect(Crm::PipelinePolicy.new(context, pipeline).update?).to be(false)
+      expect(Crm::PipelinePolicy.new(context, pipeline).manage_ai?).to be(false)
       expect(Crm::StageAutomationPolicy.new(context, Crm::StageAutomation).create?).to be(false)
       expect(Crm::IntegrationTokenPolicy.new(context, Crm::IntegrationToken).create?).to be(false)
     end
