@@ -39,7 +39,10 @@ module Crm
         credential = Crm::Ai::CredentialResolver.new(account: account).resolve
         return unavailable if credential.blank? || !Crm::Ai::Config.enabled?
 
-        client = Crm::Ai::ResponsesClient.new(credential: credential)
+        client = Crm::Ai::ResponsesClient.new(
+          credential: credential,
+          feature: 'convite', account: account, pipeline: card.pipeline
+        )
         response = client.create(
           model: MODEL,
           instructions: instructions,

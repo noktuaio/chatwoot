@@ -82,7 +82,10 @@ module Crm
       end
 
       def generate_summary
-        client = ResponsesClient.new(credential: credential_resolver.resolve)
+        client = ResponsesClient.new(
+          credential: credential_resolver.resolve,
+          feature: 'resumo', account: @account, pipeline: @card.pipeline
+        )
         context = ContextBuilder.new(card: @card).perform
         response = client.create(
           model: Config::MODEL_SUMMARY,

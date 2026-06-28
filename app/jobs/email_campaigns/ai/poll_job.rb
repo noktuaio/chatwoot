@@ -37,6 +37,10 @@ module EmailCampaigns
       def handle_status(campaign, client, token, response_id, attempt, result)
         case result[:status]
         when 'completed'
+          Crm::Ai::UsageRecorder.record(
+            account: campaign.account, feature: 'email', model: Crm::Ai::Config::MODEL_EMAIL,
+            usage: result[:usage], reasoning_effort: 'high'
+          )
           finish_completed(campaign, client, token, response_id, result[:text])
         when 'failed', 'cancelled', 'incomplete'
           finish_failed(campaign, token, response_id, result[:error].presence || result[:status], client)

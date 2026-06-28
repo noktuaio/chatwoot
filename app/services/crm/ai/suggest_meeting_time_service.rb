@@ -81,7 +81,10 @@ module Crm
         credential = Crm::Ai::CredentialResolver.new(account: account).resolve
         return [] if credential.blank? || !Crm::Ai::Config.enabled?
 
-        client = Crm::Ai::ResponsesClient.new(credential: credential)
+        client = Crm::Ai::ResponsesClient.new(
+          credential: credential,
+          feature: 'sugestao_horario', account: account, pipeline: card.pipeline
+        )
         response = client.create(
           model: MODEL,
           instructions: instructions,

@@ -48,7 +48,10 @@ module Crm
         credential = Crm::Ai::CredentialResolver.new(account: meeting.account).resolve
         return unavailable if credential.blank? || !Crm::Ai::Config.enabled?
 
-        client = Crm::Ai::ResponsesClient.new(credential: credential)
+        client = Crm::Ai::ResponsesClient.new(
+          credential: credential,
+          feature: 'resumo_reuniao', account: meeting.account
+        )
         response = client.create(
           model: MODEL,
           instructions: instructions,
