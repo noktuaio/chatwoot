@@ -72,6 +72,9 @@ module RestrictIntegrationTokenToCrm
       'pipelines' => 'crm_view_reports', 'summary' => 'crm_view_reports', 'funnel' => 'crm_view_reports',
       'ai_vs_human' => 'crm_view_reports', 'throughput' => 'crm_view_reports',
       'follow_ups' => 'crm_view_reports', 'workload' => 'crm_view_reports'
+    },
+    'api/v1/accounts/crm/ai_usage' => {
+      'index' => 'crm_view_reports', 'export' => 'crm_view_reports'
     }
   }.freeze
 

@@ -231,6 +231,10 @@ Rails.application.routes.draw do
               get :workload, action: :workload, as: :crm_report_workload
               get :meetings, action: :meetings, as: :crm_report_meetings
             end
+            scope :ai_usage, controller: :ai_usage do
+              get '/', action: :index
+              get :export
+            end
             get 'calendar/events', to: 'calendar#events'
             get 'calendar/available_slots', to: 'calendar#available_slots'
             get :inbox_settings, to: 'inbox_settings#index'
