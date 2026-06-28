@@ -33,7 +33,13 @@ class Crm::Ai::UsageBroadcaster
   end
 
   def account_users
-    AccountUser.human.where(account_id: event.account_id).includes(:user, :custom_role)
+    # `custom_role` is an Enterprise-only association (absent in FOSS). Eager-loading
+    # it raises AssociationNotFound under FOSS, which the broadcast rescue would
+    # silently swallow (zero recipients). Only eager-load it when it exists; the EE
+    # ReportPolicy still reads it (lazily) where present.
+    relation = AccountUser.human.where(account_id: event.account_id).includes(:user)
+    relation = relation.includes(:custom_role) if AccountUser.reflect_on_association(:custom_role)
+    relation
   end
 
   def report_policy(account_user)
