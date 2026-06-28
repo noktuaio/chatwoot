@@ -55,15 +55,20 @@ Rails.application.configure do
   # Use Redis as the cache store so cached values (e.g. the USD->BRL exchange
   # rate) persist across deploys and are shared by every web/worker instance.
   # The default file store is per-container and ephemeral under the blue-green
-  # deploy, which left the cache empty after each rollout. Config is inlined
-  # from ENV (mirrors Redis::Config.base_config) because lib/ constants are not
-  # loaded yet when this environment file is evaluated. Stacks do not use Redis
-  # Sentinel; revisit if REDIS_SENTINELS is ever introduced.
+  # deploy, which left the cache empty after each rollout. The options mirror
+  # Redis::Config.base_config (including ssl_params for rediss:// setups) but
+  # are inlined because lib/ constants are not loaded yet when this environment
+  # file is evaluated; Chatwoot.redis_ssl_verify_mode is available here since
+  # application.rb loads first. Stacks do not use Redis Sentinel; revisit if
+  # REDIS_SENTINELS is ever introduced. No global expires_in: each writer sets
+  # its own TTL (the exchange rate keeps a permanent last-known-good copy).
   config.cache_store = :redis_cache_store, {
     url: ENV.fetch('REDIS_URL', 'redis://127.0.0.1:6379'),
     password: ENV.fetch('REDIS_PASSWORD', nil).presence,
+    ssl_params: { verify_mode: Chatwoot.redis_ssl_verify_mode },
+    reconnect_attempts: 2,
+    timeout: 1,
     namespace: 'cache',
-    expires_in: 1.day,
     error_handler: lambda { |method:, returning:, exception:|
       Rails.logger.warn("[cache][redis] #{method} failed: #{exception.class}: #{exception.message}")
     }
