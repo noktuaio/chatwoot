@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_26_000001) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_28_000001) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -387,6 +387,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_26_000001) do
     t.bigint "created_by_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "actuation", default: 0, null: false
+    t.index ["account_id", "actuation"], name: "idx_autonomia_agents_account_actuation"
     t.index ["account_id", "agent_type"], name: "index_autonomia_agents_on_account_id_and_agent_type"
     t.index ["account_id", "status"], name: "index_autonomia_agents_on_account_id_and_status"
     t.index ["account_id"], name: "index_autonomia_agents_on_account_id"
@@ -1053,6 +1055,22 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_26_000001) do
     t.index ["card_id"], name: "index_crm_ai_stage_suggestions_on_card_id"
     t.index ["from_stage_id"], name: "index_crm_ai_stage_suggestions_on_from_stage_id"
     t.index ["to_stage_id"], name: "index_crm_ai_stage_suggestions_on_to_stage_id"
+  end
+
+  create_table "crm_ai_usage_events", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "pipeline_id"
+    t.string "feature", null: false
+    t.string "model", null: false
+    t.string "reasoning_effort"
+    t.integer "input_tokens", default: 0, null: false
+    t.integer "cached_tokens", default: 0, null: false
+    t.integer "output_tokens", default: 0, null: false
+    t.decimal "cost_estimate", precision: 12, scale: 6, default: "0.0", null: false
+    t.integer "latency_ms"
+    t.datetime "created_at", null: false
+    t.index ["account_id", "created_at"], name: "idx_crm_ai_usage_account_created"
+    t.index ["account_id", "feature", "created_at"], name: "idx_crm_ai_usage_account_feature_created"
   end
 
   create_table "crm_calendar_sync_states", force: :cascade do |t|
