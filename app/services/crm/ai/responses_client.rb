@@ -71,9 +71,22 @@ module Crm
           input: normalize_input(input),
           reasoning: { effort: reasoning_effort }
         }
+        key = prompt_cache_key
+        body[:prompt_cache_key] = key if key.present?
         body[:text] = structured_text_format(schema) if schema.present?
         body[:tools] = tools if tools.present?
         body
+      end
+
+      # Etiqueta de roteamento de cache da OpenAI: pedidos com a mesma chave tendem ao mesmo backend,
+      # elevando o hit-rate do prefixo estável (instructions). Derivada de feature:account — isola por
+      # conta (multi-tenant) p/ uma conta de alto volume não degradar o roteamento das outras. Só
+      # metadado de roteamento — NUNCA contém conteúdo/credencial. Ausente quando não há feature
+      # (caching automático ≥1024 tok segue valendo, só sem o ganho de roteamento).
+      def prompt_cache_key
+        return if @feature.blank?
+
+        @account.present? ? "#{@feature}:#{@account.id}" : @feature.to_s
       end
 
       def auth_headers
