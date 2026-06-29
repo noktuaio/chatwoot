@@ -22,9 +22,10 @@ class Crm::PipelineStages::Destroyer
       @stage.destroy!
     end
     SUCCESS
-  rescue ActiveRecord::InvalidForeignKey
+  rescue ActiveRecord::InvalidForeignKey, ActiveRecord::RecordNotDestroyed
     # Race: a card was attached to the stage between the cards.exists? check and destroy!.
-    # A stage that still owns a card cannot be removed — report it as such.
+    # The cards restrict_with_error callback raises RecordNotDestroyed; a concurrent FK insert
+    # raises InvalidForeignKey. Either way the stage still owns a card — report it as such.
     HAS_CARDS
   end
 
