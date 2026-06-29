@@ -11,7 +11,8 @@ module Autonomia
       #   - FECHAMENTO (needs_more_info=false): 'medium'. Aqui se REDIGE a instruction completa do
       #     agente (escopo ancorado, blindagens, mapa de conhecimento) — vale o reasoning maior.
       # 'high' (herdado do gerador de e-mail) fazia a entrevista demorar ~25s; aposentado aqui.
-      BUILDER_REASONING_EFFORT_COLLECT = 'low'.freeze
+      # Fase 1 tuning: coleta sobe p/ 'medium' (qualidade da entrevista) — antes 'low' por latência.
+      BUILDER_REASONING_EFFORT_COLLECT = 'medium'.freeze
       BUILDER_REASONING_EFFORT_FINAL = 'medium'.freeze
       # Compat: call-sites/specs antigos que referenciam o nome único caem no efforte de fechamento
       # (comportamento conservador — qualidade sobre latência quando a fase é desconhecida).
@@ -25,7 +26,8 @@ module Autonomia
       # Chamada SÍNCRONA dentro do ProcessJob (após embed). 'low' basta: structured output objetivo
       # sobre trechos curtos; mantém a ingestão rápida.
       REVIEWER_MODEL = Crm::Ai::Config::MODEL_EMAIL # gpt-5.4
-      REVIEWER_REASONING_EFFORT = 'low'.freeze
+      # Fase 1 tuning: revisor sobe p/ 'medium' (julgamento de qualidade mais firme).
+      REVIEWER_REASONING_EFFORT = 'medium'.freeze
 
       # #3 INSTRUÇÃO VIVA — Refresh automático da instrução quando a KB muda (add/remove). Reusa o
       # modelo do Construtor (redação de instrução, como o fechamento) com effort 'medium'. NÃO é
@@ -64,8 +66,11 @@ module Autonomia
       MAX_AUDIO_PER_MESSAGE = 2
 
       # Fase B — motor de resposta (RAG + portão de confiança / Testar / Copiloto)
-      ANSWERER_MODEL = Crm::Ai::Config::MODEL_AUTO_MOVE # 'gpt-5.4'
-      ANSWERER_REASONING_EFFORT = 'low'.freeze
+      # Modelo fixado em gpt-5.4 (desacoplado de MODEL_AUTO_MOVE, que foi p/ mini na Fase 1 — o
+      # Answerer fala com o cliente e mantém o modelo forte).
+      ANSWERER_MODEL = 'gpt-5.4'.freeze
+      # Fase 1 tuning: answerer sobe p/ 'medium' (resposta ao cliente com mais raciocínio).
+      ANSWERER_REASONING_EFFORT = 'medium'.freeze
       DEFAULT_CONFIDENCE_THRESHOLD = 0.55
       ANSWER_TOP_K = 8
       # Retrieval (P1.1b) — DOIS patamares de distância de cosseno, substituindo o cutoff ABSOLUTO
