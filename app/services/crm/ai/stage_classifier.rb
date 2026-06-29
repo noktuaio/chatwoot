@@ -92,27 +92,35 @@ module Crm
       end
 
       # Detecção de pedido de RETORNO com data ("me liga terça", "retorna dia 15 às 10h").
+      # Estático (prefix-stable p/ prompt caching): os valores temporais (now_local, weekday,
+      # timezone, default_hour) NÃO são interpolados aqui — vão nos dados de entrada (user_input),
+      # senão o relógio mudaria o prefixo a cada chamada e o cache nunca reusaria.
       def callback_instructions
-        t = @context[:temporal] || {}
         <<~CB.strip
           RETORNO COM DATA: avalie se o cliente pediu para ser contatado/retornado numa DATA ou HORA concreta.
-          AGORA é #{t[:now_local]} (#{t[:weekday]}), fuso #{t[:timezone]}. Resolva expressões relativas a partir de AGORA:
+          A data/hora ATUAL (now_local), o dia da semana (weekday), o fuso (timezone) e a hora padrão (default_hour)
+          estão nos DADOS DE ENTRADA. Resolva expressões relativas a partir de now_local:
           "amanhã", "semana que vem", "depois do feriado", "dia 15", "terça às 10h" → uma data LOCAL futura concreta.
-          Regras de hora: "de manhã"→09:00, "de tarde"→14:00, "de noite"→19:00; sem hora/período → #{t[:default_hour] || 9}:00.
+          Regras de hora: "de manhã"→09:00, "de tarde"→14:00, "de noite"→19:00; sem hora/período → use default_hour.
           Preencha "callback_request" com detected=true, requested_at no formato "YYYY-MM-DDTHH:MM" (hora LOCAL, sem fuso),
           requested_at_text (trecho original) e confidence. Se o pedido for VAGO ("me liga depois", "qualquer hora", sem
           data resolvível) ou NÃO houver pedido de retorno, retorne "callback_request": null. NUNCA invente uma data.
         CB
       end
 
+      # Estático (prefix-stable p/ prompt caching): status/gatilho/agentes de handoff NÃO são
+      # interpolados — vão nos dados de entrada (handoff_enabled, handoff_trigger, eligible_agents),
+      # senão variariam o prefixo por caixa/estágio.
       def handoff_instructions
-        return 'Handoff desativado para este estágio: retorne "handoff": null.' unless @handoff_enabled
-
-        agents = @eligible_agents.any? ? @eligible_agents.join(', ') : 'nenhum informado'
         <<~HANDOFF.strip
-          Handoff para humano: avalie se a conversa atende o GATILHO abaixo. Se atender, retorne "handoff" com should_handoff=true e um motivo curto; senão should_handoff=false (ou "handoff": null).
-          GATILHO DE HANDOFF: #{@handoff_trigger.presence || 'quando o cliente pedir explicitamente um atendente humano.'}
-          Agentes disponíveis nesta caixa: #{agents}. Se o cliente citar/pedir um agente específico que esteja nessa lista, coloque o nome em "suggested_agent"; senão suggested_agent=null. Não invente nomes fora da lista.
+          HANDOFF PARA HUMANO: o status (handoff_enabled), o GATILHO (handoff_trigger) e os agentes disponíveis
+          (eligible_agents) estão nos DADOS DE ENTRADA.
+          Se handoff_enabled for false, retorne "handoff": null.
+          Se handoff_enabled for true, avalie se a conversa atende o handoff_trigger (quando vazio, use "o cliente pediu
+          explicitamente um atendente humano"): se atender, retorne "handoff" com should_handoff=true e um motivo curto;
+          senão should_handoff=false (ou "handoff": null).
+          Se o cliente citar/pedir um agente presente em eligible_agents, coloque o nome em "suggested_agent"; senão
+          suggested_agent=null. Não invente nomes fora da lista.
         HANDOFF
       end
 
@@ -128,9 +136,12 @@ module Crm
           conversation_summary: @context[:summary],
           recent_messages: @context[:recent_messages],
           handoff_enabled: @handoff_enabled,
+          handoff_trigger: @handoff_trigger,
           eligible_agents: @eligible_agents,
           now_local: @context.dig(:temporal, :now_local),
-          timezone: @context.dig(:temporal, :timezone)
+          weekday: @context.dig(:temporal, :weekday),
+          timezone: @context.dig(:temporal, :timezone),
+          default_hour: @context.dig(:temporal, :default_hour) || 9
         }.to_json
       end
 
