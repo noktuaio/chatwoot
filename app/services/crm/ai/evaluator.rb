@@ -49,9 +49,12 @@ module Crm
 
       def classify_stage
         MediaEnricher.new(card: @card).perform if Config.media_enabled?
+        # cache_key_scope: :feature — o prefixo do classify é conta-agnóstico (StageClassifier#instructions),
+        # então roteamos por feature só (sem account) p/ consolidar o hit-rate de cache entre contas.
         client = ResponsesClient.new(
           credential: credential_resolver.resolve,
-          feature: 'avaliacao_card', account: @account, pipeline: @card.pipeline
+          feature: 'avaliacao_card', account: @account, pipeline: @card.pipeline,
+          cache_key_scope: :feature
         )
         context = ContextBuilder.new(card: @card).perform
         model = auto_move_allowed? ? Config::MODEL_AUTO_MOVE : Config::MODEL_CLASSIFY

@@ -9,11 +9,16 @@ module Crm
       # feature/account/pipeline são OPCIONAIS e só servem à telemetria de consumo (Gestão IA):
       # quando ambos feature+account estão presentes, cada chamada bem-sucedida grava 1 evento de uso
       # (só metadados — nunca prompt/resposta). Sem eles, comportamento idêntico ao anterior.
-      def initialize(credential:, feature: nil, account: nil, pipeline: nil)
+      # cache_key_scope controla SÓ a etiqueta de roteamento de cache (prompt_cache_key), não a
+      # telemetria nem o conteúdo. :account (padrão) isola por conta (multi-tenant). :feature usa só a
+      # feature — válido quando o prefixo (instructions) é conta-agnóstico (ex.: classify), consolidando
+      # o roteamento entre contas p/ subir o hit-rate global do mesmo prefixo.
+      def initialize(credential:, feature: nil, account: nil, pipeline: nil, cache_key_scope: :account)
         @credential = credential
         @feature = feature
         @account = account
         @pipeline = pipeline
+        @cache_key_scope = cache_key_scope
       end
 
       def create(model:, instructions:, input:, schema: nil, reasoning_effort: 'low', tools: nil, timeout: 120)
@@ -85,6 +90,7 @@ module Crm
       # (caching automático ≥1024 tok segue valendo, só sem o ganho de roteamento).
       def prompt_cache_key
         return if @feature.blank?
+        return @feature.to_s if @cache_key_scope == :feature
 
         @account.present? ? "#{@feature}:#{@account.id}" : @feature.to_s
       end
