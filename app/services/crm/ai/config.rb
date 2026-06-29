@@ -12,16 +12,18 @@ module Crm
 
       MODEL_SUMMARY = 'gpt-5.4-mini'.freeze
       MODEL_CLASSIFY = 'gpt-5.4-mini'.freeze
-      MODEL_AUTO_MOVE = 'gpt-5.4'.freeze
+      # Fase 1 tuning: auto-move usa o mini (custo) + effort xhigh (compensa força do modelo).
+      MODEL_AUTO_MOVE = 'gpt-5.4-mini'.freeze
       MODEL_FOLLOWUP = 'gpt-5.4-mini'.freeze
       # E-mail builder copilot (multimodal generate). Full model — sees images/PDFs and writes MJML.
       MODEL_EMAIL = 'gpt-5.4'.freeze
 
       # REASONING EFFORT por tarefa (modelos seguem mini). Decisões que FALAM com o cliente
       # (follow-up composer + envio do callback) usam 'xhigh' — mais segurança, baixa frequência.
-      # As de TODA mensagem (classifier/resumo/visão) usam 'high' — equilíbrio custo×latência.
+      # Resumo/visão usam 'high'. Classify/auto-move usam 'xhigh' (auto-move age sem humano e o
+      # modelo é o mini — o effort máximo compensa). Effort único p/ classify E auto-move.
       # Suportados no gpt-5.4-mini: none/low/medium/high/xhigh (validado por probe no endpoint).
-      CLASSIFY_REASONING_EFFORT = 'high'.freeze
+      CLASSIFY_REASONING_EFFORT = 'xhigh'.freeze
       SUMMARY_REASONING_EFFORT = 'high'.freeze
       VISION_REASONING_EFFORT = 'high'.freeze
       FOLLOWUP_REASONING_EFFORT = 'xhigh'.freeze

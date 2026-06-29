@@ -11,7 +11,8 @@ module Crm
     class DraftInviteService
       MAX_DESCRIPTION_LENGTH = 2000
       MODEL = Crm::Ai::Config::MODEL_FOLLOWUP
-      REASONING_EFFORT = 'low'.freeze
+      # Fase 1 tuning: rascunho de convite sobe p/ 'high' (texto que vai ao cliente).
+      REASONING_EFFORT = 'high'.freeze
 
       DRAFT_SCHEMA = {
         name: 'crm_meeting_invite_draft',

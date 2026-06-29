@@ -74,7 +74,8 @@ class Sla::AiBreachGuard
       instructions: INSTRUCTIONS,
       input: transcript,
       schema: SCHEMA,
-      reasoning_effort: 'low'
+      # Fase 1 tuning: guarda de breach de SLA sobe p/ 'high' (decisão de risco operacional).
+      reasoning_effort: 'high'
     )
     decision = JSON.parse(response[:text])
     # Cache only well-formed decisions; a malformed one would stick to the
