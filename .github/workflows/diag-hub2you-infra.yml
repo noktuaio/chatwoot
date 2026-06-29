@@ -1,0 +1,77 @@
+name: Diag Hub2You Infra (read-only)
+
+# Read-only incident probe: assumes the Hub2You deploy OIDC role and inspects
+# whether the account is reachable and whether the ALB still exists. No mutation.
+# Safe to delete after the incident is resolved.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: diag-hub2you-infra
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ROLE_ARN: arn:aws:iam::354307071110:role/chatwoot-autonomia-prod-github-actions-deploy
+  ALB_NAME: chatwoot-autonomia-prod-ec2
+  CURRENT_INSTANCE_PARAMETER: /chatwoot/prod/blue-green/current-instance-id
+  CURRENT_TG_PARAMETER: /chatwoot/prod/blue-green/current-target-group-arn
+
+jobs:
+  diag:
+    name: Probe account + ALB
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Who am I (account reachable?)
+        run: |
+          echo "=== sts get-caller-identity ==="
+          aws sts get-caller-identity || echo "STS_FAILED"
+
+      - name: ALB by name (does it still exist?)
+        run: |
+          echo "=== describe-load-balancers --names $ALB_NAME ==="
+          aws elbv2 describe-load-balancers --names "$ALB_NAME" \
+            --query 'LoadBalancers[].{Name:LoadBalancerName,DNS:DNSName,State:State.Code,Type:Type,Scheme:Scheme}' \
+            --output table || echo "ALB_NOT_FOUND_BY_NAME"
+
+      - name: All load balancers in account
+        run: |
+          echo "=== all ELBv2 in account ==="
+          aws elbv2 describe-load-balancers \
+            --query 'LoadBalancers[].{Name:LoadBalancerName,DNS:DNSName,State:State.Code}' \
+            --output table || echo "DESCRIBE_ALL_FAILED"
+
+      - name: Target groups + health
+        run: |
+          echo "=== target groups ==="
+          aws elbv2 describe-target-groups \
+            --query 'TargetGroups[].{Name:TargetGroupName,ARN:TargetGroupArn}' \
+            --output table || echo "TG_DESCRIBE_FAILED"
+
+      - name: Blue/green SSM pointers
+        run: |
+          echo "=== current-instance-id ==="
+          aws ssm get-parameter --name "$CURRENT_INSTANCE_PARAMETER" \
+            --query 'Parameter.Value' --output text || echo "SSM_INSTANCE_MISSING"
+          echo "=== current-target-group-arn ==="
+          aws ssm get-parameter --name "$CURRENT_TG_PARAMETER" \
+            --query 'Parameter.Value' --output text || echo "SSM_TG_MISSING"
+
+      - name: EC2 instances (chatwoot)
+        run: |
+          echo "=== chatwoot EC2 instances ==="
+          aws ec2 describe-instances \
+            --query 'Reservations[].Instances[].{Id:InstanceId,State:State.Name,Type:InstanceType,Launch:LaunchTime}' \
+            --output table || echo "EC2_DESCRIBE_FAILED"
