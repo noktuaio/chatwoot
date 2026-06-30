@@ -12,8 +12,27 @@ class Crm::Ai::StaleCardsJob < ApplicationJob
       cutoff = stale_hours.to_i.hours.ago
 
       pipeline.cards.open.where('last_activity_at < ?', cutoff).find_each do |card|
+        next if already_evaluated_since_last_activity?(card)
+
         Crm::Ai::EvaluateCardJob.perform_later(card.id)
       end
     end
+  end
+
+  private
+
+  # Custo: NÃO reavaliar card cuja última avaliação já é posterior à última atividade.
+  # `last_activity_at` só avança com mensagem nova (CardSyncer); a avaliação grava
+  # `ai.last_evaluated_at` mas NÃO mexe em `last_activity_at`. Sem esta guarda, todo card
+  # parado seria reclassificado a cada 6h indefinidamente, sem nada novo pra classificar.
+  def already_evaluated_since_last_activity?(card)
+    return false if card.last_activity_at.blank?
+
+    last_evaluated_at = card.metadata.to_h.dig('ai', 'last_evaluated_at')
+    return false if last_evaluated_at.blank?
+
+    Time.parse(last_evaluated_at) >= card.last_activity_at
+  rescue ArgumentError
+    false
   end
 end
