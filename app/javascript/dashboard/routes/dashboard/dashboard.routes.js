@@ -3,6 +3,7 @@ import conversation from './conversation/conversation.routes';
 import { routes as searchRoutes } from '../../modules/search/search.routes';
 import { routes as contactRoutes } from './contacts/routes';
 import { routes as crmRoutes } from './crm/crm.routes';
+import { routes as financialRoutes } from './financial/financial.routes';
 import { routes as autonomiaRoutes } from './autonomia/autonomia.routes';
 import { routes as companyRoutes } from './companies/routes';
 import { routes as notificationRoutes } from './notifications/routes';
@@ -28,6 +29,7 @@ export default {
         ...settings.routes,
         ...contactRoutes,
         ...crmRoutes,
+        ...financialRoutes,
         ...autonomiaRoutes,
         ...companyRoutes,
         ...searchRoutes,
