@@ -15,21 +15,30 @@ module Crm
       end
 
       def perform
-        return skip('not_requested') unless requested?
-        return skip('disabled') unless settings[:enabled]
-        return skip('no_conversation') if @conversation.blank?
-        return skip('already_assigned') if @conversation.assignee_id.present?
-        return skip('cooldown') if recently_handed_off?
+        blocked = blocked_reason
+        return skip(blocked) if blocked
 
         agent = select_agent
         return skip('no_eligible_agent') if agent.blank?
-
         return skip('assignment_failed') unless assign!(agent)
 
         Result.new(status: :handed_off, assignee: agent)
       end
 
       private
+
+      # Primeira guarda que falha (ou nil se pode prosseguir). Idempotente/loop-safe:
+      # atribuir re-enfileira avaliação, então estas guardas têm de curto-circuitar antes
+      # de qualquer efeito colateral.
+      def blocked_reason
+        return 'not_requested' unless requested?
+        return 'disabled' unless settings[:enabled]
+        return 'no_conversation' if @conversation.blank?
+        return 'already_assigned' if @conversation.assignee_id.present?
+        return 'cooldown' if recently_handed_off?
+
+        nil
+      end
 
       def normalize(handoff)
         return {} if handoff.blank?
