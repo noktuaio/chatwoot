@@ -24,6 +24,7 @@ RSpec.describe 'Autonomia::RegistrationCallbacksController', type: :request do
               auth_user_id: 'auth-user-123',
               checkout_status: 'paid',
               client_id: 'talkai',
+              companyName: 'Hub2You Seguros',
               email: 'admin@autonomia.solutions'
             }
       end
@@ -33,6 +34,7 @@ RSpec.describe 'Autonomia::RegistrationCallbacksController', type: :request do
           'auth_user_id' => 'auth-user-123',
           'checkout_status' => 'paid',
           'client_id' => 'talkai',
+          'companyName' => 'Hub2You Seguros',
           'email' => 'admin@autonomia.solutions'
         )
       )

@@ -7,6 +7,7 @@
     "FIELDS": {
       "EMAIL": "Email",
       "YOUR_ROLE": "Your Role",
+      "COMPANY_NAME": "Company name",
       "WEBSITE": "Website",
       "LANGUAGE": "Language",
       "TIMEZONE": "Timezone",
@@ -16,6 +17,7 @@
     },
     "PLACEHOLDERS": {
       "SELECT_ROLE": "Select your role",
+      "ENTER_COMPANY_NAME": "Your company name",
       "ENTER_WEBSITE": "www.example.com",
       "SELECT_LANGUAGE": "Select language",
       "SELECT_TIMEZONE": "Select timezone",

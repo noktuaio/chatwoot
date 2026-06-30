@@ -56,5 +56,41 @@ RSpec.describe Autonomia::Sso::Provisioner do
       expect(Autonomia::UserLink.find_by!(identity_user_id: identity_user_id).user).to eq(provisioned_user)
       expect(Autonomia::AccountLink.find_by!(identity_organization_id: identity_organization_id).account).to eq(invited_account)
     end
+
+    it 'uses user companyName as organization name when Auth has no active organization' do
+      provisioner = described_class.new(
+        context: {
+          'user' => {
+            'id' => identity_user_id,
+            'email' => identity_email,
+            'fullName' => 'Atendimento Autonomia',
+            'companyName' => 'Noktua'
+          }
+        }
+      )
+
+      expect(provisioner.send(:organization_name)).to eq('Noktua')
+      expect(provisioner.send(:identity_name)).to eq('Atendimento Autonomia')
+      expect(provisioner.send(:identity_organization_metadata)).to include(
+        'id' => identity_email,
+        'name' => 'Noktua',
+        'fallback' => true
+      )
+    end
+
+    it 'keeps active organization name before user companyName' do
+      provisioner = described_class.new(
+        context: context.deep_merge(
+          'user' => { 'companyName' => 'Noktua' }
+        )
+      )
+
+      expect(provisioner.send(:organization_name)).to eq('Nova organizacao criada no Auth')
+      expect(provisioner.send(:identity_organization_metadata)).to include(
+        'id' => identity_organization_id,
+        'name' => 'Nova organizacao criada no Auth'
+      )
+      expect(provisioner.send(:identity_organization_metadata)).not_to include('fallback' => true)
+    end
   end
 end

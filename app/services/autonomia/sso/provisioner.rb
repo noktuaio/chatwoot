@@ -66,7 +66,7 @@ class Autonomia::Sso::Provisioner
   def link_account(account)
     Autonomia::AccountLink.find_or_initialize_by(identity_organization_id: identity_organization_id).tap do |link|
       link.account = account
-      link.metadata = { 'identity_organization' => identity_organization }
+      link.metadata = { 'identity_organization' => identity_organization_metadata }
       link.save!
     end
   end
@@ -132,7 +132,11 @@ class Autonomia::Sso::Provisioner
   end
 
   def identity_name
-    identity_user['name'] || identity_user['displayName'] || identity_user['display_name']
+    identity_user['name'] ||
+      identity_user['fullName'] ||
+      identity_user['full_name'] ||
+      identity_user['displayName'] ||
+      identity_user['display_name']
   end
 
   def identity_organization_id
@@ -140,7 +144,22 @@ class Autonomia::Sso::Provisioner
   end
 
   def organization_name
-    identity_organization['name'] || identity_organization['displayName'] || identity_organization['display_name']
+    identity_organization['name'] ||
+      identity_organization['displayName'] ||
+      identity_organization['display_name'] ||
+      identity_user['companyName'] ||
+      identity_user['company_name'] ||
+      identity_user['organizationName'] ||
+      identity_user['organization_name']
+  end
+
+  def identity_organization_metadata
+    metadata = identity_organization.presence || {}
+    metadata = metadata.with_indifferent_access
+    metadata['id'] ||= identity_organization_id
+    metadata['name'] ||= organization_name if organization_name.present?
+    metadata['fallback'] = true if identity_organization.blank? && organization_name.present?
+    metadata
   end
 
   def random_password

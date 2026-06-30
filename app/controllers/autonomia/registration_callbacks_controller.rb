@@ -27,17 +27,23 @@ class Autonomia::RegistrationCallbacksController < ApplicationController
       :checkout_status,
       :client_id,
       :company_name,
+      :companyName,
       :email,
       :full_name,
       :identity_organization_id,
       :name,
+      :organization_name,
+      :organizationName,
       :organization_id,
       :organizationId,
       :product,
       :return_to,
       :user_subscription_id,
       :token,
-      :invitation_token
+      :invitation_token,
+      activeOrganization: [:id, :name, :displayName, :display_name],
+      active_organization: [:id, :name, :displayName, :display_name],
+      organization: [:id, :name, :displayName, :display_name]
     ).to_h
   end
 

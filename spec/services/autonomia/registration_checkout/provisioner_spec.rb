@@ -93,5 +93,26 @@ RSpec.describe Autonomia::RegistrationCheckout::Provisioner do
         described_class.new(params: callback).perform
       end.to raise_error(described_class::InvalidCallback, /Checkout was not completed/)
     end
+
+    it 'accepts camelCase company name from Auth callbacks' do
+      provisioner = described_class.new(params: params.except(:company_name).merge(companyName: 'Hub2You Seguros'))
+
+      expect(provisioner.send(:company_name)).to eq('Hub2You Seguros')
+    end
+
+    it 'accepts nested active organization name from Auth callbacks' do
+      provisioner = described_class.new(
+        params: params.except(:company_name).merge(
+          activeOrganization: {
+            id: 'org-123',
+            displayName: 'GTA Assist'
+          }
+        )
+      )
+
+      expect(provisioner.send(:company_name)).to eq('GTA Assist')
+      expect(provisioner.send(:organization_id)).to eq('org-123')
+      expect(provisioner.send(:organization_id_fallback?)).to be(false)
+    end
   end
 end
