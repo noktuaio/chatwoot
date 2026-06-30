@@ -31,7 +31,7 @@ class Crm::Ai::StaleCardsJob < ApplicationJob
     last_evaluated_at = card.metadata.to_h.dig('ai', 'last_evaluated_at')
     return false if last_evaluated_at.blank?
 
-    Time.parse(last_evaluated_at) >= card.last_activity_at
+    Time.zone.parse(last_evaluated_at) >= card.last_activity_at
   rescue ArgumentError
     false
   end
