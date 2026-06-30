@@ -92,5 +92,60 @@ RSpec.describe Autonomia::Sso::Provisioner do
       )
       expect(provisioner.send(:identity_organization_metadata)).not_to include('fallback' => true)
     end
+
+    context 'when the account was created by the registration callback' do
+      let!(:invited_account) { nil }
+      let(:identity_email) { 'roberto+hub2@noktua.io' }
+      let(:identity_user_id) { 'sso-user-id' }
+      let!(:registration_account) do
+        create(
+          :account,
+          name: 'Noktua Seguros',
+          custom_attributes: {
+            'autonomia_registration_checkout' => {
+              'email' => identity_email,
+              'client_id' => 'chat2you',
+              'auth_user_id' => 'registration-user-id',
+              'checkout_status' => 'provisioned'
+            }
+          }
+        )
+      end
+      let!(:duplicate_account) do
+        create(
+          :account,
+          name: 'Noktua Seguros',
+          custom_attributes: { 'onboarding_step' => 'account_details' }
+        )
+      end
+      let!(:duplicate_account_link) do
+        Autonomia::AccountLink.create!(
+          account: duplicate_account,
+          identity_organization_id: identity_email,
+          metadata: { 'identity_organization' => { 'id' => identity_email, 'fallback' => true } }
+        )
+      end
+      let(:context) do
+        {
+          'user' => {
+            'id' => identity_user_id,
+            'email' => identity_email,
+            'name' => 'Roberto Hub2',
+            'companyName' => 'Noktua Seguros'
+          }
+        }
+      end
+
+      it 'reuses the registration account and repoints the fallback account link' do
+        provisioned_user = nil
+
+        expect do
+          provisioned_user = described_class.new(context: context).perform
+        end.not_to change(Account, :count)
+
+        expect(AccountUser.find_by!(account: registration_account, user: provisioned_user).role).to eq('administrator')
+        expect(duplicate_account_link.reload.account).to eq(registration_account)
+      end
+    end
   end
 end
