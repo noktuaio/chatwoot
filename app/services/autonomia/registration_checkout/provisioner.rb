@@ -152,13 +152,19 @@ class Autonomia::RegistrationCheckout::Provisioner
     @organization_id ||= callback_params['organization_id'].presence ||
                          callback_params['identity_organization_id'].presence ||
                          callback_params['organizationId'].presence ||
+                         nested_organization_value('id').presence ||
+                         nested_organization_value('organizationId').presence ||
+                         nested_organization_value('organization_id').presence ||
                          "registration:#{client_id}:#{auth_user_id}"
   end
 
   def organization_id_fallback?
     callback_params['organization_id'].blank? &&
       callback_params['identity_organization_id'].blank? &&
-      callback_params['organizationId'].blank?
+      callback_params['organizationId'].blank? &&
+      nested_organization_value('id').blank? &&
+      nested_organization_value('organizationId').blank? &&
+      nested_organization_value('organization_id').blank?
   end
 
   def auth_user_id
@@ -174,7 +180,13 @@ class Autonomia::RegistrationCheckout::Provisioner
   end
 
   def company_name
-    callback_params['company_name'].presence
+    callback_params['company_name'].presence ||
+      callback_params['companyName'].presence ||
+      callback_params['organization_name'].presence ||
+      callback_params['organizationName'].presence ||
+      nested_organization_value('name').presence ||
+      nested_organization_value('displayName').presence ||
+      nested_organization_value('display_name').presence
   end
 
   def checkout_status
@@ -192,6 +204,16 @@ class Autonomia::RegistrationCheckout::Provisioner
 
   def callback_params
     @callback_params ||= params.to_h.with_indifferent_access
+  end
+
+  def nested_organization_value(key)
+    organization = callback_params['activeOrganization'].presence ||
+                   callback_params['active_organization'].presence ||
+                   callback_params['organization'].presence ||
+                   {}
+    return if organization.blank? || !organization.respond_to?(:with_indifferent_access)
+
+    organization.with_indifferent_access[key]
   end
 
   def random_password

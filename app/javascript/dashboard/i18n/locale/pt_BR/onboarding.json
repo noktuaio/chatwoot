@@ -7,6 +7,7 @@
     "FIELDS": {
       "EMAIL": "E-mail",
       "YOUR_ROLE": "Sua Função",
+      "COMPANY_NAME": "Nome da empresa",
       "WEBSITE": "Site",
       "LANGUAGE": "Idioma",
       "TIMEZONE": "Fuso horário",
@@ -16,6 +17,7 @@
     },
     "PLACEHOLDERS": {
       "SELECT_ROLE": "Selecione sua função",
+      "ENTER_COMPANY_NAME": "Nome da sua empresa",
       "ENTER_WEBSITE": "www.exemplo.com",
       "SELECT_LANGUAGE": "Selecione o idioma",
       "SELECT_TIMEZONE": "Selecionar fuso horário",

@@ -33,6 +33,7 @@ const { enabledLanguages } = useConfig();
 const currentUser = useMapGetter('getCurrentUser');
 
 const userRole = ref('');
+const companyName = ref('');
 const website = ref('');
 const locale = ref('');
 const timezone = ref('');
@@ -40,12 +41,15 @@ const companySize = ref('');
 const industry = ref('');
 const referralSource = ref('');
 const isSubmitting = ref(false);
+const isEditingCompanyName = ref(false);
 const isEditingWebsite = ref(false);
+const companyNameInput = ref(null);
 const websiteInput = ref(null);
 const showErrorOnFields = ref(false);
 
 const validationRules = {
   userRole: {},
+  companyName: {},
   website: {},
   locale: {},
   timezone: {},
@@ -56,6 +60,7 @@ const validationRules = {
 
 const v$ = useVuelidate(validationRules, {
   userRole,
+  companyName,
   website,
   locale,
   timezone,
@@ -67,6 +72,9 @@ const v$ = useVuelidate(validationRules, {
 const userName = computed(() => currentUser.value?.name || '');
 const userEmail = computed(() => currentUser.value?.email || '');
 const accountName = computed(() => currentAccount.value?.name || '');
+const displayCompanyName = computed(
+  () => companyName.value.trim() || accountName.value
+);
 const enrichmentTimedOut = ref(false);
 const isEnriching = computed(
   () =>
@@ -132,6 +140,7 @@ const populateFormFields = () => {
   const attrs = account?.custom_attributes || {};
   const brandInfo = attrs.brand_info;
 
+  if (!companyName.value) companyName.value = account?.name || '';
   if (!locale.value) locale.value = detectBestLocale();
   if (!website.value) {
     website.value = attrs.website || brandInfo?.domain || '';
@@ -191,8 +200,17 @@ const enableWebsiteEditing = () => {
   nextTick(() => websiteInput.value?.focus());
 };
 
+const enableCompanyNameEditing = () => {
+  isEditingCompanyName.value = true;
+  nextTick(() => companyNameInput.value?.focus());
+};
+
 const handleWebsiteEnter = () => {
   websiteInput.value?.blur();
+};
+
+const handleCompanyNameEnter = () => {
+  companyNameInput.value?.blur();
 };
 
 const normalizeWebsiteUrl = raw => {
@@ -234,11 +252,12 @@ const handleSubmit = async () => {
   // Persist with a scheme so downstream consumers (Firecrawl, portal
   // homepage_link) get a fully-qualified URL regardless of what the user typed.
   website.value = normalizeWebsiteUrl(website.value);
+  const normalizedCompanyName = companyName.value.trim() || accountName.value;
 
   isSubmitting.value = true;
   try {
     await finishOnboarding({
-      name: accountName.value,
+      name: normalizedCompanyName,
       locale: locale.value,
       website: website.value,
       industry: industry.value,
@@ -333,13 +352,44 @@ const handleSubmit = async () => {
             <img
               v-if="companyLogo"
               :src="companyLogo"
-              :alt="accountName"
+              :alt="displayCompanyName"
               class="size-4 object-contain"
             />
             <span class="text-sm font-medium text-n-slate-12">
-              {{ accountName }}
+              {{ displayCompanyName }}
             </span>
           </div>
+          <OnboardingFormRow
+            :title="t('ONBOARDING_NEXT.FIELDS.COMPANY_NAME')"
+            icon="i-lucide-building-2"
+          >
+            <div class="flex items-center justify-end gap-2">
+              <InlineInput
+                ref="companyNameInput"
+                v-model="companyName"
+                :readonly="!isEditingCompanyName"
+                :placeholder="
+                  t('ONBOARDING_NEXT.PLACEHOLDERS.ENTER_COMPANY_NAME')
+                "
+                :custom-input-class="[
+                  'w-auto text-end px-1 py-0.5 -my-0.5 mx-0 placeholder:text-n-slate-9 rounded',
+                  {
+                    'animate-shake': showErrorOnFields && v$.companyName.$error,
+                  },
+                ]"
+                @enter-press="handleCompanyNameEnter"
+                @blur="isEditingCompanyName = false"
+              />
+              <NextButton
+                type="button"
+                icon="i-lucide-pencil"
+                slate
+                xs
+                ghost
+                @click="enableCompanyNameEditing"
+              />
+            </div>
+          </OnboardingFormRow>
           <OnboardingFormRow
             :title="t('ONBOARDING_NEXT.FIELDS.WEBSITE')"
             icon="i-lucide-globe"
