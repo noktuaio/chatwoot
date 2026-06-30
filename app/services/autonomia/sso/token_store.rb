@@ -9,10 +9,16 @@ class Autonomia::Sso::TokenStore
   end
 
   def self.authorization_token_for(user)
-    user_link = Autonomia::UserLink.find_by(user: user)
-    return if user_link.blank?
+    Autonomia::UserLink
+      .where(user: user)
+      .where("metadata ? 'identity_authorization_token'")
+      .order(updated_at: :desc, id: :desc)
+      .each do |user_link|
+        token = new(user_link).authorization_token
+        return token if token.present?
+      end
 
-    new(user_link).authorization_token
+    nil
   end
 
   def initialize(user_link)
