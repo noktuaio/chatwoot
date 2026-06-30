@@ -101,6 +101,28 @@ RSpec.describe Crm::Reports::AiUsage do
     expect(serialized).not_to include('response')
   end
 
+  it 'floors the window at CRM_AI_USAGE_BASELINE_AT, hiding pre-baseline events without deleting them' do
+    account = create(:account)
+    create(:crm_ai_usage_event, account: account, cost_estimate: 0.01, created_at: Time.zone.parse('2026-06-27 09:00:00'))
+    create(:crm_ai_usage_event, account: account, cost_estimate: 0.02, created_at: Time.zone.parse('2026-06-28 09:00:00'))
+
+    with_modified_env CRM_AI_USAGE_BASELINE_AT: '2026-06-28 00:00:00' do
+      result = payload(account: account)
+
+      expect(result.dig(:totals, :usage_count)).to eq(1)
+      expect(result.dig(:totals, :period_spend, :cost_usd)).to be_within(0.000001).of(0.02)
+      expect(result.dig(:period, :since)).to eq(Time.zone.parse('2026-06-28 00:00:00').iso8601)
+    end
+  end
+
+  it 'ignores the baseline when the ENV is unset (no regression)' do
+    account = create(:account)
+    create(:crm_ai_usage_event, account: account, cost_estimate: 0.01, created_at: Time.zone.parse('2026-06-27 09:00:00'))
+    create(:crm_ai_usage_event, account: account, cost_estimate: 0.02, created_at: Time.zone.parse('2026-06-28 09:00:00'))
+
+    expect(payload(account: account).dig(:totals, :usage_count)).to eq(2)
+  end
+
   it 'marks BRL values unavailable when no exchange rate is available' do
     allow(Crm::Ai::ExchangeRate).to receive(:current).and_return(rate: nil, rate_unavailable: true)
     account = create(:account)
