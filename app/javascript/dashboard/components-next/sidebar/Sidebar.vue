@@ -766,6 +766,33 @@ const menuItems = computed(() => {
           },
         ]
       : []),
+    ...(currentRole.value === 'administrator'
+      ? [
+          {
+            name: 'Financial',
+            label: t('SIDEBAR.FINANCIAL'),
+            icon: 'i-lucide-receipt',
+            activeOn: [
+              'autonomia_financial_subscription',
+              'autonomia_financial_invoices',
+            ],
+            children: [
+              {
+                name: 'Subscription',
+                label: t('SIDEBAR.FINANCIAL_SUBSCRIPTION'),
+                to: accountScopedRoute('autonomia_financial_subscription'),
+                activeOn: ['autonomia_financial_subscription'],
+              },
+              {
+                name: 'Invoices',
+                label: t('SIDEBAR.FINANCIAL_INVOICES'),
+                to: accountScopedRoute('autonomia_financial_invoices'),
+                activeOn: ['autonomia_financial_invoices'],
+              },
+            ],
+          },
+        ]
+      : []),
     {
       name: 'Companies',
       label: t('SIDEBAR.COMPANIES'),

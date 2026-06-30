@@ -281,6 +281,12 @@ Rails.application.routes.draw do
             # V2.3 — "Copiloto Autonom.ia" chat widget: list selectable internal/both agents + chat.
             get  'conversations/:conversation_id/copilot/agents', to: 'conversation_copilot#agents'
             post 'conversations/:conversation_id/copilot/chat',   to: 'conversation_copilot#chat'
+            scope :financial, controller: :financial do
+              get :subscription
+              get :billing_preview
+              get :invoices
+              get :payments
+            end
           end
           namespace :email_campaigns do
             resources :sender_identities, only: [:index, :create, :show, :destroy] do
