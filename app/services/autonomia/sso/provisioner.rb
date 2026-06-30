@@ -22,7 +22,7 @@ class Autonomia::Sso::Provisioner
   end
 
   def find_or_create_account
-    pending_agent_invitation_account || linked_account || create_account
+    pending_agent_invitation_account || registration_checkout_account || linked_account || create_account
   end
 
   def create_user
@@ -115,6 +115,18 @@ class Autonomia::Sso::Provisioner
     Autonomia::AccountLink.find_by(identity_organization_id: identity_organization_id)&.account
   end
 
+  def registration_checkout_account
+    return unless identity_organization_fallback?
+
+    Account
+      .where(
+        "LOWER(custom_attributes -> 'autonomia_registration_checkout' ->> 'email') = :email",
+        email: identity_email.downcase
+      )
+      .order(:id)
+      .first
+  end
+
   def identity_user
     context['user'] || {}
   end
@@ -141,6 +153,15 @@ class Autonomia::Sso::Provisioner
 
   def identity_organization_id
     identity_organization['id'] || identity_organization['organizationId'] || identity_organization['organization_id'] || identity_email
+  end
+
+  def identity_organization_fallback?
+    identity_organization.blank? ||
+      (
+        identity_organization['id'].blank? &&
+          identity_organization['organizationId'].blank? &&
+          identity_organization['organization_id'].blank?
+      )
   end
 
   def organization_name
