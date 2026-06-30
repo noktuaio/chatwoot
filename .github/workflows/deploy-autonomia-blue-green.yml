@@ -104,7 +104,7 @@ jobs:
             ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
             ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.STABLE_IMAGE_TAG }}
           cache-from: type=gha,scope=chatwoot-autonomia-prod-linux-amd64
-          cache-to: type=gha,mode=max,scope=chatwoot-autonomia-prod-linux-amd64
+          cache-to: type=gha,mode=min,ignore-error=true,scope=chatwoot-autonomia-prod-linux-amd64
 
       - name: Publish runtime image parameter
         env:
