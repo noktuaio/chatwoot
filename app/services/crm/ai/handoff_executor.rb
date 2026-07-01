@@ -6,6 +6,8 @@ module Crm
     # guards below MUST short-circuit before any side effect.
     class HandoffExecutor
       Result = Struct.new(:status, :assignee, :error, keyword_init: true)
+      # Limita o histórico R3 por card para evitar crescimento indefinido do JSONB.
+      HANDOFF_CYCLES_CAP = 20
 
       def initialize(card:, handoff:, trigger: 'message')
         @card = card
@@ -16,7 +18,7 @@ module Crm
 
       def perform
         blocked = blocked_reason
-        return skip(blocked) if blocked
+        return skip_blocked(blocked) if blocked
 
         if invite_mode?
           agent = select_agent(require_online: false)
@@ -161,6 +163,7 @@ module Crm
         metadata = (@card.metadata || {}).deep_dup
         now = Time.current.iso8601
         ai = (metadata['ai'] || {}).merge('last_handoff_at' => now)
+        ai.delete('handoff_hold')
         ai = append_invite_cycle(ai, now) if invited
         metadata['ai'] = ai
         @card.update!(metadata: metadata)
@@ -174,7 +177,10 @@ module Crm
       def append_invite_cycle(ai_meta, now)
         cycles = supersede_open_cycles(normalized_cycles(ai_meta), now)
         cycle = { 'cycle_id' => next_cycle_id(cycles), 'invited_at' => now }
-        ai_meta.merge('handoffs' => cycles + [cycle], 'handoff' => cycle)
+        # O ponteiro sempre referencia o ciclo recém-criado; manter a cauda preserva
+        # esse ciclo e descarta apenas histórico antigo já fora da janela operacional.
+        capped_cycles = (cycles + [cycle]).last(HANDOFF_CYCLES_CAP)
+        ai_meta.merge('handoffs' => capped_cycles, 'handoff' => cycle)
       end
 
       # Semeia a lista a partir do blob legado (convite gravado antes do array) para
@@ -191,7 +197,8 @@ module Crm
 
       def supersede_open_cycles(cycles, now)
         cycles.map do |cycle|
-          open = cycle['picked_up_at'].blank? && cycle['canceled_at'].blank?
+          open = cycle['picked_up_at'].blank? && cycle['canceled_at'].blank? &&
+                 cycle['expired_at'].blank? && cycle['escalated_at'].blank?
           open ? cycle.merge('canceled_at' => now) : cycle
         end
       end
@@ -218,8 +225,45 @@ module Crm
         Result.new(status: :skipped, error: reason)
       end
 
+      def skip_blocked(reason)
+        # Cooldown é transitório: mantém o marcador para o drain retentar depois
+        # da janela. Os demais motivos são terminais ou refletem a intenção atual
+        # do cliente, então limpam o hold órfão.
+        clear_handoff_hold! unless reason == 'cooldown'
+        skip(reason)
+      end
+
       def hold_online
+        stamp_handoff_hold!
         Result.new(status: :held_online, error: 'no_online_agent')
+      end
+
+      # R2 drain: "segurar online" NÃO é handoff — não atribui, não cala bot e
+      # não grava cooldown. Persiste só o payload normalizado para o cron tentar
+      # novamente a MESMA seleção quando alguém ficar online, sem chamar IA de novo.
+      def stamp_handoff_hold!
+        metadata = (@card.metadata || {}).deep_dup
+        previous_hold = metadata.dig('ai', 'handoff_hold') || {}
+        ai = (metadata['ai'] || {}).merge(
+          'handoff_hold' => {
+            'held_at' => previous_hold['held_at'].presence || Time.current.iso8601,
+            'handoff' => @handoff.to_h
+          }
+        )
+        metadata['ai'] = ai
+        @card.update!(metadata: metadata)
+      end
+
+      # Limpa marcador órfão quando o card deixou de ser drenável (atribuído,
+      # sem conversa, config desligada etc.) ou quando o assign efetivo já gravou
+      # o handoff. Sem isso o cron continuaria varrendo lixo sem chance de ação.
+      def clear_handoff_hold!
+        metadata = (@card.metadata || {}).deep_dup
+        ai = metadata['ai'] || {}
+        return unless ai.key?('handoff_hold')
+
+        metadata['ai'] = ai.except('handoff_hold')
+        @card.update!(metadata: metadata)
       end
     end
   end

@@ -93,6 +93,18 @@ crm_ai_stale_cards_job:
   class: 'Crm::Ai::StaleCardsJob'
   queue: scheduled_jobs
 
+# executed every 2 minutes; assigns R2 held cards once an agent comes online
+crm_ai_handoff_drain_job:
+  cron: '*/2 * * * *'
+  class: 'Crm::Ai::HandoffDrainJob'
+  queue: scheduled_jobs
+
+# executed every 15 minutes; marks stale R3 invite cycles as expired
+crm_ai_handoff_expiry_job:
+  cron: '*/15 * * * *'
+  class: 'Crm::Ai::HandoffExpiryJob'
+  queue: scheduled_jobs
+
 # executed hourly; prunes idempotency keys past their 24h TTL
 crm_idempotency_keys_cleanup_job:
   cron: '15 * * * *'
@@ -118,6 +130,12 @@ crm_calendar_subscription_renewal_job:
 crm_ai_auto_followup_scan_job:
   cron: '*/15 * * * *'
   class: 'Crm::Ai::AutoFollowupScanJob'
+  queue: scheduled_jobs
+
+# executed every 5 minutes; escalates expired CRM AI handoff invites.
+crm_ai_handoff_escalation_job:
+  cron: '*/5 * * * *'
+  class: 'Crm::Ai::HandoffEscalationJob'
   queue: scheduled_jobs
 
 # executed hourly; refreshes cached USD->BRL rate for CRM AI usage reporting.

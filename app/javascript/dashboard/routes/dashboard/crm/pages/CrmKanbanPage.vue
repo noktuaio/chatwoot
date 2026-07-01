@@ -1517,8 +1517,8 @@ onMounted(async () => {
           "
           :label="t('CRM_KANBAN.ACTIONS.HANDOFF_SETTINGS')"
           icon="i-lucide-arrow-right-left"
-          slate
-          faded
+          teal
+          solid
           @click="openHandoffDrawer"
         />
 
@@ -1530,46 +1530,6 @@ onMounted(async () => {
             @enter="applyFilters"
           />
         </div>
-
-        <label v-if="viewMode !== 'calendar'" class="grid gap-1">
-          <span class="text-xs font-medium text-n-slate-11">
-            {{ t('CRM_KANBAN.FILTERS.PRIORITY') }}
-          </span>
-          <select
-            v-model="filters.priority"
-            class="reset-base !mb-0 h-10 w-36 rounded-lg border-0 bg-n-alpha-black2 px-3 text-sm text-n-slate-12 outline outline-1 outline-n-weak focus:outline-n-brand"
-            @change="applyFilters"
-          >
-            <option value="">{{ t('CRM_KANBAN.FILTERS.ALL_FEMININE') }}</option>
-            <option
-              v-for="priority in priorityOptions"
-              :key="priority.value"
-              :value="priority.value"
-            >
-              {{ priority.label }}
-            </option>
-          </select>
-        </label>
-
-        <label v-if="viewMode !== 'calendar'" class="grid gap-1">
-          <span class="text-xs font-medium text-n-slate-11">
-            {{ t('CRM_KANBAN.FILTERS.FOLLOW_UP') }}
-          </span>
-          <select
-            v-model="filters.followUpStatus"
-            class="reset-base !mb-0 h-10 w-36 rounded-lg border-0 bg-n-alpha-black2 px-3 text-sm text-n-slate-12 outline outline-1 outline-n-weak focus:outline-n-brand"
-            @change="applyFilters"
-          >
-            <option value="">{{ t('CRM_KANBAN.FILTERS.ALL') }}</option>
-            <option
-              v-for="status in followUpStatusOptions"
-              :key="status.value"
-              :value="status.value"
-            >
-              {{ status.label }}
-            </option>
-          </select>
-        </label>
 
         <Popover
           v-if="viewMode !== 'calendar'"
@@ -1634,6 +1594,48 @@ onMounted(async () => {
                     :value="agent.value"
                   >
                     {{ agent.label }}
+                  </option>
+                </select>
+              </label>
+
+              <label class="grid gap-1">
+                <span class="text-xs font-medium text-n-slate-11">
+                  {{ t('CRM_KANBAN.FILTERS.PRIORITY') }}
+                </span>
+                <select
+                  v-model="filters.priority"
+                  class="reset-base !mb-0 h-9 w-full rounded-lg border-0 bg-n-alpha-black2 px-3 text-sm text-n-slate-12 outline outline-1 outline-n-weak focus:outline-n-brand"
+                  @change="applyFilters"
+                >
+                  <option value="">
+                    {{ t('CRM_KANBAN.FILTERS.ALL_FEMININE') }}
+                  </option>
+                  <option
+                    v-for="priority in priorityOptions"
+                    :key="priority.value"
+                    :value="priority.value"
+                  >
+                    {{ priority.label }}
+                  </option>
+                </select>
+              </label>
+
+              <label class="grid gap-1">
+                <span class="text-xs font-medium text-n-slate-11">
+                  {{ t('CRM_KANBAN.FILTERS.FOLLOW_UP') }}
+                </span>
+                <select
+                  v-model="filters.followUpStatus"
+                  class="reset-base !mb-0 h-9 w-full rounded-lg border-0 bg-n-alpha-black2 px-3 text-sm text-n-slate-12 outline outline-1 outline-n-weak focus:outline-n-brand"
+                  @change="applyFilters"
+                >
+                  <option value="">{{ t('CRM_KANBAN.FILTERS.ALL') }}</option>
+                  <option
+                    v-for="status in followUpStatusOptions"
+                    :key="status.value"
+                    :value="status.value"
+                  >
+                    {{ status.label }}
                   </option>
                 </select>
               </label>
