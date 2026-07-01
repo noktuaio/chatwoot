@@ -92,4 +92,27 @@ RSpec.describe 'CRM AI settings API', type: :request do
     expect(handoff['pool_id']).to eq(supervisor.id)
     expect(handoff['escalation_action']).to eq('escalate')
   end
+
+  it 'keeps selector_mode mirroring mode across saves', :aggregate_failures do
+    account, admin = create_account_and_user
+    pipeline, = create_crm_pipeline(account: account, user: admin)
+
+    patch "/api/v1/accounts/#{account.id}/crm/pipelines/#{pipeline.id}/ai_settings",
+          params: { ai_settings: { handoff: { enabled: true, mode: 'direct' } } },
+          headers: auth_headers(admin)
+
+    expect(response).to have_http_status(:ok)
+    handoff = response.parsed_body.dig('payload', 'handoff')
+    expect(handoff['mode']).to eq('direct')
+    expect(handoff['selector_mode']).to eq('direct')
+
+    # a partial PATCH of another field must not flip selector_mode to round_robin
+    patch "/api/v1/accounts/#{account.id}/crm/pipelines/#{pipeline.id}/ai_settings",
+          params: { ai_settings: { handoff: { trigger: 'Atendimento humano' } } },
+          headers: auth_headers(admin)
+
+    handoff = response.parsed_body.dig('payload', 'handoff')
+    expect(handoff['mode']).to eq('direct')
+    expect(handoff['selector_mode']).to eq('direct')
+  end
 end

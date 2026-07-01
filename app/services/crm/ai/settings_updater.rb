@@ -92,7 +92,6 @@ module Crm
         result = normalized_handoff_defaults(existing)
         result['enabled'] = cast_boolean(cfg[:enabled], default: false) if cfg.key?(:enabled)
         result['mode'] = normalize_handoff_selector(cfg[:mode]) if cfg.key?(:mode)
-        result['selector_mode'] = normalize_handoff_selector(cfg[:selector_mode]) if cfg.key?(:selector_mode)
         result['handoff_mode'] = normalize_handoff_flow(cfg[:handoff_mode]) if cfg.key?(:handoff_mode)
         result['trigger'] = cfg[:trigger].to_s.strip if cfg.key?(:trigger)
         result['prefer_online'] = cast_boolean(cfg[:prefer_online], default: true) if cfg.key?(:prefer_online)
@@ -112,8 +111,10 @@ module Crm
         cfg = (existing || {}).to_h.with_indifferent_access
         result = {
           'enabled' => cast_boolean(cfg[:enabled], default: false),
+          # selector_mode is a read-time alias of `mode` (Config.handoff_selector_mode
+          # mirrors mode when absent); persisting it separately would let it drift from
+          # mode and silently override the selector on save. So we never store it.
           'mode' => normalize_handoff_selector(cfg[:mode]),
-          'selector_mode' => normalize_handoff_selector(cfg[:selector_mode]),
           'handoff_mode' => normalize_handoff_flow(cfg[:handoff_mode]),
           'trigger' => cfg[:trigger].to_s.strip,
           'prefer_online' => cfg.key?(:prefer_online) ? cast_boolean(cfg[:prefer_online], default: true) : true,
