@@ -47,6 +47,7 @@ class Crm::Ai::HandoffPickupRecorder
       handoff = card_handoff(card)
       invited_at = parse_time(handoff['invited_at'])
       next if invited_at.blank?
+      next if handoff['escalated_at'].present?
 
       existing = parse_time(handoff['picked_up_at'])
       next if existing.present? && existing <= @picked_up_at

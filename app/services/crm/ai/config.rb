@@ -128,6 +128,7 @@ module Crm
 
       # Don't re-hand-off the same conversation within this window (loop/spam guard).
       HANDOFF_COOLDOWN_SECONDS = 6 * 60 * 60
+      HANDOFF_PICKUP_THRESHOLD_SECONDS = 15 * 60
       HANDOFF_MODES = %w[direct round_robin].freeze
       # Fluxo do handoff: r2_direct = atribui direto (comportamento legado);
       # r3_invite = convida (participante + notificação) sem atribuir/calar o bot.
@@ -145,8 +146,27 @@ module Crm
           mode: HANDOFF_MODES.include?(cfg['mode']) ? cfg['mode'] : 'round_robin',
           handoff_mode: HANDOFF_FLOW_MODES.include?(cfg['handoff_mode']) ? cfg['handoff_mode'] : 'r2_direct',
           trigger: cfg['trigger'].to_s.strip,
-          prefer_online: cfg.key?('prefer_online') ? BOOLEAN.cast(cfg['prefer_online']) : true
+          prefer_online: cfg.key?('prefer_online') ? BOOLEAN.cast(cfg['prefer_online']) : true,
+          pickup_threshold_seconds: handoff_pickup_threshold_seconds(cfg),
+          escalation_user_id: handoff_escalation_user_id(cfg)
         }.with_indifferent_access
+      end
+
+      def self.handoff_pickup_threshold_seconds(cfg)
+        value = cfg['pickup_threshold_seconds']
+        return HANDOFF_PICKUP_THRESHOLD_SECONDS unless value.to_s.match?(/\A\d+\z/)
+
+        seconds = value.to_i
+        seconds.positive? ? seconds : HANDOFF_PICKUP_THRESHOLD_SECONDS
+      end
+
+      def self.handoff_escalation_user_id(cfg)
+        value = cfg['escalation_user_id']
+        return value if value.is_a?(Integer) && value.positive?
+        return unless value.is_a?(String) && value.match?(/\A\d+\z/)
+
+        user_id = value.to_i
+        user_id.positive? ? user_id : nil
       end
     end
   end
