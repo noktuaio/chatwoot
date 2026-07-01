@@ -28,6 +28,7 @@ module Crm
         ai['callback_mode'] = normalize_callback_mode(@params[:callback_mode]) if @params.key?(:callback_mode)
         ai['stale_hours'] = (@params[:stale_hours].presence || Config::DEFAULT_STALE_HOURS).to_i if @params.key?(:stale_hours)
         ai['auto_followup'] = normalize_auto_followup(@params[:auto_followup]) if @params.key?(:auto_followup)
+        ai['handoff'] = normalize_handoff(@params[:handoff], ai['handoff']) if @params.key?(:handoff)
         metadata['ai'] = ai
         @pipeline.update!(metadata: metadata)
       end
@@ -64,8 +65,21 @@ module Crm
 
           metadata = (stage.metadata || {}).deep_dup
           metadata['ai_criteria'] = criteria.to_s.strip unless criteria.nil?
-          metadata['ai_handoff'] = normalize_handoff(handoff, metadata['ai_handoff']) unless handoff.nil?
+          apply_stage_handoff!(metadata, handoff) unless handoff.nil?
           stage.update!(metadata: metadata)
+        end
+      end
+
+      # `custom:false` é o sinal explícito de "voltar ao padrão do funil": apaga o override
+      # da etapa (em vez de gravar um bloco com defaults) para que `Config.handoff_settings`
+      # volte a herdar o `ai['handoff']` do pipeline sem sombreá-lo (causa raiz do achado do
+      # Codex no PR4b: gravar defaults explícitos por etapa sombreia o default do funil).
+      def apply_stage_handoff!(metadata, handoff)
+        cfg = handoff.to_h.with_indifferent_access
+        if cfg.key?(:custom) && !cast_boolean(cfg[:custom], default: true)
+          metadata.delete('ai_handoff')
+        else
+          metadata['ai_handoff'] = normalize_handoff(handoff, metadata['ai_handoff'])
         end
       end
 
