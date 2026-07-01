@@ -129,6 +129,9 @@ module Crm
       # Don't re-hand-off the same conversation within this window (loop/spam guard).
       HANDOFF_COOLDOWN_SECONDS = 6 * 60 * 60
       HANDOFF_MODES = %w[direct round_robin].freeze
+      # Fluxo do handoff: r2_direct = atribui direto (comportamento legado);
+      # r3_invite = convida (participante + notificação) sem atribuir/calar o bot.
+      HANDOFF_FLOW_MODES = %w[r2_direct r3_invite].freeze
 
       # Effective handoff config for a card's current stage. Stage-level config
       # overrides pipeline-level defaults so a funnel can set a baseline and a
@@ -140,6 +143,7 @@ module Crm
         {
           enabled: BOOLEAN.cast(cfg['enabled']),
           mode: HANDOFF_MODES.include?(cfg['mode']) ? cfg['mode'] : 'round_robin',
+          handoff_mode: HANDOFF_FLOW_MODES.include?(cfg['handoff_mode']) ? cfg['handoff_mode'] : 'r2_direct',
           trigger: cfg['trigger'].to_s.strip,
           prefer_online: cfg.key?('prefer_online') ? BOOLEAN.cast(cfg['prefer_online']) : true
         }.with_indifferent_access
