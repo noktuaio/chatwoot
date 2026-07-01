@@ -64,20 +64,43 @@ module Crm
 
           metadata = (stage.metadata || {}).deep_dup
           metadata['ai_criteria'] = criteria.to_s.strip unless criteria.nil?
-          metadata['ai_handoff'] = normalize_handoff(handoff) unless handoff.nil?
+          metadata['ai_handoff'] = normalize_handoff(handoff, metadata['ai_handoff']) unless handoff.nil?
           stage.update!(metadata: metadata)
         end
       end
 
-      def normalize_handoff(handoff)
+      # Merge PARCIAL por chave sobre o bloco já gravado: só sobrescreve o que veio no params.
+      # Assim o save do painel (que ainda NÃO expõe handoff_mode) não reverte um override
+      # r3_invite ligado por outro caminho, e um PATCH parcial não apaga os demais campos.
+      # Chaves ausentes no blob antigo caem nos defaults seguros (mesma resolução da leitura).
+      def normalize_handoff(handoff, existing = {})
         cfg = handoff.to_h.with_indifferent_access
-        mode = Config::HANDOFF_MODES.include?(cfg[:mode]) ? cfg[:mode] : 'round_robin'
+        result = normalized_handoff_defaults(existing)
+        result['enabled'] = cast_boolean(cfg[:enabled], default: false) if cfg.key?(:enabled)
+        result['mode'] = normalize_handoff_selector(cfg[:mode]) if cfg.key?(:mode)
+        result['handoff_mode'] = normalize_handoff_flow(cfg[:handoff_mode]) if cfg.key?(:handoff_mode)
+        result['trigger'] = cfg[:trigger].to_s.strip if cfg.key?(:trigger)
+        result['prefer_online'] = cast_boolean(cfg[:prefer_online], default: true) if cfg.key?(:prefer_online)
+        result
+      end
+
+      def normalized_handoff_defaults(existing)
+        cfg = (existing || {}).to_h.with_indifferent_access
         {
           'enabled' => cast_boolean(cfg[:enabled], default: false),
-          'mode' => mode,
+          'mode' => normalize_handoff_selector(cfg[:mode]),
+          'handoff_mode' => normalize_handoff_flow(cfg[:handoff_mode]),
           'trigger' => cfg[:trigger].to_s.strip,
-          'prefer_online' => cast_boolean(cfg[:prefer_online], default: true)
+          'prefer_online' => cfg.key?(:prefer_online) ? cast_boolean(cfg[:prefer_online], default: true) : true
         }
+      end
+
+      def normalize_handoff_selector(value)
+        Config::HANDOFF_MODES.include?(value) ? value : 'round_robin'
+      end
+
+      def normalize_handoff_flow(value)
+        Config::HANDOFF_FLOW_MODES.include?(value) ? value : 'r2_direct'
       end
 
       def cast_boolean(value, default:)
