@@ -20,6 +20,8 @@ module Crm
 
         agent = select_agent
         return skip('no_eligible_agent') if agent.blank?
+        return invite(agent) if invite_mode?
+
         return skip('assignment_failed') unless assign!(agent)
 
         Result.new(status: :handed_off, assignee: agent)
@@ -76,6 +78,27 @@ module Crm
         ).perform
       end
 
+      def invite_mode?
+        settings[:handoff_mode] == 'r3_invite'
+      end
+
+      # R3: convida (participante + notificação), NÃO atribui, NÃO cala o bot. Grava
+      # invited_at (métrica de tempo-de-pega, PR2) e last_handoff_at (cooldown). Se o
+      # agente não puder participar da caixa, o convite falha e nada é gravado.
+      def invite(agent)
+        invited = false
+        ActiveRecord::Base.transaction do
+          invited = Crm::Ai::HandoffInviter.new(conversation: @conversation, agent: agent).perform
+          raise ActiveRecord::Rollback unless invited
+
+          stamp_handoff_metadata!(invited: true)
+          log_activity!(agent, event_type: 'ai_handoff_invite')
+        end
+        return skip('invite_failed') unless invited
+
+        Result.new(status: :invited, assignee: agent)
+      end
+
       # Retorna true só se a atribuição efetivou. A primitiva revalida o agente em
       # account.users e devolve nil se ele não pertencer à conta (membro órfão/
       # cross-account) — nesse caso NÃO grava metadata/log nem cala o bot (evita
@@ -100,17 +123,20 @@ module Crm
         true
       end
 
-      def stamp_handoff_metadata!
+      def stamp_handoff_metadata!(invited: false)
         metadata = (@card.metadata || {}).deep_dup
-        metadata['ai'] = (metadata['ai'] || {}).merge('last_handoff_at' => Time.current.iso8601)
+        now = Time.current.iso8601
+        ai = (metadata['ai'] || {}).merge('last_handoff_at' => now)
+        ai['handoff'] = (ai['handoff'] || {}).merge('invited_at' => now) if invited
+        metadata['ai'] = ai
         @card.update!(metadata: metadata)
       end
 
-      def log_activity!(agent)
+      def log_activity!(agent, event_type: 'ai_handoff')
         Crm::ActivityLogger.new(
           card: @card,
           actor: nil,
-          event_type: 'ai_handoff',
+          event_type: event_type,
           conversation: @conversation,
           payload: {
             assignee_id: agent.id,
