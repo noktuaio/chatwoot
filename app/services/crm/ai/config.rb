@@ -134,6 +134,7 @@ module Crm
       HANDOFF_MODES = %w[direct round_robin].freeze
       HANDOFF_POOL_TYPES = %w[inbox user].freeze
       HANDOFF_ESCALATION_ACTIONS = %w[renotify escalate].freeze
+      HANDOFF_RENOTIFY_MAX = 8
       # Fluxo do handoff: r2_direct = atribui direto (comportamento legado);
       # r3_invite = convida (participante + notificação) sem atribuir/calar o bot.
       HANDOFF_FLOW_MODES = %w[r2_direct r3_invite].freeze
@@ -236,10 +237,17 @@ module Crm
       private_class_method :handoff_renotify_after_seconds
 
       def self.handoff_escalation_action(cfg, escalation_user_id)
-        action = HANDOFF_ESCALATION_ACTIONS.include?(cfg['escalation_action']) ? cfg['escalation_action'] : 'renotify'
+        action = if HANDOFF_ESCALATION_ACTIONS.include?(cfg['escalation_action'])
+                   cfg['escalation_action']
+                 else
+                   default_escalation_action(escalation_user_id)
+                 end
         action == 'escalate' && escalation_user_id.blank? ? 'renotify' : action
       end
       private_class_method :handoff_escalation_action
+
+      def self.default_escalation_action(escalation_user_id) = escalation_user_id.present? ? 'escalate' : 'renotify'
+      private_class_method :default_escalation_action
     end
   end
 end

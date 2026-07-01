@@ -68,6 +68,16 @@ RSpec.describe Crm::Ai::Config do
       expect(settings[:escalation_action]).to eq('escalate')
     end
 
+    it 'defaults escalation_action to escalate when legacy escalation_user_id is present' do
+      settings = described_class.handoff_settings(
+        stage_with({ 'ai_handoff' => { 'escalation_user_id' => '123' } }),
+        pipeline_with({})
+      )
+
+      expect(settings[:escalation_user_id]).to eq(123)
+      expect(settings[:escalation_action]).to eq('escalate')
+    end
+
     it 'coerces escalation_action escalate to renotify without escalation_user_id' do
       settings = described_class.handoff_settings(
         stage_with({ 'ai_handoff' => { 'escalation_action' => 'escalate' } }),
