@@ -30,15 +30,20 @@ class Crm::Ai::HandoffEscalationJob < ApplicationJob
       settings[:pickup_threshold_seconds].to_i.positive?
   end
 
+  # Trava conversa→card (mesma ordem do drain) para serializar contra expiry/pickup/
+  # executor, que travam o card e escrevem o MESMO JSONB. Sem o lock do card, o
+  # stamp_escalation! rodava sobre metadata carregado fora de lock e podia perder o
+  # write de um job concorrente (expiry marcando expired_at, p.ex.).
   def escalate(card, settings)
     conversation = card.primary_conversation
     return if conversation.blank?
 
-    conversation.with_lock { escalate_locked(card, conversation, settings) }
+    conversation.with_lock do
+      card.with_lock { escalate_locked(card, conversation, settings) }
+    end
   end
 
   def escalate_locked(card, conversation, _settings)
-    card.reload
     settings = Crm::Ai::Config.handoff_settings(card.stage, card.pipeline)
     return unless card.open? && escalatable?(settings)
     return if conversation.assignee_id.present?
@@ -83,12 +88,16 @@ class Crm::Ai::HandoffEscalationJob < ApplicationJob
     cycles = (card.metadata || {}).dig('ai', 'handoffs')
     return unless cycles.is_a?(Array)
 
-    cycles.reverse.find do |cycle|
-      cycle['invited_at'].present? &&
-        cycle['picked_up_at'].blank? &&
-        cycle['canceled_at'].blank? &&
-        cycle['escalated_at'].blank?
-    end
+    cycles.reverse.find { |cycle| cycle['invited_at'].present? && cycle_open?(cycle) }
+  end
+
+  # Ciclo ainda aberto: sem nenhum estado terminal (pega, cancelamento por novo
+  # convite, expiração por TTL ou escalação). Escalation só age em ciclo aberto.
+  def cycle_open?(cycle)
+    cycle['picked_up_at'].blank? &&
+      cycle['canceled_at'].blank? &&
+      cycle['expired_at'].blank? &&
+      cycle['escalated_at'].blank?
   end
 
   def stamp_escalation!(card, cycle, user_id)

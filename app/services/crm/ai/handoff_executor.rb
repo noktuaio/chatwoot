@@ -197,7 +197,8 @@ module Crm
 
       def supersede_open_cycles(cycles, now)
         cycles.map do |cycle|
-          open = cycle['picked_up_at'].blank? && cycle['canceled_at'].blank? && cycle['expired_at'].blank?
+          open = cycle['picked_up_at'].blank? && cycle['canceled_at'].blank? &&
+                 cycle['expired_at'].blank? && cycle['escalated_at'].blank?
           open ? cycle.merge('canceled_at' => now) : cycle
         end
       end

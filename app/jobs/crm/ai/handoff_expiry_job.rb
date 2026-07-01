@@ -69,10 +69,17 @@ class Crm::Ai::HandoffExpiryJob < ApplicationJob
   def expirable_cycle?(cycle, cutoff)
     return false unless cycle.is_a?(Hash)
     return false if cycle['invited_at'].blank?
-    return false if cycle['picked_up_at'].present? || cycle['canceled_at'].present? || cycle['expired_at'].present?
+    return false if cycle_closed?(cycle)
 
     invited_at = parse_time(cycle['invited_at'])
     invited_at.present? && invited_at < cutoff
+  end
+
+  # Ciclo já em estado terminal — pega, cancelamento, expiração anterior ou
+  # escalação (esta introduzida pelo job de escalação; não re-expirar por cima).
+  def cycle_closed?(cycle)
+    cycle['picked_up_at'].present? || cycle['canceled_at'].present? ||
+      cycle['expired_at'].present? || cycle['escalated_at'].present?
   end
 
   def updated_pointer(pointer, cycles)
