@@ -91,10 +91,12 @@ module Crm
         @member_selector = Crm::Ai::HandoffMemberSelector.new(
           inbox: @conversation.inbox,
           account_id: @card.account_id,
-          mode: settings[:mode],
+          mode: settings[:selector_mode],
           prefer_online: settings[:prefer_online],
           require_online: require_online,
-          suggested_name: @handoff[:suggested_agent]
+          suggested_name: @handoff[:suggested_agent],
+          pool_type: settings[:pool_type],
+          pool_id: settings[:pool_id]
         )
         @member_selector.perform
       end
