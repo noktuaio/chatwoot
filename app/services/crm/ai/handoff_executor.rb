@@ -78,10 +78,22 @@ module Crm
       def recently_handed_off?
         last = (@card.metadata || {}).dig('ai', 'last_handoff_at')
         return false if last.blank?
+        return false if resolved_handoff_cycle?
 
         Time.parse(last.to_s) > Config::HANDOFF_COOLDOWN_SECONDS.seconds.ago
       rescue ArgumentError, TypeError
         false
+      end
+
+      # Ciclo pego e depois liberado = handoff RESOLVIDO: um humano assumiu
+      # (picked_up_at) e a conversa voltou a ficar sem responsável (a guarda
+      # already_assigned cobre o caso ainda atribuído). O operador devolveu ao
+      # bot de propósito, então um novo pedido do cliente pode convidar de novo
+      # sem esperar o cooldown. Ciclos abertos/cancelados/expirados/escalados
+      # mantêm o cooldown (anti-spam de convite).
+      def resolved_handoff_cycle?
+        pointer = (@card.metadata || {}).dig('ai', 'handoff')
+        pointer.is_a?(Hash) && pointer['picked_up_at'].present?
       end
 
       # Seleção de membro delegada ao Crm::Ai::HandoffMemberSelector (lógica
@@ -178,7 +190,14 @@ module Crm
       # anterior (U11: antes o 2º convite pisava em invited_at do 1º).
       def append_invite_cycle(ai_meta, now, agent)
         cycles = supersede_open_cycles(normalized_cycles(ai_meta), now)
-        cycle = { 'cycle_id' => next_cycle_id(cycles), 'invited_at' => now, 'invited_agent_id' => agent.id }
+        cycle = {
+          'cycle_id' => next_cycle_id(cycles),
+          'invited_at' => now,
+          'invited_agent_id' => agent.id,
+          # Prazo de pega congelado no convite: alimenta o badge do kanban sem
+          # o leitor precisar resolver a config efetiva da etapa depois.
+          'pickup_due_at' => (Time.current + settings[:pickup_threshold_seconds].to_i.seconds).iso8601
+        }
         # O ponteiro sempre referencia o ciclo recém-criado; manter a cauda preserva
         # esse ciclo e descarta apenas histórico antigo já fora da janela operacional.
         capped_cycles = (cycles + [cycle]).last(HANDOFF_CYCLES_CAP)
