@@ -189,7 +189,15 @@ watch(
 <template>
   <SettingsLayout :is-loading="isLoading" :no-records-found="false">
     <template #header>
-      <div class="flex min-h-10 w-full items-center justify-between gap-2">
+      <div class="flex min-h-10 w-full items-center gap-2">
+        <Button
+          icon="i-lucide-arrow-left"
+          slate
+          ghost
+          sm
+          :aria-label="t('CRM_KANBAN.HANDOFF_SETTINGS.BACK_TO_CRM')"
+          @click="router.push({ name: 'crm_kanban_index' })"
+        />
         <Breadcrumb :items="breadcrumbItems" @click="handleBreadcrumbClick" />
       </div>
     </template>
@@ -222,11 +230,11 @@ watch(
               {{ t('CRM_KANBAN.HANDOFF_SETTINGS.LINKED_INBOXES') }}
             </span>
             <span
-              v-for="inbox in pipelineInboxes"
-              :key="inbox.id"
+              v-for="pipelineInbox in pipelineInboxes"
+              :key="pipelineInbox.id"
               class="rounded-full bg-n-alpha-2 px-2.5 py-0.5 text-xs text-n-slate-12"
             >
-              {{ inbox.name }}
+              {{ pipelineInbox.inbox?.name || pipelineInbox.name }}
             </span>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
 import Breadcrumb from 'dashboard/components-next/breadcrumb/Breadcrumb.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
 import SettingsLayout from 'dashboard/routes/dashboard/settings/SettingsLayout.vue';
 import CrmKanbanAPI from 'dashboard/api/crmKanban';
 
@@ -70,7 +71,15 @@ onMounted(async () => {
     :no-records-message="t('CRM_KANBAN.HANDOFF_SETTINGS.NO_PIPELINES')"
   >
     <template #header>
-      <div class="flex min-h-10 w-full items-center justify-between gap-2">
+      <div class="flex min-h-10 w-full items-center gap-2">
+        <Button
+          icon="i-lucide-arrow-left"
+          slate
+          ghost
+          sm
+          :aria-label="t('CRM_KANBAN.HANDOFF_SETTINGS.BACK_TO_CRM')"
+          @click="router.push({ name: 'crm_kanban_index' })"
+        />
         <Breadcrumb :items="breadcrumbItems" @click="handleBreadcrumbClick" />
       </div>
     </template>

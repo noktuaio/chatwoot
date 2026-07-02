@@ -1100,6 +1100,7 @@
     },
     "HANDOFF_SETTINGS": {
       "INDEX_TITLE": "AI handoff (CRM)",
+      "BACK_TO_CRM": "Back to CRM",
       "INDEX_DESCRIPTION": "Pick the pipeline to set how the AI hands conversations to humans.",
       "NO_PIPELINES": "No pipelines found.",
       "LOAD_ERROR": "Could not load handoff settings.",
