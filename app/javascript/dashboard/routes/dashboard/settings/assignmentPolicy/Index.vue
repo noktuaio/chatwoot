@@ -50,7 +50,10 @@ const agentAssignments = computed(() => {
     'advanced_assignment'
   );
 
-  const hasCrm = isFeatureEnabledonAccount.value(accountId.value, 'crm');
+  const hasCrm =
+    isFeatureEnabledonAccount.value(accountId.value, 'crm') &&
+    window.globalConfig?.CRM_KANBAN_ENABLED === 'true' &&
+    window.globalConfig?.CRM_AI_ENABLED === 'true';
   if (hasCrm) {
     assignments.push({
       key: 'crm_handoff_settings_index',
