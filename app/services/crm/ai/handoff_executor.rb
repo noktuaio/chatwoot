@@ -190,7 +190,14 @@ module Crm
       # anterior (U11: antes o 2º convite pisava em invited_at do 1º).
       def append_invite_cycle(ai_meta, now, agent)
         cycles = supersede_open_cycles(normalized_cycles(ai_meta), now)
-        cycle = { 'cycle_id' => next_cycle_id(cycles), 'invited_at' => now, 'invited_agent_id' => agent.id }
+        cycle = {
+          'cycle_id' => next_cycle_id(cycles),
+          'invited_at' => now,
+          'invited_agent_id' => agent.id,
+          # Prazo de pega congelado no convite: alimenta o badge do kanban sem
+          # o leitor precisar resolver a config efetiva da etapa depois.
+          'pickup_due_at' => (Time.current + settings[:pickup_threshold_seconds].to_i.seconds).iso8601
+        }
         # O ponteiro sempre referencia o ciclo recém-criado; manter a cauda preserva
         # esse ciclo e descarta apenas histórico antigo já fora da janela operacional.
         capped_cycles = (cycles + [cycle]).last(HANDOFF_CYCLES_CAP)

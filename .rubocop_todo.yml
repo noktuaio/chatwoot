@@ -257,6 +257,7 @@ Metrics/ClassLength:
     - 'app/services/crm/ai/handoff_executor.rb'
     - 'app/services/crm/ai/responses_client.rb'
     - 'app/services/crm/calendar/public_booking_service.rb'
+    - 'app/services/crm/cards/payload_builder.rb'
     - 'app/services/crm/conversations/card_syncer.rb'
     - 'app/services/crm/follow_ups/auto_followup_runner.rb'
     - 'app/services/crm/meetings/creator.rb'

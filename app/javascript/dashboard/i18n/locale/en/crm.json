@@ -728,7 +728,9 @@
       "LAST_MESSAGE": "Last message {time}",
       "SCORE": "Score {score}",
       "FOLLOW_UP_AI": "Automatic follow-up (AI)",
-      "FOLLOW_UP_MANUAL": "Manual reminder"
+      "FOLLOW_UP_MANUAL": "Manual reminder",
+      "HANDOFF_INVITE_PENDING": "Handoff invite pending: pickup due at the time shown",
+      "HANDOFF_INVITE_OVERDUE": "Handoff invite overdue: nobody picked it up in time"
     },
     "DRAWER": {
       "CREATE_TITLE": "New card",
