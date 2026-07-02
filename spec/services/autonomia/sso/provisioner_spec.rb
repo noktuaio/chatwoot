@@ -93,6 +93,44 @@ RSpec.describe Autonomia::Sso::Provisioner do
       expect(provisioner.send(:identity_organization_metadata)).not_to include('fallback' => true)
     end
 
+    context 'when the account link uses a fallback organization' do
+      let!(:invited_account) { nil }
+      let(:identity_email) { 'roberto.martins@hub2you.ai' }
+      let(:identity_user_id) { 'hub2you-user-id' }
+      let!(:linked_account) { create(:account, name: 'GTA') }
+      let!(:fallback_account_link) do
+        Autonomia::AccountLink.create!(
+          account: linked_account,
+          identity_organization_id: identity_email,
+          metadata: {
+            'identity_organization' => {
+              'id' => identity_email,
+              'name' => 'Noktua',
+              'fallback' => true
+            }
+          }
+        )
+      end
+      let(:context) do
+        {
+          'user' => {
+            'id' => identity_user_id,
+            'email' => identity_email,
+            'name' => 'Roberto Martins',
+            'companyName' => 'Noktua'
+          }
+        }
+      end
+
+      it 'does not overwrite the account name from user companyName' do
+        provisioned_user = described_class.new(context: context).perform
+
+        expect(fallback_account_link.reload.account).to eq(linked_account)
+        expect(linked_account.reload.name).to eq('GTA')
+        expect(AccountUser.find_by!(account: linked_account, user: provisioned_user).role).to eq('administrator')
+      end
+    end
+
     context 'when the account was created by the registration callback' do
       let!(:invited_account) { nil }
       let(:identity_email) { 'roberto+hub2@noktua.io' }
