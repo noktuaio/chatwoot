@@ -23,6 +23,12 @@ Lote C peça 1 já em prod (PR #72 backend + #73 i18n stopgap): drawer funcional
 
 Mockup de referência: gerado nesta sessão (widget `handoff_drawer_redesign_mockup`).
 
+> Atualização 2026-07-02: o drawer do PR C foi substituído por páginas em
+> Configurações → Atribuição de agentes → Handoff da IA (CRM)
+> (`settings/assignmentPolicy/pages/CrmHandoff*`). `CrmHandoffDrawer.vue` e
+> `CrmHandoffFields.vue` foram removidos; o botão do kanban navega para a
+> página. O banner de feedback segue diferido.
+
 ---
 
 ## 1. Problema (a dor real)

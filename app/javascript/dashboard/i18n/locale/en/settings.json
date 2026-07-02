@@ -714,6 +714,15 @@
           "Create exceptions based on labels and time",
           "Add agents to a policy - one policy per agent"
         ]
+      },
+      "CRM_HANDOFF": {
+        "TITLE": "AI handoff (CRM)",
+        "DESCRIPTION": "Set how the AI hands pipeline conversations to humans.",
+        "FEATURES": [
+          "Direct or invite handoff, per pipeline and per stage",
+          "Target the whole inbox in rotation or a specific person",
+          "If nobody picks up: re-notify or escalate to a supervisor"
+        ]
       }
     },
     "AGENT_ASSIGNMENT_POLICY": {
