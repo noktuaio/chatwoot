@@ -1100,6 +1100,7 @@
     },
     "HANDOFF_SETTINGS": {
       "INDEX_TITLE": "Handoff da IA (CRM)",
+      "BACK_TO_CRM": "Voltar para o CRM",
       "INDEX_DESCRIPTION": "Escolha o funil para definir como a IA passa conversas para humanos.",
       "NO_PIPELINES": "Nenhum funil encontrado.",
       "LOAD_ERROR": "Não foi possível carregar as configurações de handoff.",
