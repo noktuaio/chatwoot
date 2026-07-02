@@ -8,6 +8,8 @@ import AgentAssignmentEdit from './pages/AgentAssignmentEditPage.vue';
 import AgentCapacityIndex from './pages/AgentCapacityIndexPage.vue';
 import AgentCapacityCreate from './pages/AgentCapacityCreatePage.vue';
 import AgentCapacityEdit from './pages/AgentCapacityEditPage.vue';
+import CrmHandoffIndex from './pages/CrmHandoffIndexPage.vue';
+import CrmHandoffEdit from './pages/CrmHandoffEditPage.vue';
 
 export default {
   routes: [
@@ -54,6 +56,24 @@ export default {
           component: AgentAssignmentEdit,
           meta: {
             featureFlag: FEATURE_FLAGS.ASSIGNMENT_V2,
+            permissions: ['administrator'],
+          },
+        },
+        {
+          path: 'handoff',
+          name: 'crm_handoff_settings_index',
+          component: CrmHandoffIndex,
+          meta: {
+            featureFlag: FEATURE_FLAGS.CRM,
+            permissions: ['administrator'],
+          },
+        },
+        {
+          path: 'handoff/:pipelineId',
+          name: 'crm_handoff_settings_edit',
+          component: CrmHandoffEdit,
+          meta: {
+            featureFlag: FEATURE_FLAGS.CRM,
             permissions: ['administrator'],
           },
         },

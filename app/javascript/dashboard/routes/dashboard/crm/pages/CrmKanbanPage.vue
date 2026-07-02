@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useEmitter } from 'dashboard/composables/emitter';
@@ -19,7 +19,6 @@ import ConfirmModal from 'dashboard/components/widgets/modal/ConfirmationModal.v
 import CrmKanbanCard from '../components/CrmKanbanCard.vue';
 import CrmCardDrawer from '../components/CrmCardDrawer.vue';
 import CrmPipelineDrawer from '../components/CrmPipelineDrawer.vue';
-import CrmHandoffDrawer from '../components/CrmHandoffDrawer.vue';
 import CrmInboxSettingsDrawer from '../components/CrmInboxSettingsDrawer.vue';
 import CrmBookingProfilesDrawer from '../components/CrmBookingProfilesDrawer.vue';
 import CrmCardsTable from '../components/list/CrmCardsTable.vue';
@@ -70,6 +69,7 @@ const isCrmAiEnabled = computed(
 );
 
 const route = useRoute();
+const router = useRouter();
 // Calendar-only sub-page (route meta.calendarOnly): opens straight on the calendar
 // with the kanban/list/calendar switch and "New pipeline" button hidden.
 const isCalendarOnly = computed(() => route.meta?.calendarOnly === true);
@@ -90,7 +90,6 @@ const showDrawer = ref(false);
 const drawerInitialTab = ref(null);
 const pipelineDrawerMode = ref('create');
 const showPipelineDrawer = ref(false);
-const showHandoffDrawer = ref(false);
 const pipelineInboxes = ref([]);
 const showInboxSettingsDrawer = ref(false);
 const showBookingProfilesDrawer = ref(false);
@@ -518,13 +517,12 @@ const closePipelineDrawer = () => {
   showPipelineDrawer.value = false;
 };
 
-const openHandoffDrawer = () => {
+const openHandoffSettings = () => {
   if (!selectedPipeline.value) return;
-  showHandoffDrawer.value = true;
-};
-
-const closeHandoffDrawer = () => {
-  showHandoffDrawer.value = false;
+  router.push({
+    name: 'crm_handoff_settings_edit',
+    params: { pipelineId: selectedPipeline.value.id },
+  });
 };
 
 const askConfirmation = async config => {
@@ -1519,7 +1517,7 @@ onMounted(async () => {
           icon="i-lucide-arrow-right-left"
           teal
           solid
-          @click="openHandoffDrawer"
+          @click="openHandoffSettings"
         />
 
         <div v-if="viewMode !== 'calendar'" class="w-60">
@@ -2192,13 +2190,6 @@ onMounted(async () => {
       @add-pipeline-inbox="addPipelineInbox"
       @remove-pipeline-inbox="removePipelineInbox"
       @close="closePipelineDrawer"
-    />
-
-    <CrmHandoffDrawer
-      :show="showHandoffDrawer"
-      :pipeline-id="selectedPipeline?.id"
-      :stages="stages"
-      @close="closeHandoffDrawer"
     />
 
     <CrmInboxSettingsDrawer
