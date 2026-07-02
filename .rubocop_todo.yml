@@ -254,6 +254,7 @@ Metrics/ClassLength:
     - 'app/services/campaign_imports/validator.rb'
     - 'app/services/crm/ai/config.rb'
     - 'app/services/crm/ai/follow_up_composer.rb'
+    - 'app/services/crm/ai/handoff_executor.rb'
     - 'app/services/crm/ai/responses_client.rb'
     - 'app/services/crm/calendar/public_booking_service.rb'
     - 'app/services/crm/conversations/card_syncer.rb'

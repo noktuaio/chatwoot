@@ -78,10 +78,22 @@ module Crm
       def recently_handed_off?
         last = (@card.metadata || {}).dig('ai', 'last_handoff_at')
         return false if last.blank?
+        return false if resolved_handoff_cycle?
 
         Time.parse(last.to_s) > Config::HANDOFF_COOLDOWN_SECONDS.seconds.ago
       rescue ArgumentError, TypeError
         false
+      end
+
+      # Ciclo pego e depois liberado = handoff RESOLVIDO: um humano assumiu
+      # (picked_up_at) e a conversa voltou a ficar sem responsável (a guarda
+      # already_assigned cobre o caso ainda atribuído). O operador devolveu ao
+      # bot de propósito, então um novo pedido do cliente pode convidar de novo
+      # sem esperar o cooldown. Ciclos abertos/cancelados/expirados/escalados
+      # mantêm o cooldown (anti-spam de convite).
+      def resolved_handoff_cycle?
+        pointer = (@card.metadata || {}).dig('ai', 'handoff')
+        pointer.is_a?(Hash) && pointer['picked_up_at'].present?
       end
 
       # Seleção de membro delegada ao Crm::Ai::HandoffMemberSelector (lógica
